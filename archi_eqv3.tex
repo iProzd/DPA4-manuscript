@@ -1,0 +1,1023 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\DeclareMathOperator{\SO}{SO}
+\DeclareMathOperator{\SE}{SE}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\softplus}{softplus}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Span}{span}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\SiLU}{SiLU}
+\DeclareMathOperator{\Sigmoid}{Sigmoid}
+\DeclareMathOperator{\SwiGLU}{SwiGLU}
+\DeclareMathOperator{\GELU}{GELU}
+\DeclareMathOperator{\LN}{LayerNorm}
+\DeclareMathOperator{\RMSN}{RMSNorm}
+\DeclareMathOperator{\Embed}{Embed}
+\DeclareMathOperator{\softcap}{softcap}
+\DeclareMathOperator*{\SUM}{\textstyle\sum}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\bA}{\bm{A}}
+\newcommand{\bU}{\bm{U}}
+\newcommand{\bV}{\bm{V}}
+\newcommand{\bG}{\bm{G}}
+\newcommand{\Sph}{S^2}
+\newcommand{\bR}{\bm{R}}
+\newcommand{\br}{\bm{r}}
+\newcommand{\brh}{\hat{\bm{r}}}
+\newcommand{\bx}{\bm{x}}
+\newcommand{\by}{\bm{y}}
+\newcommand{\bz}{\bm{z}}
+\newcommand{\bmF}{\bm{F}}
+\newcommand{\bh}{\bm{h}}
+\newcommand{\bq}{\bm{q}}
+\newcommand{\bk}{\bm{k}}
+\newcommand{\bv}{\bm{v}}
+\newcommand{\bg}{\bm{g}}
+\newcommand{\bu}{\bm{u}}
+\newcommand{\Te}{\bm{T}}
+\newcommand{\bD}{\bm{D}}
+\newcommand{\bW}{\bm{W}}
+\newcommand{\bP}{\bm{P}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\brho}{\bm{\rho}}
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\bxi}{\bm{\xi}}
+\newcommand{\rcut}{r_{\mathrm{c}}}
+\newcommand{\lmax}{l_{\max}}
+\newcommand{\mmax}{m_{\max}}
+\newcommand{\Nb}{\mathcal{N}}
+\newcommand{\Hb}{\mathcal{H}}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{The EquiformerV3 Architecture:\\ A Mathematical Construction\\ {\large With a Component-by-Component Comparison to DPA4}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We give a mathematically explicit construction of the EquiformerV3 graph neural network as a parametric family of $\SO(3)$-equivariant functions on atomic configurations.
+We follow the source distribution at \texttt{experimental/models/equiformer\_v3/} of the EquiformerV3 release, transcribing the implementation into definitions, operators, and named blocks rather than into code.
+The construction proceeds through the configuration space, edge graph, edge-aligned $\SO(3)$ frame, Wigner-$D$ rotation to and from that frame, real spherical-harmonic feature layout, $\SO(2)$ linear operators in the local frame, equivariant attention, $\Sph$-grid feed-forward network, equivariant layer normalisation, pre-norm transformer block, and energy/force/stress output heads.
+The final section places EquiformerV3 side-by-side with DPA4 of the companion document and identifies, equation by equation, the choices on which the two architectures agree and the choices on which they diverge.
+\end{abstract}
+
+\tableofcontents
+
+% =============================================================
+\section{Overview of the Architecture}\label{sec:ov}
+
+EquiformerV3 is a parametric family of $\SO(3)$-equivariant functions
+\begin{equation}\label{eq:overall}
+\bigl(Z,R\bigr)\;\longmapsto\;\bigl(E_\Theta(Z,R),\,\bmF_\Theta(Z,R),\,\sigma_\Theta(Z,R)\bigr)
+\end{equation}
+of atomic configurations $(Z,R)$ with species $Z\in\{1,\dots,Z_{\max}\}^N$ and positions $R\in\R^{3N}$.
+The energy $E_\Theta(Z,R)\in\R$ is a translation-, permutation-, and rotation-invariant scalar; the forces $\bmF_\Theta(Z,R)\in\R^{3N}$ are $\SO(3)$-equivariant vectors; the stress $\sigma_\Theta(Z,R)\in\R^{3\times 3}$ is an $\SO(3)$-equivariant symmetric tensor.
+Forces and stress can be obtained either by autograd through $E_\Theta$ (\emph{gradient prediction}) or by separate $\SO(3)$-equivariant output heads (\emph{direct prediction}); the choice is a configuration flag.
+
+\paragraph{High-level pipeline.}
+Given an atomic configuration $(Z,R)$, EquiformerV3 executes the following sequence:
+\begin{enumerate}[leftmargin=2em]
+\item Build the directed edge graph $\Nb=\{(i,j):0<r_{ij}<\rcut\}$, possibly with periodic images, capped at $\Nb_{\max}$ neighbours per atom.
+\item For each edge $(i,j)$ construct a $3\times 3$ rotation matrix $\bR_{ij}\in\SO(3)$ whose middle column is the unit edge vector $\brh_{ij}$; this defines the edge-aligned local frame in which $\brh_{ij}$ becomes the local $\by$-axis.
+\item For each edge compute the block-diagonal Wigner-$D$ matrix $\bD_{ij}\in\R^{D\times D}$, $D=(\lmax+1)^2$, in a truncated $m$-primary layout (\S\ref{sec:so3rot}).
+\item Initialise per-atom features $\bh_i\in\R^{D\times C}$ from the atomic-number embedding (only the $l=0$ slot is non-zero), then add a one-shot \emph{edge-degree embedding} that promotes the $m=0$ radial channel up to all $(l,m)$ slots via $\bD_{ij}^{-1}$.
+\item Apply $L$ pre-norm transformer blocks (\S\ref{sec:block}), each consisting of an equivariant graph-attention sublayer (\S\ref{sec:attn}) and an equivariant feed-forward sublayer (\S\ref{sec:ffn}), with $\Sph$-grid nonlinearities.
+\item Apply a final equivariant layer norm; the $l=0$ slot of each atom is fed through a scalar MLP to produce a per-atom energy, summed over the structure with a fixed normaliser.
+\item For forces and stress: \emph{(direct)} apply an extra equivariant-attention head whose $l=1$ output gives the force vector, and an equivariant FFN head whose first $(\lmax+1)^2$ irreducible coefficients are pulled back through a fixed change-of-basis matrix to a symmetric stress tensor; or \emph{(gradient)} differentiate $E_\Theta$ with respect to positions and a symmetric displacement tensor by autograd.
+\end{enumerate}
+
+\paragraph{Two design ideas, in plain language.}
+First, equivariance is enforced by carrying out all linear operations either as $\SO(3)$ scalar-block channel mixers $L^{\mathrm{ch}}$, or, after a per-edge rotation to the local frame, as $\SO(2)_{\by}$-equivariant linear operators $L^{\mathrm{SO2}}$.
+Second, nonlinearities that would otherwise destroy equivariance act on a sampled $\Sph$-grid: $\SO(3)$ features are evaluated on a latitude--longitude grid via the real spherical-harmonic basis, an unconstrained pointwise MLP acts on grid samples, and the result is projected back into the irreducible basis.
+No Clebsch--Gordan coefficient appears anywhere in the parameterisation: \emph{equivariant--equivariant} tensor products are never computed; only \emph{equivariant--invariant} multiplications by edge-conditioned scalar radials, and \emph{equivariant--equivariant} compositions through pointwise multiplication on the $\Sph$-grid, are allowed.
+
+\paragraph{Notation.}
+Throughout, $i,j\in\{1,\dots,N\}$ are atom indices, $(i,j)\in\Nb$ are directed edges with source $i$ and target $j$, $E=|\Nb|$ is the number of edges, $C$ is the feature width (\texttt{num\_channels}), $H$ is the number of attention heads (\texttt{num\_heads}), $\lmax$ is the maximum $\SO(3)$ degree, and $\mmax\le\lmax$ is the maximum $\SO(2)$ order retained after rotation.
+Default hyperparameters in the public release are $L=12$, $C=128$, $H=8$, $\lmax=6$, $\mmax=2$, $\rcut=12$\,\AA{}, $\Nb_{\max}=20$.
+
+% =============================================================
+\section{Configuration Space and Symmetries}\label{sec:conf}
+
+\paragraph{Atomic configuration.}
+An atomic configuration is a pair $(Z,R)$ with $Z=(Z_1,\dots,Z_N)\in\{1,\dots,Z_{\max}\}^N$ and $R=(\bR_1,\dots,\bR_N)\in\R^{3N}$.
+Periodic images, when present, are generated by integer combinations of the simulation-cell columns and contribute additional edge candidates.
+
+\paragraph{Edge data.}
+For an ordered pair $(i,j)$ with $j\ne i$ (modulo periodic images), define
+\begin{equation}\label{eq:edgevec}
+\br_{ij}\;=\;\bR_j-\bR_i,\qquad r_{ij}=\|\br_{ij}\|_2,\qquad \brh_{ij}=\br_{ij}/r_{ij}.
+\end{equation}
+The directed edge set is $\Nb=\{(i,j):0<r_{ij}<\rcut,\;j\in\text{top-}\Nb_{\max}(i)\}$ where the top-$\Nb_{\max}$ selection retains the closest $\Nb_{\max}$ neighbours of $i$, breaking ties deterministically when so configured (flag \texttt{enforce\_max\_neighbors\_strictly}).
+
+\paragraph{Symmetry group and action.}
+The relevant symmetry group is $\SE(3)\times S_N$ (Euclidean isometries times atom-index permutations), restricted to the rotation subgroup $\SO(3)\subset\SE(3)$ for the equivariant features (translations factor out because only $\br_{ij}$ appears; reflections are not enforced).
+A rotation $g\in\SO(3)$ acts on positions by $g\cdot\bR_i\;=\;g\bR_i$, on edge vectors by $g\cdot\br_{ij}=g\br_{ij}$, and on a degree-$l$ feature $\bh^{(l,\cdot)}_i\in\R^{2l+1}$ by the real Wigner-$D$ matrix of degree $l$:
+\begin{equation}\label{eq:wignerD-action}
+(g\cdot\bh^{(l)}_i)_m \;=\;\sum_{m'} D^{(l)}_{m,m'}(g)\,\bh^{(l,m')}_i,
+\end{equation}
+the sum running over $m'\in\{-l,\dots,l\}$.
+The full per-atom feature transforms by the block-diagonal Wigner matrix
+\begin{equation}\label{eq:Dgblock}
+\bD(g)\;=\;\mathrm{blockdiag}\bigl(D^{(0)}(g),D^{(1)}(g),\dots,D^{(\lmax)}(g)\bigr)\in\R^{D\times D},\qquad D=(\lmax+1)^2.
+\end{equation}
+
+% =============================================================
+\section{Edge Frame and Wigner-$D$ Rotation}\label{sec:so3rot}
+
+\subsection{\texorpdfstring{The edge rotation matrix $\bR_{ij}$}{The edge rotation matrix R\_ij}}\label{sec:edgerot}
+
+EquiformerV3 places each edge into a coordinate frame in which the unit edge vector $\brh_{ij}$ becomes the local $\by$-axis.
+The construction is procedural, not analytic, and uses a fresh random perpendicular per edge.
+Concretely (see \texttt{edge\_rot\_mat.py}):
+
+\begin{enumerate}[leftmargin=2em]
+\item Set $\bu_x=\brh_{ij}\in\Sph$.
+\item Draw $\bu^{(0)}\sim\mathrm{Uniform}([-\tfrac12,\tfrac12]^3)$, normalise to $\Sph$; form three candidates $\bu^{(0)},\bu^{(1)},\bu^{(2)}$ from $\bu^{(0)}$ by axis-aligned permutations, and select $\bu^\star=\arg\min_{k}|\bu^{(k)}\cdot\bu_x|$.
+This guarantees $|\bu^\star\cdot\bu_x|<0.99$.
+\item Compute $\bu_z=(\bu_x\times\bu^\star)/\|\bu_x\times\bu^\star\|$ and $\bu_y=-(\bu_x\times\bu_z)/\|\bu_x\times\bu_z\|$.
+\item Assemble
+\begin{equation}\label{eq:edgerot}
+\bR_{ij}\;\coloneqq\;\bigl[\;\bu_z\;\big|\;\bu_x\;\big|\;\bu_y\;\bigr]^{\top}\in\SO(3),
+\end{equation}
+so that $\bR_{ij}\,\bR_{ij}^{\top}=I_3$ and the middle column of $\bR_{ij}^{\top}$ is $\bu_x=\brh_{ij}$.
+\end{enumerate}
+
+This choice of frame has two important consequences.
+First, the local $\by$-axis carries the bond direction, so the subgroup of $\SO(3)$ stabilising the edge is the rotations about $\by$, i.e.\ $\SO(2)_{\by}$; this is the group with respect to which all in-frame linear operators must be equivariant.
+Second, $\bR_{ij}$ contains the random direction $\bu^\star$ in its first and third columns; the random choice cancels in any object that is $\SO(2)_{\by}$-invariant, but only those objects.
+EquiformerV3 therefore restricts the in-frame linear operators to be $\SO(2)_{\by}$-equivariant.
+
+\begin{remark}\label{rmk:rand-frame}
+The randomness in $\bu^\star$ has no observable effect provided every operator performed in the local frame is exactly $\SO(2)_{\by}$-equivariant.
+The code achieves this by working in the $m$-primary layout where the $\SO(2)_{\by}$-action is diagonal in $m$ (one $2\times 2$ block per $|m|>0$, one $1\times 1$ block per $m=0$): linear maps are constrained to act independently in each $|m|$-stratum (\S\ref{sec:so2lin}); pointwise grid operations are applied uniformly across longitudes (\S\ref{sec:ffn}); attention logits are $\SO(2)$-invariant scalars by construction (\S\ref{sec:attn}).
+\end{remark}
+
+\subsection{Wigner-$D$ from a $3\times 3$ rotation matrix}\label{sec:wignerD}
+
+Given $\bR_{ij}$, EquiformerV3 computes the block-diagonal Wigner-$D$ matrix that rotates $\SO(3)$ features by $\bR_{ij}^{-1}$ (so that the local-frame view of a feature is obtained by left-multiplication).
+The procedure (see \texttt{so3.py:\_rotation\_to\_wigner\_matrix}) is:
+\begin{enumerate}[leftmargin=2em]
+\item Read off the unit vector $\bxi\;=\;[\bR_{ij}]_{:,1}\in\Sph$ (the second column of $\bR_{ij}$ in row-major indexing), which equals $\bu_x=\brh_{ij}$.
+\item Compute the ZYZ Euler angles $(\alpha,\beta,\gamma)$ such that
+\begin{equation}\label{eq:zyz-angles}
+\bR_{ij}\;=\;R_z(\alpha)\,R_y(\beta)\,R_z(\gamma),
+\end{equation}
+using $(\alpha,\beta)=\mathrm{xyz\_to\_angles}(\bxi)$ and then $\gamma=\mathrm{atan2}\bigl([R_z(\alpha)R_y(\beta)]^{\top}\bR_{ij}\bigr)_{0,2},\,\bigl([R_z(\alpha)R_y(\beta)]^{\top}\bR_{ij}\bigr)_{0,0}\bigr)$.
+\item For each $l\in\{0,\dots,\lmax\}$ assemble the degree-$l$ real Wigner-$D$ block
+\begin{equation}\label{eq:wignerD-real}
+D^{(l)}_{m,m'}(\alpha,\beta,\gamma)\;=\;\bigl[e^{-i\alpha\,M_z^{(l)}}\,d^{(l)}(\beta)\,e^{-i\gamma\,M_z^{(l)}}\bigr]_{m,m'}^{\mathrm{re}},
+\end{equation}
+where $d^{(l)}(\beta)\in\R^{(2l+1)\times(2l+1)}$ is the reduced Wigner-$d$ for the small rotation $R_y(\beta)$, contracted against the precomputed Jucys--Murphy tensor $J_d$ stored in \texttt{Jd.pt}, and the real-basis representation eliminates complex arithmetic.
+\item Concatenate into $\bD_{ij}=\mathrm{blockdiag}(D^{(0)},D^{(1)},\dots,D^{(\lmax)})\in\R^{D\times D}$.
+\end{enumerate}
+
+\subsection{$m$-primary truncated layout}\label{sec:mprim}
+
+For $\mmax<\lmax$ the in-frame computations retain only those components with $|m|\le\mmax$.
+Let
+\begin{equation}\label{eq:Dm}
+D_m\;\coloneqq\;\sum_{l=0}^{\lmax}\bigl(2\min(l,\mmax)+1\bigr)
+\end{equation}
+be the size of the truncated layout.
+The $m$-primary mapping $\bm{T}_m\in\R^{D_m\times D}$ permutes indices so that the truncated stream
+$(0,0,0,\dots,0;\;1^+_l,\dots,1^-_l;\;\dots;\;m^+,\dots,m^-)$
+groups all entries with the same $|m|$ together (real parts in front of imaginary parts, in $l$-increasing order within each block).
+In this layout the $\SO(2)_{\by}$-action is block-diagonal: a $1\times 1$ block on the $m=0$ stratum and a $2\times 2$ rotation block on each $|m|>0$ stratum.
+
+The truncated Wigner-$D$ in $m$-primary layout, used to rotate the global-frame feature into the local frame, is
+\begin{equation}\label{eq:wignerD-trunc}
+\widetilde\bD_{ij}\;\coloneqq\;\bm{T}_m\bD_{ij}\in\R^{D_m\times D},
+\end{equation}
+and its rescaled transpose used for the inverse rotation is
+\begin{equation}\label{eq:wignerD-trunc-inv}
+\widetilde\bD_{ij}^{-1}\;\coloneqq\;\widetilde\bD_{ij}^{\top}\,\circ\,\bm{S},\qquad
+[\bm{S}]_{l,l'}\;=\;\sqrt{(2l+1)/(2\min(l,\mmax)+1)}\quad\text{for }l>\mmax,
+\end{equation}
+where $\circ$ denotes entrywise scaling by $\bm{S}$, and the rescaling restores the unit-norm normalisation lost by truncating high-$|m|$ components (see \texttt{so3.py:pre\_compute\_rotate\_inv\_rescale}).
+
+\paragraph{Rotation-mask stabilisation.}
+When $\bxi$ is within $10^{-6}$ of $\pm\by$, the Euler decomposition is singular.
+For the gradient-prediction path the code detaches $\alpha,\gamma,\beta$ on those edges from the backward graph (\texttt{use\_rotation\_mask=True}); for the direct-prediction path the rotation is also detached from the graph entirely after construction.
+This is purely numerical; it does not affect the symmetry properties of the forward pass.
+
+% =============================================================
+\section{Radial Basis and Smooth Cutoff}\label{sec:rad}
+
+\subsection{Gaussian smearing}\label{sec:gauss}
+
+The scalar edge distance $r_{ij}$ is expanded in $K_r=600$ Gaussian basis functions evenly spaced on $[0,\rcut]$:
+\begin{equation}\label{eq:gauss}
+\bigl[\eta(r)\bigr]_k\;=\;\exp\!\Bigl(-\tfrac{1}{2\sigma_g^2}(r-\mu_k)^2\Bigr),\quad
+\mu_k=\rcut\,\frac{k-1}{K_r-1},\quad k=1,\dots,K_r,
+\end{equation}
+with $\sigma_g=2\,\Delta\mu$ where $\Delta\mu=\rcut/(K_r-1)$.
+The output of \eqref{eq:gauss} is concatenated, on each edge, with the source-species and target-species embeddings $a^{\mathrm{src}}(Z_i),a^{\mathrm{tgt}}(Z_j)\in\R^{C_e}$ (with $C_e=128$ the edge-channel width).
+The result $\bxi^{(e)}\in\R^{K_r+2C_e}$ is the edge-invariant feature consumed by every edge-conditioned scalar function in the architecture.
+
+\subsection{Radial function block}\label{sec:radfn}
+
+A \emph{radial function} (class \texttt{RadialFunction}) is a small MLP
+\begin{equation}\label{eq:radfn}
+\Hb_{\mathrm{rad}}\colon\R^{K_r+2C_e}\;\to\;\R^{C_{\mathrm{out}}},\qquad
+\Hb_{\mathrm{rad}}(\bxi)\;=\;\mathrm{Linear}_2\!\bigl(\SiLU(\LN(\mathrm{Linear}_1(\bxi)))\bigr),
+\end{equation}
+with two hidden linear layers, layer normalisation, and $\SiLU$ activation in between.
+Each callsite instantiates its own copy of $\Hb_{\mathrm{rad}}$ with independent learnable weights and a callsite-specific output width $C_{\mathrm{out}}$.
+We denote callsite instances by a superscript:
+\begin{equation}\label{eq:radfn-instances}
+\Hb_{\mathrm{rad}}^{\mathrm{deg}}\;\text{(edge-degree embedding, \S\ref{sec:edgedeg})},\qquad
+\Hb_{\mathrm{rad}}^{\mathrm{attn}}\;\text{(attention sublayer, \S\ref{sec:attn})}.
+\end{equation}
+A boolean flag \texttt{use\_rad\_l\_parametrization} controls the expansion mode of each instance: when \texttt{True} (the default) the per-edge radial vector is laid out per-$l$, identifying all $m$ within a fixed $l$; when \texttt{False} it is laid out per-$(l,|m|)$ stratum.
+
+\subsection{Polynomial envelope}\label{sec:env}
+
+A smooth cutoff is enforced by a polynomial envelope (class \texttt{PolynomialEnvelope})
+\begin{equation}\label{eq:env}
+\varphi(r)\;=\;
+\begin{cases}
+1\;+\;a\,(r/\rcut)^p\;+\;b\,(r/\rcut)^{p+1}\;+\;c\,(r/\rcut)^{p+2}, & r<\rcut,\\
+0,&r\ge\rcut,
+\end{cases}
+\end{equation}
+with $p=5$ and
+\begin{equation}\label{eq:env-coefs}
+a=-\tfrac{(p+1)(p+2)}{2},\qquad b=p(p+2),\qquad c=-\tfrac{p(p+1)}{2}.
+\end{equation}
+These coefficients are chosen so that $\varphi(0)=1,\varphi(\rcut)=0$, $\varphi'(\rcut)=\varphi''(\rcut)=0$.
+The envelope is applied multiplicatively to the attention logits (\S\ref{sec:attn}) and to the edge-degree radial features (\S\ref{sec:edgedeg}).
+
+% =============================================================
+\section{Feature Spaces and Initial Embedding}\label{sec:init}
+
+\paragraph{Feature space.}
+The per-atom feature $\bh_i\in\R^{D\times C}$ is indexed by the spherical-harmonic linear address $\iota(l,m)=l^2+l+m$ on the first axis and by a channel index $c\in\{1,\dots,C\}$ on the second.
+Under a global rotation $g\in\SO(3)$ the feature transforms as
+\begin{equation}\label{eq:feature-action}
+\bigl(g\cdot\bh_i\bigr)_{\iota(l,m),c}\;=\;\sum_{m'}\bigl[D^{(l)}(g)\bigr]_{m,m'}\,\bigl(\bh_i\bigr)_{\iota(l,m'),c},
+\end{equation}
+i.e.\ all channels share the rotational structure but transform independently of one another.
+
+\paragraph{Species-only initial value.}
+The node feature is initialised with the atom-type embedding $a(Z_i)\in\R^C$ in the $l=0$ slot and zero elsewhere:
+\begin{equation}\label{eq:init-h}
+\bh^{(0)}_i\;\coloneqq\;\bigl[a(Z_i),\;0,\;\dots,\;0\bigr]\in\R^{D\times C},
+\end{equation}
+where $a\colon\{1,\dots,Z_{\max}\}\to\R^C$ is a learned embedding table (\texttt{sphere\_embedding}).
+The transformation rule \eqref{eq:feature-action} is consistent with this initialisation because $l=0$ features are invariant under rotation.
+
+\subsection{Edge-degree embedding}\label{sec:edgedeg}
+
+To populate the $l>0$ slots of $\bh^{(0)}_i$ before any transformer block runs, EquiformerV3 performs a single one-shot equivariant aggregation:
+\begin{enumerate}[leftmargin=2em]
+\item For each edge $(i,j)\in\Nb$, evaluate the edge-invariant feature $\bxi^{(e)}_{ij}$ of \S\ref{sec:gauss} and feed it through the edge-degree radial function $\Hb_{\mathrm{rad}}^{\mathrm{deg}}$ of \eqref{eq:radfn-instances} with output width $C\cdot(\lmax+1)$.
+The output $\Hb_{\mathrm{rad}}^{\mathrm{deg}}(\bxi^{(e)}_{ij})$ is reshaped to $\bm{\rho}^{\mathrm{deg}}_{ij}\in\R^{(\lmax+1)\times C}$; this is a per-$l$, per-channel scalar.
+\item Multiply by the envelope $\varphi(r_{ij})$.
+\item Lift from $m=0$ to all $(l,m)$ by left-multiplying with the first $(\lmax+1)$ columns of the inverse-rotation Wigner $\widetilde\bD_{ij}^{-1}$ of \eqref{eq:wignerD-trunc-inv}; equivalently,
+\begin{equation}\label{eq:edgedeg-lift}
+\bm{e}^{\mathrm{deg}}_{ij}\;\coloneqq\;\bigl[\widetilde\bD_{ij}^{-1}\bigr]_{:,1:\lmax+1}\,\bm{\rho}^{\mathrm{deg}}_{ij}\;\in\;\R^{D\times C}.
+\end{equation}
+By construction, $\bm{e}^{\mathrm{deg}}_{ij}$ is the $\SO(3)$-equivariant lift of the radial $m=0$ stream by the inverse of the edge frame; rotating the edge rotates $\bm{e}^{\mathrm{deg}}_{ij}$.
+\item Aggregate at the target with degree-mean normalisation:
+\begin{equation}\label{eq:edgedeg-agg}
+\Delta\bh^{\mathrm{deg}}_i\;\coloneqq\;\frac{1}{\overline d}\sum_{(i,j)\in\Nb}\bm{e}^{\mathrm{deg}}_{ij},
+\end{equation}
+where $\overline d$ is a fixed dataset-derived average degree (\texttt{avg\_degree}, equal to $23.4$ in the public IS2RE checkpoint).
+\item Update the node feature:
+\begin{equation}\label{eq:edgedeg-add}
+\bh_i\;\leftarrow\;\bh^{(0)}_i\;+\;\Delta\bh^{\mathrm{deg}}_i.
+\end{equation}
+\end{enumerate}
+After this step, $\bh_i\in\R^{D\times C}$ has non-zero content in every $(l,m)$ slot whenever the local geometry breaks isotropy, providing all subsequent transformer blocks with a non-trivial seed in the higher-$l$ slots.
+
+% =============================================================
+\section{\texorpdfstring{$\SO(2)_{\by}$ Linear Operators}{SO(2)\_y Linear Operators}}\label{sec:so2lin}
+
+In the truncated $m$-primary layout (\S\ref{sec:mprim}) the action of $\SO(2)_{\by}\subset\SO(3)$ is block-diagonal in $|m|$.
+EquiformerV3 builds two flavours of linear operator that respect this block structure.
+
+\subsection{\texorpdfstring{The $m$-stratum linear operator $L_m$}{The m-stratum linear operator L\_m}}\label{sec:Lm}
+
+For each $m\in\{1,\dots,\mmax\}$, the $m$-stratum carries $2\bigl(\lmax-m+1\bigr)$ real coordinates: the real and imaginary parts of the $(l,\pm m)$ pairs for $l=m,m+1,\dots,\lmax$.
+$\SO(2)_{\by}$ acts on $(x^+_m,x^-_m)\in\R^2$ by rotation, equivalently by complex multiplication on $x^+_m+i\,x^-_m$.
+Schur for $\SO(2)_{\by}$ over $\R$ implies that the $\SO(2)_{\by}$-equivariant $\R$-linear maps $\R^{2(\lmax-m+1)}\otimes\R^{C_{\mathrm{in}}}\;\to\;\R^{2(\lmax-m+1)}\otimes\R^{C_{\mathrm{out}}}$ are parameterised by a single \emph{complex} matrix
+\begin{equation}\label{eq:Lm-cmat}
+\bW_m\;=\;\bU_m\;+\;i\,\bV_m\;\in\;\C^{(\lmax-m+1)C_{\mathrm{out}}\times(\lmax-m+1)C_{\mathrm{in}}}.
+\end{equation}
+Implementationally, $\bU_m,\bV_m$ are obtained from a single real linear layer with $2(\lmax-m+1)C_{\mathrm{out}}$ outputs followed by a split.
+The operator $L_m$ acts on $(x^+,x^-)$ by the real form of complex multiplication:
+\begin{equation}\label{eq:Lm-action}
+\begin{pmatrix} L_m x \\[2pt] L_m x\end{pmatrix}^+ \;=\; \bU_m\,x^+\;-\;\bV_m\,x^-,\qquad
+\begin{pmatrix} L_m x \\[2pt] L_m x\end{pmatrix}^- \;=\; \bU_m\,x^-\;+\;\bV_m\,x^+.
+\end{equation}
+The weight is uniformly initialised and then rescaled by $1/\sqrt{2}$ so that the output variance matches that of a real layer of the same effective fan-in.
+
+\subsection{\texorpdfstring{The $m=0$ scalar linear $L_0$}{The m=0 scalar linear L\_0}}\label{sec:L0}
+
+The $m=0$ stratum carries one real coordinate per $l$, i.e.\ $(\lmax+1)C_{\mathrm{in}}$ real degrees of freedom.
+$L_0$ is an unconstrained dense linear map with a bias term:
+\begin{equation}\label{eq:L0}
+L_0\colon\R^{(\lmax+1)C_{\mathrm{in}}}\;\to\;\R^{(\lmax+1)C_{\mathrm{out}}+C^{\mathrm{ex}}},\qquad
+y\;=\;\bA_0\,x+\bm{b}_0,
+\end{equation}
+with optional \emph{extra} scalar outputs of width $C^{\mathrm{ex}}$ used as side-channels for attention logits and grid-activation gates (\S\ref{sec:attn}, \S\ref{sec:ffn}).
+
+\subsection{\texorpdfstring{Compound $\SO(2)_{\by}$ linear operator $L^{\mathrm{SO2}}$}{Compound SO(2)\_y linear operator}}\label{sec:Lso2}
+
+The full $\SO(2)_{\by}$-equivariant linear operator on a truncated feature is
+\begin{equation}\label{eq:LSO2}
+L^{\mathrm{SO2}}(x)\;\coloneqq\;\bigl(\,L_0(x_0)\,,\;L_1(x_1)\,,\;\dots\,,\;L_{\mmax}(x_{\mmax})\,\bigr),
+\end{equation}
+acting independently on each $|m|$-stratum.
+The shape conventions are: input $x\in\R^{D_m\times C_{\mathrm{in}}}$, output $\bigl(\,\R^{(\lmax+1)\times C_{\mathrm{out}}+C^{\mathrm{ex}}},\;\R^{2(\lmax-1+1)\times C_{\mathrm{out}}},\;\dots,\;\R^{2(\lmax-\mmax+1)\times C_{\mathrm{out}}}\bigr)$.
+The extra-scalar block of $L_0$ is split out and returned separately by the implementation (\texttt{so2\_ops.py:SO2Linear}).
+
+\begin{proposition}[$\SO(2)_{\by}$ equivariance of $L^{\mathrm{SO2}}$]\label{prop:Lso2}
+For any $g_\theta=R_y(\theta)\in\SO(2)_{\by}$ acting on truncated features in the $m$-primary layout by the block-diagonal matrix $\bD^m(\theta)=\diag\bigl(I,\,R^+_1(\theta),\dots,R^+_{\mmax}(\theta)\bigr)$, we have
+\begin{equation}\label{eq:LSO2-equiv}
+L^{\mathrm{SO2}}\bigl(\bD^m(\theta)\,x\bigr)\;=\;\bD^m(\theta)\,L^{\mathrm{SO2}}(x).
+\end{equation}
+This follows from \eqref{eq:Lm-action} and the fact that $L_0$ is the identity in the $m$-action.
+\end{proposition}
+
+\begin{remark}[Equivalence with DPA4's $\SO(2)$-linear operator]\label{rmk:so2-equiv}
+The operator $L^{\mathrm{SO2}}$ of \eqref{eq:LSO2} is mathematically the same operator as DPA4's $\SO(2)$-linear mixer (archi\_dpa4.tex, \S\ref{sec:ops}; source: \texttt{sezm\_nn/so2.py:SO2Linear}), up to the choice of fixed axis ($\by$ here vs.\ $\bz$ in DPA4) and the absence of the multi-stream \emph{focus} axis.
+By Schur's lemma applied to the real $\SO(2)$ action on the $m$-major reduced layout, the space of $\R$-linear $\SO(2)$-equivariant maps decomposes as
+\begin{equation}\label{eq:hom-so2-eqv3}
+\mathrm{Hom}_{\SO(2)}\bigl(\R^{D_m}\otimes\R^{C_{\mathrm{in}}},\;\R^{D_m}\otimes\R^{C_{\mathrm{out}}}\bigr)
+\;=\;\R^{(\lmax+1)C_{\mathrm{out}}\times(\lmax+1)C_{\mathrm{in}}}\;\bigoplus_{m=1}^{\mmax}\C^{(\lmax-m+1)C_{\mathrm{out}}\times(\lmax-m+1)C_{\mathrm{in}}},
+\end{equation}
+where the first summand is the unconstrained real matrix on the $m=0$ stratum and each complex summand encodes the $2\times 2$ real block
+\begin{equation}\label{eq:so2-block}
+\begin{pmatrix}\bU_m & -\bV_m\\ \bV_m & \bU_m\end{pmatrix},\qquad \bW_m\;=\;\bU_m+i\bV_m\in\C^{(\lmax-m+1)C_{\mathrm{out}}\times(\lmax-m+1)C_{\mathrm{in}}}.
+\end{equation}
+Both architectures parameterise the full space \eqref{eq:hom-so2-eqv3}: cross-$l$ mixing within a fixed $|m|$-stratum is permitted (the blocks $\bU_m,\bV_m$ are dense in their $(\lmax-m+1)$ row/column directions), cross-$|m|$ mixing is forbidden (block-diagonality in $|m|$).
+Both apply the variance-preserving rescale $1/\sqrt{2}$ to the $|m|>0$ weights to compensate for the doubled real parameter count of the $2\times 2$ block.
+The implementations differ in incidentals only:
+\begin{itemize}[leftmargin=2em]
+\item \emph{Multi-stream.}
+DPA4 carries $F$ independent in-frame focus streams with independent $\bU_m,\bV_m$ per focus, assembled into a single block-diagonal $\R^{D_m C_{\mathrm{in}}\times F\times D_m C_{\mathrm{out}}}$ weight and applied via one batched matmul (\texttt{einsum("efi,ifo->efo")}); EquiformerV3 uses $F=1$ and loops over $|m|$ to concatenate the per-stratum outputs.
+\item \emph{Side-channel scalars.}
+EquiformerV3 attaches additional scalar outputs to $L_0$ via the \texttt{extra\_m0\_out\_channels} argument; these are $\SO(2)$-invariant by construction and feed attention logits and grid-activation gates (\S\ref{sec:attn-soft}, \eqref{eq:attn-act}).
+DPA4 keeps the analogous scalar side-channels in separate modules (\texttt{attn\_res.py}, \texttt{attention.py}) rather than as extra $L_0$ outputs.
+The choice has no effect on the equivariance class of $L^{\mathrm{SO2}}$.
+\item \emph{Bias.}
+EquiformerV3's $L_0$ has a plain bias on the $l=0$ output.
+DPA4's $L_0$ has an optional bias coupled to the radial--envelope product through the correction $b_0\bigl(\widetilde\rho_{l=0}\,\varphi(r)-1\bigr)$ so that the bias contribution vanishes whenever the edge contribution vanishes (relevant for the source-freeze bridging zone).
+This is a feature of the surrounding edge-convolution wrapper, not of the $\SO(2)$-equivariant linear operator class.
+\item \emph{Weight assembly and caching.}
+DPA4 assembles the full block-diagonal weight once per forward pass and caches it in evaluation mode (\texttt{so2.py:\_build\_so2\_weight}); EquiformerV3 keeps the strata in separate \texttt{nn.Linear} layers and applies them sequentially.
+\item \emph{Initialisation.}
+DPA4 uses truncated-normal fan-in/out; EquiformerV3 uses uniform $[-1/\sqrt{n},+1/\sqrt{n}]$.
+Both belong to the Glorot family and produce the same expected output variance to leading order.
+\end{itemize}
+None of these incidentals changes the equivariant content: the two architectures realise the same $\mathrm{Hom}_{\SO(2)}$ space \eqref{eq:hom-so2-eqv3} and any operator producible in one is producible in the other (with $F=1$ on the DPA4 side).
+What does differ between the architectures, and substantively, is how this operator is \emph{used}: how many times it is stacked, what nonlinearity is sandwiched between stacks, whether the aggregation downstream is sum-over-edges or softmax attention, and whether the per-edge message is built from $\bh_j$ alone or from $[\bh_i\|\bh_j]$.
+These higher-level choices are the subject of \S\ref{sec:compare-diff}.
+\end{remark}
+
+% =============================================================
+\section{$\Sph$-Grid Activation and the FFN}\label{sec:ffn}
+
+The FFN needs a nonlinearity that respects $\SO(3)$-equivariance.
+EquiformerV3 implements one by a three-step sandwich: \emph{sample} the irrep feature at a fixed set of points on $\Sph$, apply an unconstrained pointwise MLP at every sample point, and \emph{project} the resulting samples back to irrep coefficients.
+The purpose of this section is to construct the sandwich and to give a complete proof of its equivariance.
+The non-trivial fact is that the grid values are \emph{not} $\SO(3)$-invariant: they transform under rotation by a row-permutation of grid points.
+Equivariance is recovered because the pointwise MLP commutes with that row-permutation, and the pull-back converts the row-permutation back into the Wigner-$D$ action on irrep coefficients.
+
+\subsection{The $\Sph$-grid}\label{sec:S2grid}
+
+Fix a latitude resolution $N_\beta$ and a longitude resolution $N_\alpha$ (defaults: $N_\beta=20$, $N_\alpha=8$ for the attention sublayer's activation, $N_\beta=N_\alpha=20$ for the FFN's activation).
+The grid is the tensor product
+\begin{equation}\label{eq:grid}
+\mathcal{G}\;=\;\bigl\{\hat\br_{ab}\in\Sph\,:\,a=1,\dots,N_\beta,\;b=1,\dots,N_\alpha\bigr\},
+\end{equation}
+where $\hat\br_{ab}$ is the unit vector with spherical coordinates $(\beta_a,\alpha_b)$, $\beta_a$ are Gauss--Legendre nodes on $[0,\pi]$, and $\alpha_b=2\pi(b-1)/N_\alpha$ are equispaced on $[0,2\pi)$.
+The grid is \emph{fixed in the lab frame} for the duration of the architecture; it is not attached to any atom or edge.
+
+\subsection{Sample: irrep coefficients become grid values}\label{sec:topull}
+
+Define the sample matrix $\bm{S}\in\R^{(N_\beta N_\alpha)\times D}$ row by row:
+\begin{equation}\label{eq:sample}
+[\bm{S}]_{(a,b),(l,m)}\;=\;s_l\,Y_l^m(\hat\br_{ab}),
+\end{equation}
+where $Y_l^m$ is the real spherical harmonic and $s_l$ is a rescale factor restoring unit-norm normalisation when the truncated $\mmax$ layout is used ($s_l=\sqrt{(2l+1)/(2\min(l,\mmax)+1)}$ for $l>\mmax$, and $s_l=1$ otherwise).
+For an irrep feature $\bh\in\R^{D\times C}$ define the grid values
+\begin{equation}\label{eq:grid-eval}
+\bh^{\Sph}\;\coloneqq\;\bm{S}\,\bh\;\in\;\R^{(N_\beta N_\alpha)\times C}.
+\end{equation}
+The row $(a,b)$ of $\bh^{\Sph}$ is the value at $\hat\br_{ab}$ of the channel-wise band-limited function
+\begin{equation}\label{eq:fh}
+f^{c}_{\bh}(\hat\br)\;\coloneqq\;\sum_{l\le\lmax,\,m}\bh_{(l,m),c}\,Y_l^m(\hat\br),\qquad
+[\bh^{\Sph}]_{(a,b),c}\;=\;f^{c}_{\bh}(\hat\br_{ab}).
+\end{equation}
+The map $\bh\mapsto f_{\bh}$ is a linear isomorphism between the irrep space $V_{\le\lmax}$ and the space of band-limited functions on $\Sph$; the matrix $\bm{S}$ is the discretisation of this isomorphism on the grid.
+
+\subsection{Pull-back: grid values become irrep coefficients}\label{sec:pull}
+
+Define the pull-back $\bm{S}^{\dagger}\in\R^{D\times(N_\beta N_\alpha)}$ as the discrete spherical-harmonic projection: applied to a function on the grid, it returns the irrep coefficients of the band-limited reconstruction.
+The construction in \texttt{e3nn.FromS2Grid} uses the same Gauss--Legendre quadrature so that
+\begin{equation}\label{eq:Sdag-S}
+\bm{S}^{\dagger}\,\bm{S}\;=\;I_D\qquad\text{whenever the quadrature is exact at the relevant band limit.}
+\end{equation}
+At the FFN's default $(N_\beta,N_\alpha)=(20,20)$ and $\lmax=6$, the quadrature is exact for spherical-harmonic products up to the band limit produced by the pointwise MLP on $\lmax$-band-limited inputs, so \eqref{eq:Sdag-S} holds and the pull-back is a left inverse of the sample.
+
+\subsection{How rotation acts on grid values}\label{sec:rot-on-grid}
+
+This is the step on which the equivariance argument turns.
+Under a global rotation $g\in\SO(3)$, the configuration rotates, and with it the irrep feature transforms by Wigner-$D$: $\bh\mapsto\bD(g)\bh$.
+The grid points $\hat\br_{ab}$ stay fixed in the lab frame.
+Tracking through the sample using the spherical-harmonic transformation law $Y_l^m(g\hat\br)=\sum_{m'}D^{(l)}_{m,m'}(g)Y_l^{m'}(\hat\br)$ (equivalently, $\bD(g)^{\top}\bm{Y}_{ab}=\bm{Y}_{g^{-1}\hat\br_{ab}}$ where $\bm{Y}_{ab}$ is the row vector of $\bm{S}$ at index $(a,b)$):
+\begin{equation}\label{eq:rot-grid}
+[\bm{S}\,(\bD(g)\bh)]_{(a,b),c}\;=\;\langle\bm{Y}_{ab},\bD(g)\bh_{:,c}\rangle\;=\;\langle\bD(g)^{\top}\bm{Y}_{ab},\bh_{:,c}\rangle\;=\;\langle\bm{Y}_{g^{-1}\hat\br_{ab}},\bh_{:,c}\rangle\;=\;f^{c}_{\bh}(g^{-1}\hat\br_{ab}).
+\end{equation}
+\emph{In words}: after rotating the feature, the grid value at index $(a,b)$ is the value of the \emph{original} function at the \emph{back-rotated} grid point $g^{-1}\hat\br_{ab}$.
+The grid values are not invariant — they are permuted (or, for a non-aligned $g$, interpolated) across grid indices.
+
+When the grid is closed under $g^{-1}$, i.e.\ when there exists a permutation $\pi_g$ of grid indices such that $g^{-1}\hat\br_{ab}=\hat\br_{\pi_g(a,b)}$, equation \eqref{eq:rot-grid} reads
+\begin{equation}\label{eq:rot-perm}
+\bm{S}\,(\bD(g)\bh)\;=\;P_g\,(\bm{S}\bh),
+\end{equation}
+where $P_g$ is the $(N_\beta N_\alpha)\times(N_\beta N_\alpha)$ row-permutation matrix with $[P_g]_{(a,b),(a',b')}=\delta_{(a',b'),\pi_g(a,b)}$.
+For a generic $g$ the closure fails and $P_g$ is replaced by a band-limited interpolation operator; the continuous statement \eqref{eq:rot-grid} is exact in both cases, only the discrete representation \eqref{eq:rot-perm} requires closure.
+
+The takeaway from \eqref{eq:rot-grid}--\eqref{eq:rot-perm}: \emph{$\bm{S}$ intertwines the Wigner-$D$ action on irrep coefficients with the function-shift action on grid samples.}
+Symbolically, $\bm{S}\circ\bD(g)\;=\;P_g\circ\bm{S}$.
+
+\subsection{Pull-back intertwines back}\label{sec:pull-intertwines}
+
+The reverse statement holds for $\bm{S}^{\dagger}$.
+For a function on the grid, the rotation action is row-permutation $P_g$ (or interpolation); the spherical-harmonic projection of the rotated function is the Wigner-$D$-rotation of the projection.
+Concretely, applying \eqref{eq:Sdag-S} and \eqref{eq:rot-perm},
+\begin{equation}\label{eq:Sdag-intertwine}
+\bm{S}^{\dagger}\,P_g\;=\;\bD(g)\,\bm{S}^{\dagger},
+\end{equation}
+i.e.\ $\bm{S}^{\dagger}$ intertwines the function-shift action back into the Wigner-$D$ action.
+This is just the adjoint of the statement $\bm{S}\circ\bD(g)=P_g\circ\bm{S}$ from the previous subsection, using that $\bm{S}^{\dagger}\bm{S}=I_D$ on the band-limited subspace.
+
+\subsection{Pointwise channel-mixing commutes with row-permutation}\label{sec:point-comm}
+
+Call a map $\Phi\colon\R^{(N_\beta N_\alpha)\times C}\to\R^{(N_\beta N_\alpha)\times C}$ \emph{pointwise in the grid index} if there is a single function $\phi\colon\R^C\to\R^C$ such that, for every grid index $(a,b)$,
+\begin{equation}\label{eq:Phi-pointwise}
+[\Phi(X)]_{(a,b),:}\;=\;\phi(X_{(a,b),:}).
+\end{equation}
+In words: $\Phi$ does not see the grid index; it sees only the channel vector at each row, and the \emph{same} channel-mixing rule applies at every row.
+The grid MLP \eqref{eq:gridmlp} below is exactly such a $\Phi$.
+
+\begin{lemma}[Pointwise commutes with permutation]\label{lem:point-perm}
+For any permutation matrix $P$ on grid indices and any $\Phi$ of the form \eqref{eq:Phi-pointwise},
+\begin{equation}\label{eq:point-perm}
+\Phi(P\,X)\;=\;P\,\Phi(X).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Both sides have row $(a,b)$ equal to $\phi(X_{P(a,b),:})$.
+The left side gives this by definition of $\Phi$ applied to the permuted matrix; the right side gives this because $\Phi$ acts row-by-row with the same $\phi$, and the permutation acts last on rows.
+\end{proof}
+
+This is the entire mechanism by which a pointwise nonlinearity preserves equivariance.
+The crucial structural property is that $\phi$ does not depend on the grid index — it is the same function at every row.
+Therefore moving rows around (i.e.\ rotating) before or after $\Phi$ gives the same result.
+
+\subsection{The equivariance theorem}\label{sec:eqv-thm}
+
+\begin{theorem}[Equivariance of the grid sandwich]\label{thm:grid-sandwich}
+Let $\Phi\colon\R^{(N_\beta N_\alpha)\times C}\to\R^{(N_\beta N_\alpha)\times C}$ be any map pointwise in the grid index, as in \eqref{eq:Phi-pointwise}.
+Suppose the quadrature is exact at the band limit produced by $\Phi$ on $\lmax$-band-limited inputs, so \eqref{eq:Sdag-S} holds.
+Then the grid sandwich
+\begin{equation}\label{eq:sandwich}
+\mathcal{F}\;\coloneqq\;\bm{S}^{\dagger}\,\circ\,\Phi\,\circ\,\bm{S}\;\colon\;\R^{D\times C}\longrightarrow\R^{D\times C}
+\end{equation}
+is $\SO(3)$-equivariant: for every $g\in\SO(3)$ and every $\bh\in\R^{D\times C}$,
+\begin{equation}\label{eq:sandwich-equiv}
+\mathcal{F}(\bD(g)\bh)\;=\;\bD(g)\,\mathcal{F}(\bh).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Apply $\mathcal{F}$ to the rotated feature and use the three intertwining steps developed above:
+\begin{align*}
+\mathcal{F}(\bD(g)\bh)
+\;&=\;\bm{S}^{\dagger}\,\Phi\,\bm{S}(\bD(g)\bh)\\
+\;&\stackrel{\eqref{eq:rot-perm}}{=}\;\bm{S}^{\dagger}\,\Phi\,(P_g\,\bm{S}\bh)\\
+\;&\stackrel{\eqref{eq:point-perm}}{=}\;\bm{S}^{\dagger}\,P_g\,\Phi(\bm{S}\bh)\\
+\;&\stackrel{\eqref{eq:Sdag-intertwine}}{=}\;\bD(g)\,\bm{S}^{\dagger}\,\Phi(\bm{S}\bh)\\
+\;&=\;\bD(g)\,\mathcal{F}(\bh).
+\end{align*}
+The first equality is the definition of $\mathcal{F}$.
+The second uses that $\bm{S}$ intertwines Wigner-$D$ on irreps with permutation on the grid (\S\ref{sec:rot-on-grid}).
+The third uses that $\Phi$ pointwise commutes with row-permutation (Lemma~\ref{lem:point-perm}).
+The fourth uses that $\bm{S}^{\dagger}$ intertwines permutation on the grid back into Wigner-$D$ on irreps (\S\ref{sec:pull-intertwines}).
+For generic $g$ that does not close the grid, replace $P_g$ by the band-limited interpolation operator and replace \eqref{eq:rot-perm}--\eqref{eq:Sdag-intertwine} by their function-space versions $\bm{S}\circ\bD(g)=R_g\circ\bm{S}$ and $\bm{S}^{\dagger}\circ R_g=\bD(g)\circ\bm{S}^{\dagger}$, where $R_g$ is the function-shift $f\mapsto f\circ g^{-1}$; the same three-line chain goes through verbatim.
+\end{proof}
+
+The theorem makes precise what was loosely stated earlier: equivariance does \emph{not} follow from the grid values being invariant — they are not.
+It follows from the conjunction of three facts: the sample intertwines Wigner-$D$ on irreps with the rotation action on grid samples; pointwise channel-mixing commutes with that rotation action; the pull-back intertwines back.
+
+\subsection{Two non-negotiable design constraints}\label{sec:constraints}
+
+Theorem~\ref{thm:grid-sandwich} relies on $\Phi$ being pointwise in the grid index.
+Two architectural choices are therefore essential:
+
+\begin{enumerate}[leftmargin=2em]
+\item \emph{No mixing across grid points.}
+Any weight that couples grid index $(a_1,b_1)$ to $(a_2,b_2)$ — a $1\times 1$ convolution across $(a,b)$, an attention layer over grid points, a pooling over the grid — would violate the pointwise condition \eqref{eq:Phi-pointwise} and break the commutation with $P_g$.
+The grid MLP is therefore implemented as a per-row channel mixer with the same weights at every row.
+\item \emph{Any scalar gate is a $\SO(3)$-invariant of $\bh$.}
+A gate that depends on the grid index $(a,b)$ would assign different multipliers to different grid points, violating the pointwise condition.
+A gate that depends on a non-$l=0$ slot of $\bh$ would itself rotate under $g$, again violating the condition.
+The grid MLP restricts the gate to depend only on $\bh_{l=0}$, which is rotation-invariant, so the same scalar gate multiplies every grid point in every rotated copy of the configuration.
+\end{enumerate}
+
+Both constraints are satisfied by the grid MLP defined below.
+
+\subsection{Grid MLP}\label{sec:gridmlp}
+
+The grid MLP applied in the FFN has the form
+\begin{equation}\label{eq:gridmlp}
+\mathcal{M}_{\Sph}(\bh^{\Sph};\bm{s})\;=\;\bm{W}_2\bigl(\,\SiLU(\bm{W}_1\bh^{\Sph})\;\odot\;\Sigmoid(\bm{w}_g\bm{s})\,\bigr),
+\end{equation}
+with $\bm{W}_1\in\R^{C_h\times C}$, $\bm{W}_2\in\R^{C\times C_h}$, $\bm{w}_g\in\R^{C_h\times C}$ learnable, $\bm{s}=\bh_{l=0}\in\R^C$ the rotation-invariant scalar side-channel, and $\odot$ pointwise multiplication on channels.
+At each grid row $(a,b)$ the operation is the same channel-mixing recipe; no operator looks at the grid index.
+In the default activation \texttt{sep-merge\_gates2\_swiglu} the $\SiLU$ in \eqref{eq:gridmlp} is replaced by SwiGLU,
+\begin{equation}\label{eq:swiglu}
+\SwiGLU(x;\bm{W}_a,\bm{W}_b)\;=\;(\bm{W}_a x)\odot\SiLU(\bm{W}_b x).
+\end{equation}
+By Theorem~\ref{thm:grid-sandwich}, the inner sandwich $\bm{S}^{\dagger}\circ\mathcal{M}_{\Sph}\circ\bm{S}$ is $\SO(3)$-equivariant.
+
+\subsection{Quadrature exactness and aliasing}\label{sec:quad}
+
+The hypothesis \eqref{eq:Sdag-S} of Theorem~\ref{thm:grid-sandwich} requires the quadrature to be exact at the band limit produced by $\Phi$ on $\lmax$-band-limited inputs.
+The Gauss--Legendre--Fourier quadrature on the e3nn grid is exact for the integral of any spherical-harmonic product $Y_{l_1}^{m_1}Y_{l_2}^{m_2}$ with $l_1+l_2\le 2L_{\mathrm{quad}}$, where $L_{\mathrm{quad}}$ is determined by $(N_\beta,N_\alpha)$.
+For a SwiGLU activation acting on $\lmax$-band-limited inputs, the relevant band limit is $2\lmax$, and the FFN default $(N_\beta,N_\alpha)=(20,20)$ at $\lmax=6$ comfortably exceeds this.
+If the grid were under-resolved, the pointwise nonlinearity $\phi$ would generate angular frequencies above the quadrature band-limit; the discrete pull-back $\bm{S}^{\dagger}$ would alias them onto the kept $l\le\lmax$ coefficients in a $g$-dependent way, and the third equality in the proof of Theorem~\ref{thm:grid-sandwich} would hold only up to a discretisation error.
+
+\subsection{The equivariant FFN}\label{sec:effn}
+
+The full FFN sublayer is the channel-mixed grid sandwich
+\begin{equation}\label{eq:effn-1}
+\bh\;\xrightarrow{L_1^{\mathrm{ch}}}\;\widetilde\bh\;\xrightarrow{\bm{S}}\;\widetilde\bh^{\Sph}\;\xrightarrow{\mathcal{M}_{\Sph}(\cdot;\bm{s})}\;\bg\;\xrightarrow{\bm{S}^{\dagger}}\;\bg^{\mathrm{irr}}\;\xrightarrow{L_2^{\mathrm{ch}}}\;\Delta\bh^{\mathrm{ffn}},
+\end{equation}
+with $\bm{s}=\bh_{l=0}$.
+Here $L_1^{\mathrm{ch}},L_2^{\mathrm{ch}}$ are \emph{degree-preserving channel mixers} implemented by \texttt{SO3Linear}: for each $l$ there is one $C_h\times C$ weight matrix shared across all $2l+1$ values of $m$.
+These are $\SO(3)$-equivariant because they act in the global frame, mix only the channel axis at fixed $l$, and treat all $m$ uniformly (so they commute with each $D^{(l)}(g)$).
+Combined with Theorem~\ref{thm:grid-sandwich} for the inner sandwich, the entire FFN sublayer $\Hb^{\mathrm{ffn}}_\ell=L_2^{\mathrm{ch}}\circ\mathcal{F}\circ L_1^{\mathrm{ch}}$ commutes with $\bD(g)$, hence is $\SO(3)$-equivariant.
+
+A \emph{merge} variant adds a separate scalar MLP output to the $l=0$ slot of $\bg^{\mathrm{irr}}$:
+\begin{equation}\label{eq:scalar-merge}
+\bigl[\bg^{\mathrm{irr}}\bigr]_{l=0}\;\leftarrow\;\bigl[\bg^{\mathrm{irr}}\bigr]_{l=0}\;+\;\mathrm{Linear}(\SwiGLU(\bm{s})).
+\end{equation}
+The added term depends only on $\bh_{l=0}=\bm{s}$ (an $\SO(3)$-invariant) and is written into the $l=0$ slot (also $\SO(3)$-invariant), so the merge is $\SO(3)$-equivariant.
+No per-edge Wigner-$D$ rotation, $\SO(2)$-equivariant operator, or $\mmax$ truncation appears anywhere in the FFN: the FFN sees the full global-frame irrep feature $\bh\in\R^{D\times C}$ throughout.
+
+% =============================================================
+\section{Equivariant Graph Attention}\label{sec:attn}
+
+The attention sublayer is where edge information enters: each edge produces a message in the local frame, the message is scaled by a softmax-attention weight, the messages are rotated back to the global frame, and the per-edge messages are summed at each target.
+
+\subsection{Edge feature construction}\label{sec:attn-msg}
+
+For each edge $(i,j)\in\Nb$, the attention sublayer first builds an edge feature in $\R^{D\times C_{\mathrm{m}}}$:
+\begin{equation}\label{eq:attn-edge}
+\bm{x}_{ij}^{\mathrm{cat}}\;\coloneqq\;\bigl[\,\bh_i^{(\text{src})}\;\big\|\;\bh_j^{(\text{tgt})}\,\bigr]\in\R^{D\times 2C},
+\end{equation}
+where $\|$ denotes channel concatenation.
+(An alternative \texttt{use\_add\_merge=True} replaces the concatenation by a weighted sum; we describe the default concat branch and the variant in Remark~\ref{rmk:addmerge}.)
+The radial scaling
+\begin{equation}\label{eq:attn-rad}
+\widetilde\brho_{ij}\;\coloneqq\;\Hb_{\mathrm{rad}}^{\mathrm{attn}}(\bxi^{(e)}_{ij})\in\R^{(\lmax+1)\times 2C}
+\end{equation}
+is broadcast across $m$ (one weight per $l$) and applied entrywise:
+\begin{equation}\label{eq:attn-rad-apply}
+\bm{x}_{ij}^{\mathrm{cat,rad}}\;=\;\widetilde\brho_{ij}\;\odot\;\bm{x}_{ij}^{\mathrm{cat}}.
+\end{equation}
+The radially-scaled feature is then rotated into the local frame:
+\begin{equation}\label{eq:attn-rot}
+\bm{x}_{ij}^{\mathrm{loc}}\;\coloneqq\;\widetilde\bD_{ij}\,\bm{x}_{ij}^{\mathrm{cat,rad}}\in\R^{D_m\times 2C}.
+\end{equation}
+(When the radial parametrisation flag is off, the rotation is performed first and the scaling, now per-$|m|$-stratum, is applied second; this is mathematically equivalent.)
+
+\begin{remark}\label{rmk:addmerge}
+The \texttt{use\_add\_merge} variant replaces \eqref{eq:attn-edge}--\eqref{eq:attn-rad-apply} by
+$\bm{x}_{ij}^{\mathrm{loc}}=\widetilde\bD_{ij}(\widetilde\brho^{\mathrm{src}}_{ij}\odot\bh_i+\widetilde\brho^{\mathrm{tgt}}_{ij}\odot\bh_j)$, saving roughly half the Wigner multiplication cost; an explicit $1/\sqrt{2}$ rescaling on the radial-MLP head preserves variance.
+\end{remark}
+
+\subsection{In-frame projection and grid activation}\label{sec:attn-proj}
+
+The local-frame feature is mixed by an $\SO(2)_{\by}$-equivariant linear operator that outputs both the value stream and the side-channel scalar features used for attention:
+\begin{equation}\label{eq:so2-1}
+\bigl(\bm{v}^{\mathrm{loc}}_{ij},\,\balpha_{ij}\bigr)\;\coloneqq\;L^{\mathrm{SO2}}_1\bigl(\bm{x}_{ij}^{\mathrm{loc}}\bigr),\qquad
+\bm{v}^{\mathrm{loc}}_{ij}\in\R^{D_m\times C_h},\;\balpha_{ij}\in\R^{C^{\mathrm{ex}}}.
+\end{equation}
+The extra scalars $\balpha_{ij}$ are split into the attention-logit features $\bm{a}_{ij}\in\R^{H C^{\mathrm{a}}}$ and the gate scalars $\bm{s}_{ij}\in\R^{C_h+C_h/2}$ that drive the SwiGLU gates of the activation.
+Because the extra-scalar block of $L_0$ acts on the $m=0$ stratum of $\bm{x}^{\mathrm{loc}}_{ij}$, which is $\SO(3)$-invariant (the global rotation is absorbed by the per-edge frame change) and trivially $\SO(2)_{\by}$-invariant (the $m=0$ irrep of $\SO(2)$ is the trivial one), both $\bm{a}_{ij}$ and $\bm{s}_{ij}$ are $\SO(3)$-invariant scalar tuples.
+This invariance is what makes the attention logits below scalar-valued under rotation, and is what the equivariance of the whole attention sublayer (Proposition~\ref{prop:attn-equiv}) hinges on.
+The value stream is passed through a separable $\Sph$-grid activation
+\begin{equation}\label{eq:attn-act}
+\bm{v}^{\mathrm{loc}}_{ij}\;\leftarrow\;\bm{S}^{\dagger}\,\bigl(\,\SwiGLU\bigl(\bm{S}\,\bm{v}^{\mathrm{loc}}_{ij}\bigr)\,\odot\,\Sigmoid(\bm{w}_g\bm{s}_{ij})\,\bigr),
+\end{equation}
+which is the same construction as \eqref{eq:gridmlp} but with a separate scalar path added back into the $l=0$ slot when the activation name carries the \texttt{merge} flag.
+A second $\SO(2)_{\by}$-equivariant linear $L^{\mathrm{SO2}}_2$ then re-projects to the per-head value width:
+\begin{equation}\label{eq:so2-2}
+\bm{v}^{\mathrm{loc}}_{ij}\;\leftarrow\;L^{\mathrm{SO2}}_2\bigl(\bm{v}^{\mathrm{loc}}_{ij}\bigr)\in\R^{D_m\times H C^{\mathrm{v}}}.
+\end{equation}
+
+\subsection{Attention logits and softmax}\label{sec:attn-soft}
+
+The attention logits per head are computed from $\bm{a}_{ij}\in\R^{H C^{\mathrm{a}}}$, reshaped to $(H,C^{\mathrm{a}})$:
+\begin{equation}\label{eq:attn-logit}
+\widetilde a^{(h)}_{ij}\;\coloneqq\;\bigl\langle\,\bm{q}^{(h)}\,,\;\mathrm{SmoothLeakyReLU}(\LN(\bm{a}^{(h)}_{ij}))\,\bigr\rangle,\qquad h=1,\dots,H,
+\end{equation}
+with a learnable query $\bm{q}^{(h)}\in\R^{C^{\mathrm{a}}}$ initialised uniformly at $\pm 1/\sqrt{C^{\mathrm{a}}}$, the layer norm acting on the $C^{\mathrm{a}}$-feature axis, and
+$\mathrm{SmoothLeakyReLU}(x)=\bigl(x+\sqrt{x^2+\epsilon}\bigr)/2$ a smoothed leaky-ReLU with $\epsilon=10^{-4}$.
+An optional bounded \emph{softcap} maps $\widetilde a^{(h)}_{ij}\mapsto\softcap\tanh(\widetilde a^{(h)}_{ij}/\softcap)$ to clip extreme values.
+
+The softmax is applied per target with envelope rescaling:
+\begin{equation}\label{eq:attn-softmax}
+\alpha^{(h)}_{ij}\;\coloneqq\;\varphi(r_{ij})\,\frac{\varphi(r_{ij})\exp(\widetilde a^{(h)}_{ij})}{\eta_{\mathrm{eps}}+\sum_{(i',j)\in\Nb}\varphi(r_{i'j})\exp(\widetilde a^{(h)}_{i'j})},
+\end{equation}
+with $\eta_{\mathrm{eps}}=10^{-16}$ a numerical floor.
+The double envelope multiplication is the architectural signature: it makes both the numerator and the denominator vanish smoothly as any edge reaches the cutoff, so that the per-edge attention weight is $C^2$-smooth at $r_{ij}=\rcut$.
+
+\subsection{Aggregation and projection}\label{sec:attn-agg}
+
+The attention-weighted local-frame value is computed per head and per channel:
+\begin{equation}\label{eq:attn-weight}
+\bm{u}^{\mathrm{loc}}_{ij}\;\coloneqq\;\alpha_{ij}\;\odot\;\bm{v}^{\mathrm{loc}}_{ij}\in\R^{D_m\times H C^{\mathrm{v}}},
+\end{equation}
+where the head index $h$ is broadcast over the channel block of width $C^{\mathrm{v}}$.
+The local-frame message is then rotated back to the global frame
+\begin{equation}\label{eq:attn-back}
+\bm{u}_{ij}\;\coloneqq\;\widetilde\bD_{ij}^{-1}\,\bm{u}^{\mathrm{loc}}_{ij}\in\R^{D\times H C^{\mathrm{v}}},
+\end{equation}
+summed at the target,
+\begin{equation}\label{eq:attn-sum}
+\bm{u}_j\;\coloneqq\;\sum_{i:(i,j)\in\Nb}\bm{u}_{ij},
+\end{equation}
+and finally projected through a per-degree channel mixer to the block-output width $C$:
+\begin{equation}\label{eq:attn-proj-out}
+\Delta\bh^{\mathrm{attn}}_j\;\coloneqq\;L^{\mathrm{ch,out}}(\bm{u}_j)\in\R^{D\times C}.
+\end{equation}
+The block $L^{\mathrm{ch,out}}$ is again a degree-preserving channel mixer (\texttt{SO3Linear}); it does not couple different $l$'s.
+
+\subsection{\texorpdfstring{$\SO(3)$ equivariance of the attention sublayer}{SO(3) equivariance of the attention sublayer}}\label{sec:attn-equiv}
+
+\begin{proposition}[Equivariance]\label{prop:attn-equiv}
+Let $g\in\SO(3)$ and let $\bh\mapsto g\cdot\bh$ be the action of \eqref{eq:feature-action}.
+Then $\Delta\bh^{\mathrm{attn}}_j(g\cdot\bh,g\cdot R)=g\cdot\Delta\bh^{\mathrm{attn}}_j(\bh,R)$.
+\end{proposition}
+
+\begin{proof}[Sketch]
+Under $g$, each edge frame transforms as $\bR_{ij}\mapsto g\bR_{ij}$ (the columns rotate with $g$).
+The truncated Wigner $\widetilde\bD_{ij}$ then transforms as $\widetilde\bD_{ij}\mapsto\widetilde\bD_{ij}\,\bD(g)^{-1}$ at the rotation-to-local step and as $\widetilde\bD_{ij}^{-1}\mapsto\bD(g)\,\widetilde\bD_{ij}^{-1}$ at the rotation-back step.
+Inside the local frame everything is $\SO(2)_{\by}$-equivariant and the local-frame value $\bm{v}^{\mathrm{loc}}_{ij}$ is therefore invariant under the global $g$.
+Attention logits in \eqref{eq:attn-logit} depend only on the $\SO(2)_{\by}$-invariant scalar features $\bm{a}_{ij}$ and so are global-rotation-invariant.
+Multiplying the $g$-cancellations and re-rotating in \eqref{eq:attn-back} produces the claimed equivariance.
+\end{proof}
+
+% =============================================================
+\section{Equivariant Layer Normalisation}\label{sec:eqLN}
+
+EquiformerV3 uses an equivariant normalisation scheme on the per-atom feature.
+The default \texttt{merge\_layer\_norm} acts as follows.
+For each atom $i$ and each degree $l$, define the per-degree variance
+\begin{equation}\label{eq:eqLN-var}
+\sigma_{i,l}^2\;\coloneqq\;\frac{1}{(2\min(l,\mmax)+1)\,C}\sum_{m,c}\bigl(\bh_{i,(l,m),c}\bigr)^2,
+\end{equation}
+where the sum runs over $|m|\le\min(l,\mmax)$ and $c=1,\dots,C$.
+Define the normalised feature and apply a per-degree affine gain $\gamma_l\in\R^C$:
+\begin{equation}\label{eq:eqLN-norm}
+\bh_{i,(l,m),c}\;\leftarrow\;\gamma_{l,c}\,\frac{\bh_{i,(l,m),c}}{\sqrt{\sigma_{i,l}^2+\epsilon}}.
+\end{equation}
+For the $l=0$ slot, the centring is enabled (subtract the per-channel mean of $\bh_{i,0,c}$ across the atom before normalising).
+The variant \texttt{merge\_rms\_norm} omits centring entirely.
+
+% =============================================================
+\section{The Transformer Block}\label{sec:block}
+
+A pre-norm transformer block $\Hb^{\mathrm{TB}}_\ell:\R^{N\times D\times C}\to\R^{N\times D\times C}$ is the composition of an attention residual update and an FFN residual update:
+\begin{equation}\label{eq:tb-block}
+\Hb^{\mathrm{TB}}_\ell\;\coloneqq\;R^{\mathrm{ffn}}_\ell\,\circ\,R^{\mathrm{attn}}_\ell,
+\end{equation}
+where the two residual updates are defined by
+\begin{align}
+R^{\mathrm{attn}}_\ell(\bh)\;&\coloneqq\;\bh\;+\;\mathrm{DropPath}\bigl(\Hb^{\mathrm{attn}}_\ell(\LN_1(\bh))\bigr),\label{eq:tb-1}\\
+R^{\mathrm{ffn}}_\ell(\bh)\;&\coloneqq\;\bh\;+\;\mathrm{DropPath}\bigl(\Hb^{\mathrm{ffn}}_\ell(\LN_2(\bh))\bigr).\label{eq:tb-2}
+\end{align}
+Here $\Hb^{\mathrm{attn}}_\ell$ is the equivariant graph-attention sublayer of \S\ref{sec:attn}, $\Hb^{\mathrm{ffn}}_\ell$ is the equivariant feed-forward sublayer of \S\ref{sec:effn}, $\LN_1,\LN_2$ are equivariant layer norms of \S\ref{sec:eqLN}, and $\mathrm{DropPath}$ is the standard stochastic depth applied at the level of whole atoms (one Bernoulli mask per atom per layer, sharing across the irreducible axis).
+At inference the dropouts are the identity, so $\Hb^{\mathrm{TB}}_\ell$ is deterministic.
+
+The forward pass through the stack is
+\begin{equation}\label{eq:stack}
+\bh^{(L)}\;=\;\Hb^{\mathrm{TB}}_L\circ\Hb^{\mathrm{TB}}_{L-1}\circ\cdots\circ\Hb^{\mathrm{TB}}_1\bigl(\bh^{(0)}\bigr),
+\end{equation}
+followed by a final equivariant layer norm
+\begin{equation}\label{eq:stack-out}
+\bh^{(L^\star)}\;=\;\LN_{\mathrm{out}}\bigl(\bh^{(L)}\bigr).
+\end{equation}
+
+% =============================================================
+\section{Energy, Force and Stress Heads}\label{sec:heads}
+
+\subsection{Energy head}\label{sec:energy}
+
+The per-atom energy is read off the $l=0$ slot of the post-norm feature through a two-layer scalar MLP:
+\begin{equation}\label{eq:energy-mlp}
+\widetilde E_i\;\coloneqq\;\mathrm{Linear}_2\bigl(\SiLU(\mathrm{Linear}_1(\bh^{(L^\star)}_{i,l=0}))\bigr)\in\R,
+\end{equation}
+with hidden width $C_h^{\mathrm{ffn}}$ (default $128$) and a single scalar output.
+The structure-level energy is
+\begin{equation}\label{eq:energy-sum}
+E_\Theta(Z,R)\;\coloneqq\;\frac{1}{\overline N}\sum_{i=1}^{N}\widetilde E_i,
+\end{equation}
+where $\overline N$ is a fixed dataset average atom count (\texttt{avg\_num\_nodes}, equal to $77.8$ in the public checkpoint).
+
+\subsection{Direct force head}\label{sec:force-direct}
+
+When direct prediction is selected, EquiformerV3 instantiates an additional equivariant graph-attention head (\S\ref{sec:attn}) producing a single $\SO(3)$-equivariant output channel:
+\begin{equation}\label{eq:force-head}
+\bm{F}_i^{\mathrm{irr}}\;\coloneqq\;\Hb^{\mathrm{attn,force}}\bigl(\bh^{(L^\star)}\bigr)_i\in\R^{D\times 1}.
+\end{equation}
+The force vector is read off the $l=1$ slot:
+\begin{equation}\label{eq:force-l1}
+\bmF_i\;\coloneqq\;\bigl[\bm{F}_i^{\mathrm{irr}}\bigr]_{l=1}\in\R^3.
+\end{equation}
+This object transforms as a rank-$1$ tensor under $\SO(3)$.
+In the default release the force head uses the \texttt{gate} activation (rather than the \texttt{sep-merge\_gates2\_swiglu} of the bulk blocks), which is a simpler $\Sph$-grid variant tailored to single-channel outputs.
+
+\subsection{Gradient force head}\label{sec:force-grad}
+
+When the gradient-prediction path is selected, no separate force head is instantiated; forces are obtained by autograd:
+\begin{equation}\label{eq:force-grad}
+\bmF_i\;\coloneqq\;-\nabla_{\bR_i}\,E_\Theta(Z,R),
+\end{equation}
+computed once per forward pass with $\mathtt{create\_graph=self.training}$ to support second-order optimisation.
+
+\subsection{Direct stress head}\label{sec:stress-direct}
+
+When direct stress is selected, an additional equivariant FFN (\texttt{FeedForwardNetworkStressHead}) produces a tensor in $\R^{D\times 1}$, the first $(\lmax+1)^2$ irreducible coefficients of which are passed through a fixed $9\times 9$ change-of-basis matrix $\bm{M}_{\mathrm{stress}}$:
+\begin{equation}\label{eq:stress}
+\sigma_\Theta(Z,R)\;\coloneqq\;\mathrm{vec}^{-1}\Bigl(\bm{M}_{\mathrm{stress}}\,\bigl[\Hb^{\mathrm{ffn,stress}}(\bh^{(L^\star)})\bigr]_{1:9}\Bigr)\in\R^{3\times 3},
+\end{equation}
+yielding a symmetric stress tensor in Voigt order.
+The matrix $\bm{M}_{\mathrm{stress}}$ is the fixed isometry between the $l=0,1,2$ irreducible blocks and the basis of symmetric $3\times 3$ matrices, given explicitly in \texttt{output\_block.py:get\_stress\_cg\_change\_mat}.
+
+\subsection{Gradient stress head}\label{sec:stress-grad}
+
+When the gradient path is selected for stress, the model differentiates the total energy with respect to a symmetric displacement tensor:
+\begin{equation}\label{eq:stress-grad}
+\sigma_\Theta(Z,R)\;\coloneqq\;\frac{1}{|\Omega|}\nabla_{\bm{u}}\,E_\Theta(Z(\bm{u}),R(\bm{u}))\Big|_{\bm{u}=0},
+\end{equation}
+where $\bm{u}\in\R^{3\times 3}$ is a symmetric strain perturbation applied to both atomic positions ($\bR_i\to\bR_i+\bm{u}\bR_i$) and the cell vectors, and $|\Omega|$ is the cell volume.
+
+% =============================================================
+\section{Properties}\label{sec:props}
+
+\paragraph{Translation invariance.}
+$E_\Theta(Z,R+\bm{t})=E_\Theta(Z,R)$ because only $\br_{ij}=\bR_j-\bR_i$ enters the construction.
+
+\paragraph{Permutation invariance.}
+$E_\Theta$ is invariant under $S_N$ because the sum in \eqref{eq:energy-sum} is over atom indices and each per-atom contribution depends only on its neighbourhood through symmetric aggregation operators.
+
+\paragraph{Rotational invariance / equivariance.}
+By Proposition~\ref{prop:attn-equiv} and the analogous statement for $\Hb^{\mathrm{ffn}}$ (which follows from $L^{\mathrm{ch}}$ being channel-only and $\bm{S},\bm{S}^{\dagger}$ being independent of the global frame), each transformer block commutes with the global rotation action.
+The $l=0$ slot of the per-atom feature is therefore rotation-invariant, so the scalar MLP of \eqref{eq:energy-mlp} produces a rotation-invariant total energy.
+The $l=1$ slot of the force head transforms as a vector, so the direct force is $\SO(3)$-equivariant; in the gradient path the equivariance of the force follows from the chain rule applied to a rotationally invariant energy.
+
+\paragraph{Smoothness at the cutoff.}
+The envelope $\varphi$ of \eqref{eq:env} satisfies $\varphi(\rcut)=\varphi'(\rcut)=\varphi''(\rcut)=0$.
+Because $\varphi$ multiplies both the attention numerator and the radial features at the edge-degree embedding, every contribution from a vanishing edge is $C^2$-smooth in $r_{ij}$.
+This is weaker than DPA4's $C^3$ guarantee from the inner-clamp construction but sufficient for the smooth gradient and Hessian of $E_\Theta$ required by direct stress prediction and second-order training.
+
+\paragraph{No spurious dependence on the random secondary axis.}
+The random vector $\bu^\star$ enters $\bR_{ij}$ only through the first and third columns, which span the plane perpendicular to $\bu_x=\brh_{ij}$.
+Because every in-frame operator is $\SO(2)_{\by}$-equivariant (Remark~\ref{rmk:rand-frame}), the dependence of the output on a rotation of $\bu^\star$ about $\bu_x$ cancels exactly.
+The architecture therefore produces deterministic outputs in the ideal-floating-point limit; the random sampling is purely for numerical conditioning of the Euler decomposition.
+
+% =============================================================
+\section{Comparison: EquiformerV3 vs.\ DPA4}\label{sec:compare}
+
+We now place EquiformerV3 side-by-side with DPA4 of the companion document.
+Throughout, ``DPA4 \S X'' refers to the section of archi\_dpa4.tex with that label; ``E3 \S Y'' refers to this document.
+All differences are at the level of design choices within a common framework: both architectures are $\SO(3)$-equivariant, CG-free in the sense of Regime II of DPA4 \S15.1, and operate by a Wigner-rotation to an edge-aligned local frame followed by an $\SO(2)$-equivariant linear--nonlinear--linear sandwich.
+
+\subsection{The common framework}\label{sec:compare-common}
+
+The two architectures share the following ingredients:
+\begin{itemize}[leftmargin=2em]
+\item Real spherical-harmonic basis for $\SO(3)$ irreducibles, truncated at $\lmax$ and (after rotation) at $\mmax$, with the $m$-major reduced layout.
+\item Per-edge $\SO(3)$ frame $\bR_{ij}$ that aligns one Cartesian axis with $\brh_{ij}$, and the corresponding block-diagonal Wigner $\widetilde\bD_{ij}$ used both as the rotation-to-local and (transposed plus a per-$l$ rescale) as the rotation-back operator.
+\item Restriction to Regime II of DPA4 \S15.1: messages are equivariant linear maps $\bh_j\mapsto\bm{m}_{ij}$ parameterised by an $\SO(2)$-equivariant kernel $L^{\mathrm{SO2}}$ surrounded by $\widetilde\bD_{ij}$, with no Clebsch--Gordan tensor product of two equivariant features.
+\item Per-edge $\SO(2)$-equivariant linear operators that mix different $l$'s within each $|m|$-stratum (the cross-$l$ mixing of Regime II is realised in both architectures).
+\item A smooth radial cutoff envelope.
+\item Equivariance achieved by separating linear operators (constrained) from nonlinearities (applied either pointwise on scalars or on a $\Sph$-grid, both invariant under $\SO(2)_{\by}$).
+\end{itemize}
+
+\subsection{Differences, component by component}\label{sec:compare-diff}
+
+\paragraph{Frame axis.}
+DPA4 (``Local Frame on a Directed Edge'' in archi\_dpa4.tex) aligns $\brh_{ij}$ with the local $\bz$-axis and writes the in-frame symmetry group as $\SO(2)_{\bz}$; the rotation operator is constructed by a two-chart NLERP blend on $\Sph$ that produces a deterministic, $C^3$-smooth quaternion as a function of $\brh_{ij}$.
+EquiformerV3 (E3 \S\ref{sec:edgerot}) aligns $\brh_{ij}$ with the local $\by$-axis and assembles the rotation matrix from a freshly drawn random perpendicular per edge.
+The randomness is harmless under the $\SO(2)_{\by}$-equivariance of every in-frame operator (Remark~\ref{rmk:rand-frame}), but only $C^0$-smooth as a function of $\brh_{ij}$ (the random direction is discontinuous in $\brh_{ij}$).
+DPA4's frame is $C^3$ in $\brh_{ij}$; EquiformerV3's frame is not.
+For the architectures' actual outputs the smoothness gap is closed by $\SO(2)$-equivariance: any $\SO(2)_{\by}$-invariant function of $\bm{x}^{\mathrm{loc}}_{ij}$ is automatically continuous in $\bu^\star$ (it does not see $\bu^\star$ at all).
+
+\paragraph{Wigner construction.}
+DPA4 builds $\widetilde\bD_{ij}$ directly from the unit quaternion via the closed-form real-basis Wigner-$D$ formula.
+EquiformerV3 builds it from ZYZ Euler angles via $e^{-i\alpha M_z}d(\beta)e^{-i\gamma M_z}$ in the real basis, with $d(\beta)$ contracted against a precomputed Jucys--Murphy tensor stored on disk.
+The two constructions agree on the resulting $\widetilde\bD_{ij}$ up to numerical noise.
+
+\paragraph{Radial basis.}
+DPA4 uses learned smooth-bump radial functions with explicit $C^3$ continuity at the inner clamp and the outer cutoff.
+EquiformerV3 uses $K_r=600$ Gaussian basis functions \eqref{eq:gauss} with a single fixed width, followed by an MLP \eqref{eq:radfn}; this is a strictly richer family at finite width but loses the analytic smoothness control.
+The two architectures fix their radial mixing weights at different points: DPA4 ties weights across $m$ via the per-degree rescale $\rho_l$, while EquiformerV3 toggles this with the \texttt{use\_rad\_l\_parametrization} flag (default: per-$l$, matching DPA4's tying).
+
+\paragraph{Cutoff envelope.}
+DPA4 uses a septic Hermite envelope $s_p(r)$ that is $C^3$ at both ends of the cutoff region.
+EquiformerV3 uses a degree-$p+2$ polynomial of \eqref{eq:env} that is $C^2$ at the outer cutoff and unbounded near $r=0$ (no inner clamp).
+For molecular configurations with bond lengths far from any divergence the two are interchangeable in practice; for pathological short-distance configurations DPA4's inner-clamp and ZBL bridging confer extra stability.
+
+\paragraph{ZBL short-range bridging.}
+DPA4 includes an additive analytic ZBL pair potential bridged smoothly into the learned energy through the source-freeze propagation gate $\eta_j$ (``Source-Freeze Gate'' and ``ZBL Pair Potential'' in archi\_dpa4.tex).
+EquiformerV3 has no such bridging; the energy is purely the learned scalar of \eqref{eq:energy-sum}.
+Consequently EquiformerV3 has no guarantee of correct short-range physics outside the support of its training distribution.
+
+\paragraph{Initial embedding of higher-$l$ slots.}
+Both architectures initialise the per-atom feature with a species embedding in the $l=0$ slot and zeros elsewhere, then add a one-shot edge-degree embedding to populate the $l>0$ slots.
+DPA4 calls this the Geometric Initial Embedding (GIE).
+The two GIEs differ only in the radial parameterisation (DPA4's bump basis vs.\ EquiformerV3's Gaussian basis) and in the aggregation normaliser ($1/\sqrt{\overline d}$ in DPA4, $1/\overline d$ in EquiformerV3 \eqref{eq:edgedeg-agg}).
+
+\paragraph{Edge message: attention vs.\ pure convolution.}
+This is the principal architectural divergence.
+EquiformerV3 (E3 \S\ref{sec:attn}) computes a softmax attention weight $\alpha^{(h)}_{ij}\in[0,1]$ per head from an $\SO(2)_{\by}$-invariant scalar logit and applies it multiplicatively to the local-frame value; the per-target aggregation is a sum of attention-weighted local-frame messages.
+DPA4's edge-convolution block (``Edge Convolution in the Local Frame'' in archi\_dpa4.tex) does \emph{not} use softmax attention; aggregation is a scalar-keyed convex combination $\mathcal{A}$ of per-edge messages with mixing weights driven by a softmax over the depth-attention channel, plus a residual.
+The DPA4 attention is depth-attention over feature streams within the same block; EquiformerV3 attention is graph-attention over edges incident to the same target.
+Both are global-rotation invariant in the weighting; both are smooth in the edge geometry through the envelope, but only EquiformerV3 includes an explicit per-edge attention softmax \eqref{eq:attn-softmax}.
+
+\paragraph{Source--target asymmetry in the edge message.}
+EquiformerV3 mixes both source and target node features into the per-edge message via the concat (or add-merge) operation of \eqref{eq:attn-edge}.
+DPA4 uses only the source feature $\bh_j$ in the per-edge message, with the target's role entering only through species embeddings in the radial.
+This is a strict architectural asymmetry: EquiformerV3 messages are functions of $(\bh_i,\bh_j,r_{ij},Z_i,Z_j)$; DPA4 messages are functions of $(\bh_j,r_{ij},Z_i,Z_j)$ only.
+
+\paragraph{$\SO(2)$ linear operator.}
+The two architectures use the \emph{same} $\SO(2)$-equivariant linear operator class on the truncated $m$-major reduced layout: an unconstrained dense block on the $m=0$ stratum, plus the real form of complex multiplication $\bigl[\begin{smallmatrix}\bU_m&-\bV_m\\\bV_m&\bU_m\end{smallmatrix}\bigr]$ on each $|m|>0$ stratum with cross-$l$ mixing allowed within the stratum.
+Both rescale the $|m|>0$ weights by $1/\sqrt{2}$ to compensate for the doubled real parameter count.
+Remark~\ref{rmk:so2-equiv} gives the precise statement, including the few incidental differences (multi-stream focus axis, side-channel scalars, bias-correction tied to the radial--envelope product) that do not alter the equivariance class.
+
+\paragraph{In-frame nonlinearity.}
+Both architectures implement the same $\Sph$-grid sandwich for the FFN nonlinearity, and DPA4 explicitly enumerates three FFN variants in archi\_dpa4.tex \S11 (``The Equivariant Feed-Forward Network''):
+\emph{Variant 1} (gated FFN, eq.~(58) of archi\_dpa4.tex) -- the default \texttt{GatedActivation} path of \texttt{sezm\_nn/ffn.py:EquivariantFFN}, which gates $l>0$ slots by a sigmoid of $l=0$ features;
+\emph{Variant 2} (spherical-grid FFN, eq.~(59) of archi\_dpa4.tex) -- the \texttt{grid\_mlp=True} path, which up-projects per-degree, sends the higher-$l$ part through the grid sandwich $\mathsf{P}^{\dagger}\circ\Psi\circ\mathsf{P}$ (with $\Psi$ a per-grid-point channel-mixing MLP), adds a separate scalar SwiGLU branch on the $l=0$ slot, then down-projects per-degree;
+\emph{Variant 3} (spherical-grid SwiGLU activation, eq.~(60) of archi\_dpa4.tex) -- the \texttt{s2\_activation=True} path, where the activation itself is a grid-SwiGLU built from \texttt{SwiGLUS2Activation}, splitting the hidden width into value and gate, evaluating the gate on $\Sph$, multiplying pointwise, and projecting back.
+EquiformerV3's FFN \eqref{eq:effn-1} is structurally Variant~2: the same per-degree up-/down-projection, the same e3nn \texttt{ToS2Grid}/\texttt{FromS2Grid} construction for $\mathsf{P},\mathsf{P}^{\dagger}$, the same per-degree truncation rescale for $\mmax<\lmax$, the same per-grid-point pointwise MLP, and the same scalar-merge to the $l=0$ slot.
+The differences from DPA4's Variant~2 are: (i) DPA4 subtracts the $l=0$ slice before projecting to the grid ($\mathsf{P}(\bh-\bh|_{l=0})$ in eq.~(59) of archi\_dpa4.tex), so the grid path acts only on $l\ge 1$ and the $l=0$ slot is processed disjointly by the scalar SwiGLU branch, whereas EquiformerV3 keeps $l=0$ inside the grid input and adds the scalar branch on top of it;
+(ii) EquiformerV3's grid MLP multiplies the SwiGLU output by a sigmoid scalar gate $\Sigmoid(\bm{w}_g\bm{s})$ derived from $\bh_{l=0}$ \emph{inside} the grid (eq.~\eqref{eq:gridmlp}), while DPA4's \texttt{PointwiseGridMLP} has no scalar gate inside the grid, the scalar information entering only through the additive merge;
+(iii) the grid path is opt-in (\texttt{grid\_mlp=False} default) in DPA4 and the default in EquiformerV3;
+(iv) the latitude grid in EquiformerV3 is dense ($N_\beta=20$) and the longitude grid sparse ($N_\alpha=8$ in attention, $N_\alpha=20$ in FFN), while DPA4's grid resolution choices are smaller in both axes.
+For the attention sublayer's in-frame activation, EquiformerV3's \texttt{sep-merge\_gates2\_swiglu} \eqref{eq:attn-act} corresponds to DPA4's Variant~3 used as the inter-mixer activation inside the \texttt{SO2Convolution} stack of $\SO(2)$-linear layers.
+
+\paragraph{Layer normalisation.}
+DPA4 uses a per-degree equivariant RMS-norm without centring; EquiformerV3 defaults to the merge layer-norm of \S\ref{sec:eqLN} with centring on $l=0$ and RMS-style normalisation on $l>0$.
+The variants \texttt{merge\_rms\_norm} and \texttt{sep\_layer\_norm} bring EquiformerV3 closer to DPA4's choice.
+
+\paragraph{Transformer block layout.}
+EquiformerV3 uses a pre-norm attention $+$ pre-norm FFN block \eqref{eq:tb-1}--\eqref{eq:tb-2} with stochastic depth (DropPath) applied at the level of whole atoms.
+DPA4's interaction block has a sandwich-norm structure (norm$\to$op$\to$norm$\to$residual) with no stochastic depth, and the depth-attention residual aggregation $\mathcal{A}$ replaces the additive residual.
+
+\paragraph{Energy normaliser.}
+EquiformerV3 divides the summed per-atom energy by $\overline N$ (the dataset's average atom count); DPA4 does not perform this division, instead relying on a learned bias and the consistent per-atom scale of the readout.
+
+\paragraph{Forces and stress.}
+EquiformerV3 supports both a direct prediction head (additional equivariant attention/FFN producing $l=1$ vectors and stress-basis coefficients) and a gradient prediction by autograd; the two paths are mutually exclusive at instantiation.
+DPA4 produces forces and stress only by autograd through the energy, and is consequently always conservative.
+The direct heads of EquiformerV3 are strictly more general (they can produce non-conservative force fields) but lose the conservation guarantee.
+
+\paragraph{Maximum degrees and orders.}
+The released checkpoints set $\lmax=6,\mmax=2$ for EquiformerV3; DPA4 typically operates at smaller $\lmax$ and $\mmax$ with a tighter $C$.
+Because in-frame compute scales as $\mathcal{O}(\lmax\cdot\mmax\cdot C\cdot C_h)$ in Regime II, both architectures land in the same regime asymptotically.
+
+\subsection{Operator-level identification}\label{sec:compare-op}
+
+In the notation of DPA4 \S15.1, both architectures fit a common per-edge message template
+\begin{equation}\label{eq:common-msg}
+\bm{m}_{ij}\;=\;K\;\widetilde\bD_{ij}^{-1}\;\Hb^{\mathrm{loc}}\bigl(\widetilde\bD_{ij}\,\bigl(\widetilde\brho_{ij}\odot\bh^{\mathrm{src/tgt}}_{ij}\bigr)\bigr),
+\end{equation}
+where $\widetilde\brho_{ij}\in\R^{(\lmax+1)\times \cdot}$ is the edge-conditioned per-$l$ radial scaling, $K$ is a scalar normaliser, and $\Hb^{\mathrm{loc}}$ is an $\SO(2)$-equivariant nonlinear operator.
+The two architectures specialise this template as follows:
+
+\medskip
+\begin{tabular}{p{4.5cm}|p{5cm}|p{5cm}}
+\hline
+\textbf{Slot} & \textbf{DPA4} & \textbf{EquiformerV3}\\
+\hline
+$\bh^{\mathrm{src/tgt}}_{ij}$ & $\bh_j$ (source only) & $[\bh_i\,\|\,\bh_j]$ (concat) or $\widetilde\brho^{\mathrm{src}}\bh_i+\widetilde\brho^{\mathrm{tgt}}\bh_j$ (add-merge) \\
+$\widetilde\brho_{ij}$ & per-$(l,c)$ bump basis & per-$(l,c)$ Gaussian-MLP \\
+Local frame axis & $\bz$ via $C^3$ NLERP & $\by$ via random perpendicular \\
+$\Hb^{\mathrm{loc}}$ & gated SwiGLU sandwich, no attention & SO(2)-linear $\to$ SwiGLU on $\Sph$-grid $\to$ SO(2)-linear, multiplied by softmax attention weight $\alpha^{(h)}_{ij}$\\
+$K$ & per-$l$ rescale $\rho_l$ \eqref{eq:wignerD-trunc-inv} & per-$l$ rescale $s_l$ \eqref{eq:wignerD-trunc-inv}\\
+Aggregation & scalar-keyed convex combination $\mathcal{A}$ over depth $+$ smooth envelope $s_p$ & sum-over-edges $+$ envelope-rescaled softmax $+$ DropPath \\
+Short-range bridging & ZBL $+$ source-freeze gate $\eta_j$ & none \\
+Force prediction & autograd & autograd or separate $l=1$ head \\
+\hline
+\end{tabular}
+
+\medskip
+Both the Regime-II message of archi\_dpa4.tex and the per-edge message of EquiformerV3 \eqref{eq:common-msg} occupy the same expressiveness slot (Regime II): direction-dependent, cross-$l$-mixing, equivariant-linear maps on a single equivariant feature.
+The architectural divergences enumerated above are concerned with the parameterisation of $\widetilde\brho_{ij}$, $L^{\mathrm{SO2}}$, $\Hb^{\mathrm{loc}}$, and the aggregation, not with the expressiveness class.
+
+\subsection{Where the architectures genuinely differ}\label{sec:compare-genuine}
+
+Three of the differences above are not parameterisation choices but architectural commitments:
+\begin{enumerate}[leftmargin=2em]
+\item \emph{Smoothness of the edge frame.}
+DPA4's frame is $C^3$ in $\brh_{ij}$; EquiformerV3's is $C^0$ but $\SO(2)$-invariantly $C^\infty$.
+For applications requiring smooth force gradients (Hessians, free-energy second derivatives), the DPA4 frame is preferable.
+\item \emph{Short-range bridging.}
+DPA4's ZBL bridging is a non-perturbative addition to the energy that guarantees correct physics in the short-range limit; EquiformerV3 has no such mechanism.
+\item \emph{Per-edge attention.}
+EquiformerV3 uses softmax attention over edges; DPA4 uses an unweighted sum (with smooth envelope) over edges and a separate depth-attention residual.
+The qualitative effect of the EquiformerV3 attention is to make the per-edge contribution adaptive to the neighbourhood; the qualitative effect of the DPA4 depth-attention is to make the per-feature-stream contribution adaptive to the depth.
+The two attention mechanisms are not interchangeable in the literal sense, although both can in principle be subsumed by a sufficiently expressive Regime-II kernel of archi\_dpa4.tex.
+\end{enumerate}
+
+\subsection{What is shared}\label{sec:compare-shared}
+
+All of the following are common to both architectures:
+\begin{itemize}[leftmargin=2em]
+\item The decision to live in DPA4 Regime II rather than Regime III (no Clebsch--Gordan coefficients explicitly invoked).
+\item The use of a per-edge Wigner-$D$ rotation as the carrier of angular information.
+\item Per-degree channel mixers as the only $\SO(3)$-linear operator on global-frame features (archi\_dpa4.tex's $L^{\mathrm{ch}},L^{\mathrm{deg}}$ coincide with EquiformerV3's \texttt{SO3Linear}).
+\item Real-basis spherical harmonics throughout.
+\item Energy by per-atom $l=0$ MLP plus structure sum.
+\item Smooth radial cutoff at $r=\rcut$.
+\end{itemize}
+
+\subsection{Summary}\label{sec:compare-summary}
+
+EquiformerV3 and DPA4 are both Regime-II CG-free architectures whose per-edge messages live in the same equivariant operator class.
+They differ on the parameterisation of that operator (Gaussian-MLP vs.\ bump basis), on the construction of the edge frame ($C^0$ random vs.\ $C^3$ NLERP), on the use of attention (graph-attention over edges vs.\ depth-attention over features), on the inclusion of short-range physics (none vs.\ ZBL bridging), and on the output head structure (direct + gradient vs.\ gradient only).
+None of these differences alter the asymptotic expressiveness class; each is a deliberate trade-off between smoothness, expressive headroom, training stability, and end-application demands.
+
+% =============================================================
+\section*{Notation Index}
+
+\begin{tabular}{ll}
+$N$ & number of atoms\\
+$Z_i\in\{1,\dots,Z_{\max}\}$ & atomic species of atom $i$\\
+$\bR_i\in\R^3$ & position of atom $i$\\
+$\br_{ij}=\bR_j-\bR_i$, $r_{ij}=\|\br_{ij}\|$, $\brh_{ij}=\br_{ij}/r_{ij}$ & edge vector, distance, direction\\
+$\rcut$ & outer cutoff radius\\
+$\lmax,\mmax\in\Z_{\geq 0}$ & maximum degree, maximum truncation order\\
+$D=(\lmax+1)^2$, $D_m=\sum_l(2\min(l,\mmax)+1)$ & full and truncated dimensions\\
+$\iota(l,m)=l^2+l+m$ & linear packing of $(l,m)$\\
+$C$ & feature channel width\\
+$H$ & number of attention heads\\
+$C^{\mathrm{a}},C^{\mathrm{v}}$ & per-head alpha- and value-channel widths\\
+$C_h$ & MLP hidden width\\
+$L$ & number of transformer blocks\\
+$N_\beta,N_\alpha$ & grid latitude/longitude resolutions\\
+$\bR_{ij}\in\SO(3)$ & edge-aligned rotation matrix \eqref{eq:edgerot}\\
+$\bD_{ij}\in\R^{D\times D}$ & block-diagonal Wigner-$D$ at $\bR_{ij}$\\
+$\widetilde\bD_{ij}\in\R^{D_m\times D}$ & truncated $m$-primary Wigner \eqref{eq:wignerD-trunc}\\
+$\widetilde\bD_{ij}^{-1}\in\R^{D\times D_m}$ & rescaled inverse Wigner \eqref{eq:wignerD-trunc-inv}\\
+$\varphi(r)$ & polynomial envelope \eqref{eq:env}\\
+$\eta(r)$ & Gaussian smearing \eqref{eq:gauss}\\
+$\Hb_{\mathrm{rad}}$ & radial MLP \eqref{eq:radfn}\\
+$L^{\mathrm{ch}}$ & per-degree channel mixer (\texttt{SO3Linear})\\
+$L^{\mathrm{SO2}}=(L_0,L_1,\dots,L_{\mmax})$ & $\SO(2)_{\by}$-equivariant linear operator \eqref{eq:LSO2}\\
+$\bm{S},\bm{S}^{\dagger}$ & grid evaluation and pull-back \eqref{eq:sample}--\eqref{eq:grid-pull}\\
+$\mathcal{M}_{\Sph}$ & grid MLP \eqref{eq:gridmlp}\\
+$\Hb^{\mathrm{attn}}_\ell,\Hb^{\mathrm{ffn}}_\ell$ & block sublayers\\
+$\Hb^{\mathrm{TB}}_\ell$ & one transformer block \eqref{eq:tb-1}--\eqref{eq:tb-2}\\
+$\alpha^{(h)}_{ij}$ & per-edge per-head attention weight \eqref{eq:attn-softmax}\\
+$\overline N,\overline d$ & dataset-derived atom-count and degree averages\\
+$\bmF_i,\sigma_\Theta$ & per-atom force and stress\\
+\end{tabular}
+
+\end{document}

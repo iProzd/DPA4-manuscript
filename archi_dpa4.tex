@@ -1,0 +1,1250 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\DeclareMathOperator{\SO}{SO}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\softplus}{softplus}
+\DeclareMathOperator{\sinc}{sinc}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Span}{span}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\ScalarRMSNorm}{ScalarRMSNorm}
+\DeclareMathOperator{\SiLU}{SiLU}
+\DeclareMathOperator*{\SUM}{\textstyle\sum}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\bA}{\bm{A}}
+\newcommand{\bU}{\bm{U}}
+\newcommand{\bV}{\bm{V}}
+\newcommand{\bG}{\bm{G}}
+\newcommand{\Sph}{S^2}
+\newcommand{\bR}{\bm{R}}
+\newcommand{\br}{\bm{r}}
+\newcommand{\brh}{\hat{\bm{r}}}
+\newcommand{\bx}{\bm{x}}
+\newcommand{\by}{\bm{y}}
+\newcommand{\bz}{\bm{z}}
+\newcommand{\bmF}{\bm{F}}
+\newcommand{\bh}{\bm{h}}
+\newcommand{\bq}{\bm{q}}
+\newcommand{\bk}{\bm{k}}
+\newcommand{\bv}{\bm{v}}
+\newcommand{\bg}{\bm{g}}
+\newcommand{\bu}{\bm{u}}
+\newcommand{\Te}{\bm{T}}
+\newcommand{\bD}{\bm{D}}
+\newcommand{\bW}{\bm{W}}
+\newcommand{\bP}{\bm{P}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\brho}{\bm{\rho}}
+\newcommand{\rcut}{r_{\mathrm{c}}}
+\newcommand{\rin}{r_{\mathrm{in}}}
+\newcommand{\rout}{r_{\mathrm{out}}}
+\newcommand{\lmax}{l_{\max}}
+\newcommand{\mmax}{m_{\max}}
+\newcommand{\rtilde}{\widetilde{r}}
+\newcommand{\Nb}{\mathcal{N}}
+\newcommand{\Idx}{\mathcal{I}}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{The DPA4 Architecture:\\ A Mathematical Construction}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We construct the DPA4 message-passing equivariant graph neural network as a mathematical object: a parametric family of $C^3$ scalar functions of atomic configurations that is invariant under translations, species-preserving permutations, and global rotations, and that admits a strict freezing property in a designated short-range bridging zone.
+The construction proceeds by introducing, in order, the configuration space, the symmetry representation, the per-edge local frame, the bridging window, the equivariant feature space, the equivariant operators, the interaction block, and the energy readout.
+Every symbol is defined at its first occurrence.
+\end{abstract}
+
+\tableofcontents
+
+% =============================================================
+\section{Overview of the Architecture}\label{sec:overview}
+
+DPA4 is a parametric family of $C^3$ scalar functions
+\begin{equation}\label{eq:overall}
+E_\Theta : (Z,R)\;\longmapsto\;E_\Theta(Z,R)\in\R
+\end{equation}
+of atomic configurations $(Z,R)$ (species $Z\in\{1,\dots,n_t\}^N$, positions $R\in\R^{3N}$), invariant under translations, species-preserving permutations, and global rotations, and conservative in the sense that forces and stress are exact gradients of $E_\Theta$.
+We now sketch the construction; the formal definitions appear in the following sections.
+
+\paragraph{Two additive branches.}
+The energy decomposes as
+\begin{equation}\label{eq:overview-decomp}
+E_\Theta(Z,R) \;=\; E^{\mathrm{NN}}_\Theta(Z,R) \;+\; E^{\mathrm{ZBL}}(Z,R),
+\end{equation}
+where $E^{\mathrm{ZBL}}$ is a fixed analytical short-range pair potential (\S\ref{sec:zbl}) and $E^{\mathrm{NN}}_\Theta$ is the learned message-passing graph neural network branch defined by the remainder of the document.
+The geometric inputs consumed by the two branches differ inside a designated short-range \emph{bridging window} $[\rin,\rout]$: $E^{\mathrm{NN}}_\Theta$ reads a smoothly clamped distance $\rtilde(r)\equiv\rin$ for $r\leq\rin$, while $E^{\mathrm{ZBL}}$ reads the true $r$.
+A multiplicative \emph{source-freeze gate} $\eta_j\in[0,1]$ further enforces that any atom $j$ which sees a partner inside the frozen zone contributes nothing to the learned branch (Theorem~\ref{thm:freeze}).
+
+\paragraph{State space.}
+The learned branch operates on per-atom states living in a finite-dimensional representation of $\SO(3)$:
+\begin{equation}\label{eq:overview-state}
+X\;=\;(\bh_1,\dots,\bh_N),\qquad
+\bh_i \;\in\; V_{\le\lmax}\otimes\R^{C},
+\quad
+V_{\le\lmax}\;=\;\bigoplus_{l=0}^{\lmax}V_l,
+\end{equation}
+where $V_l$ is the real $(2l+1)$-dimensional irreducible representation of $\SO(3)$ and $C\in\N$ is a channel width.
+The $\SO(3)$ action $X\mapsto\bD(R)X$ is channel-wise.
+The $l=0$ subspace is the trivial representation; energies will be read out from it alone.
+
+\paragraph{From global SO(3) to per-edge SO(2).}
+For each directed edge $(i,j)$ with $r_{ij}>0$ we construct a $C^\infty$ rotation $R_{ij}\in\SO(3)$ that aligns the edge direction with a fixed reference vector $\bz=(0,0,1)^\top$, and let $\bD_{ij}\coloneqq\bD(R_{ij})$ be the corresponding representation.
+Inside the edge-local frame the residual symmetry is no longer $\SO(3)$ but its abelian subgroup $\SO(2)_{\bz}$ stabilising $\bz$.
+Under $\SO(2)_{\bz}$ the basis labelled by $(l,m)$ decomposes into one-dimensional invariant lines ($m=0$) and real two-dimensional components ($|m|>0$).
+Each interaction therefore needs only a block-diagonal $\SO(2)$-equivariant mixing along an angular order $m$, instead of the full Clebsch--Gordan tensor product required by SO(3)-equivariant operators.
+Restricting further to $|m|\leq\mmax$ for some $\mmax\leq\lmax$ yields a reduced layout of dimension $D_m=\sum_l(2\min(l,\mmax)+1)$, with a per-degree rescale $\rho_l$ that compensates the truncation.
+
+\paragraph{Interaction block.}
+A single interaction block $\mathcal{B}$ maps a state to a state by two equivariant residual updates.
+Writing $\bh_i'$ for the intermediate state after the first update and $\bh_i''$ for the output of the block,
+\begin{equation}\label{eq:overview-block}
+\bh_i' = \bh_i + \mathcal{C}(\bh)_i,\qquad
+\bh_i'' = \bh_i' + \mathcal{F}\bigl(\bh'\bigr)_i,
+\end{equation}
+where (i) $\mathcal{C}$ is the \emph{edge convolution} (\S\ref{sec:so2conv}): it pre-mixes channels, transports the source feature into the edge-local frame via $\bD_{ij}^{\le\mmax}$, modulates the result by per-edge per-degree radial features $\brho_{ij,l}$, applies a stack of SO(2)-equivariant linear/normalise/gated nonlinearity layers (optionally with cross-focus competition), lifts back to the global frame with the rescale $\rho_l$, and aggregates over neighbours through either an envelope-weighted sum or an envelope-gated softmax attention with a query-dependent output gate; (ii) $\mathcal{F}$ is an equivariant feed-forward block built from degree-wise linear maps and a gated activation that mixes $l=0$ scalars with higher-$l$ vectors through scalar gates.
+Both $\mathcal{C}$ and $\mathcal{F}$ start as the identity at initialisation (zero-initialised output projections), so $\mathcal{B}$ is a near-identity perturbation of the input state at training time zero.
+The primes in \eqref{eq:overview-block} denote \emph{intra-block} substates; \emph{inter-block} iterates are tracked separately by the counter $X^{(b)}$ introduced below.
+
+\paragraph{Computational pipeline.}
+For a given input $(Z,R)$, $E^{\mathrm{NN}}_\Theta$ is computed by the following composition of maps:
+\begin{equation}\label{eq:overview-pipeline}
+(Z,R)\;\xrightarrow{\text{edges}}\;
+\{(i,j,\widetilde\br_{ij},R_{ij},\eta_j,\dots)\}\;
+\xrightarrow{\text{init}}\;X^{(0)}\;
+\xrightarrow{\mathcal{B}_1}\cdots\xrightarrow{\mathcal{B}_B}\;X^{(B)}\;
+\xrightarrow{\mathcal{O}}\;\sum_{i=1}^{N}E_i^{\mathrm{NN}}.
+\end{equation}
+Here the superscript $(b)$ counts the \emph{number of interaction blocks already applied}:
+\begin{equation}\label{eq:Xb-recursion}
+X^{(b)} \;=\; \mathcal{B}_b\bigl(X^{(b-1)}\bigr),\qquad b=1,\dots,B,
+\end{equation}
+so that $X^{(B)}$ is the final state read out by $\mathcal{O}$, and the \emph{initial state}
+\begin{equation}
+X^{(0)} \;=\; \bigl(\bh_1^{(0)},\dots,\bh_N^{(0)}\bigr) \;\in\;\bigl(V_{\le\lmax}\otimes\R^C\bigr)^{N}
+\end{equation}
+is the input to the first block, produced by the initialisation step before any message passing.
+The pieces of the pipeline are:
+\begin{itemize}[leftmargin=2em]
+\item the \emph{edge construction} step (\S\ref{sec:radial},\S\ref{sec:sfpg}) computes the clamped displacement $\widetilde\br_{ij}$, the edge-local rotation $R_{ij}$, the smooth cutoff factor $s(r_{ij})$, the source-freeze gate $\eta_j$, and a smooth in-degree $n_i$;
+\item the \emph{initialisation} step (\S\ref{sec:init}) defines $X^{(0)}$ explicitly:
+\begin{equation}\label{eq:overview-X0}
+\bh_i^{(0)}\bigm|_{l=0,m=0,c}\;=\;T_{Z_i,c},
+\qquad
+\bh_i^{(0)}\bigm|_{(l,m'),c}\;=\;n_i\!\!\sum_{j:r_{ij}<\rcut}\!\!\eta_j\,Y_l^{m'}(\brh_{ij})\,\brho_{ij,l,c}\ \ (l\geq 1),
+\end{equation}
+where $T\in\R^{n_t\times C}$ is a learnable species table, $Y_l^{m'}$ is the real spherical harmonic of degree $l$ and order $m'$ (the geometric initial embedding), and $\brho_{ij,l}$ are the per-edge per-degree radial features (\eqref{eq:rho-edge}); an optional FiLM modulation derived from a local environment matrix may additionally modulate the $l=0$ slice (\S\ref{sec:init});
+\item $B$ \emph{interaction blocks} $\mathcal{B}_b$ are applied in sequence via \eqref{eq:Xb-recursion}, with an optional non-increasing pyramid schedule $(\lmax^{(b)},\mmax^{(b)})$ that truncates the working representation between blocks (\S\ref{sec:energy});
+\item the \emph{scalar readout} $\mathcal{O}:\R^{C}\to\R$ is applied to the $l=0$ slice of each final node feature $\bh_i^{(B)}$, yielding per-atom energies $E_i^{\mathrm{NN}}=\mathcal{O}(\bh_i^{(B)}|_{l=0})$ whose sum is $E^{\mathrm{NN}}_\Theta$.
+\end{itemize}
+
+\paragraph{Guarantees.}
+By construction (see \S\ref{sec:thms}):
+\begin{itemize}[leftmargin=2em]
+\item Every block preserves $\SO(3)$ equivariance of the state, and the readout is $\SO(3)$-invariant; hence $E^{\mathrm{NN}}_\Theta$ is invariant under translations, permutations, and rotations.
+\item Each elementary ingredient (envelope, radial, distance clamp, bridging switch, two-chart edge quaternion, softmax denominator) is $C^3$ on its domain; hence $E_\Theta\in C^3$ off the configuration-diagonal.
+\item For any pair $(j,k)$ with $r_{jk}\leq\rin$, the gate $\eta_j$ and $\eta_k$ vanish exactly; combined with the distance clamp this forces $\partial E^{\mathrm{NN}}_\Theta/\partial\bR_j=\partial E^{\mathrm{NN}}_\Theta/\partial\bR_k=0$, so the force on each member of a frozen pair is the pure ZBL force.
+\end{itemize}
+
+The rest of the document develops each piece of \eqref{eq:overview-pipeline} as a precise mathematical object.
+
+% =============================================================
+\section{Configuration Space and Symmetries}\label{sec:setup}
+
+\paragraph{Configurations.}
+A configuration of $N\in\N$ atoms is a pair $\bigl(Z,R\bigr)$ where $Z=(Z_1,\dots,Z_N)\in\{1,\dots,n_t\}^N$ assigns to each atom a species label drawn from a fixed alphabet of size $n_t\in\N$, and $R=(\bR_1,\dots,\bR_N)\in\R^{3N}$ assigns Cartesian positions.
+Optional periodic boundary conditions, encoded by a cell matrix $\bm{L}\in\R^{3\times 3}$, are treated by interpreting the index $j$ in pairs $(i,j)$ as ranging over images of the unit cell.
+
+For ordered pairs $(i,j)$ with $i\neq j$ define
+\begin{equation}
+\br_{ij}\coloneqq \bR_j-\bR_i,\qquad
+r_{ij}\coloneqq \|\br_{ij}\|,\qquad
+\brh_{ij}\coloneqq \br_{ij}/r_{ij}\ \text{when }r_{ij}>0.
+\end{equation}
+
+\paragraph{Three symmetry groups.}
+Let $\R^3$ act by translations on positions, $\SO(3)$ act by global rotations, and the symmetric group $S_N$ act by species-preserving permutations of atom indices.
+A function $E:\R^{3N}\to\R$ on configurations is \emph{admissible} if it is invariant under each of these actions and is $C^3$ on the open set where $\bR_i\neq\bR_j$.
+
+\paragraph{Total energy.}
+The DPA4 energy decomposes as
+\begin{equation}\label{eq:totalE}
+E\bigl(Z,R\bigr) \;=\; E^{\mathrm{NN}}\bigl(Z,R\bigr) \;+\; E^{\mathrm{ZBL}}\bigl(Z,R\bigr),
+\end{equation}
+where $E^{\mathrm{ZBL}}$ is the analytical Ziegler--Biersack--Littmark short-range branch defined in \S\ref{sec:zbl} and $E^{\mathrm{NN}}$ is the learned graph neural network branch constructed in the remainder of the paper.
+Atomic forces and virial stress are obtained by automatic differentiation of $E$ with respect to the positions and the cell;
+in particular, conservativeness is by construction.
+
+% =============================================================
+\section{Representation Theory of $\SO(3)$ in a Real Basis}\label{sec:rep}
+
+\paragraph{Real irreducible representations.}
+For each non-negative integer $l\in\Z_{\geq 0}$, let $V_l$ be a real $(2l+1)$-dimensional vector space carrying the real form of the spin-$l$ irreducible representation of $\SO(3)$.
+We index a basis of $V_l$ by an integer $m\in\{-l,\dots,+l\}$.
+The representation is the group homomorphism
+\begin{equation}
+D^l : \SO(3)\;\longrightarrow\;\mathrm{O}\bigl(2l+1\bigr),\qquad D^l(R)\,D^l(R')=D^l(RR').
+\end{equation}
+Each $D^l$ is orthogonal: $D^l(R)^\top D^l(R)=I_{2l+1}$.
+
+\paragraph{Truncated direct sum.}
+Fix a degree cutoff $\lmax\in\N_0$ and set $D\coloneqq(\lmax+1)^2$.
+The total feature space carries the representation
+\begin{equation}\label{eq:Drep}
+V_{\le\lmax} \;\coloneqq\; \bigoplus_{l=0}^{\lmax}V_l \;\cong\;\R^{D},\qquad
+\bD(R) \;\coloneqq\; \bigoplus_{l=0}^{\lmax}D^l(R)\;\in\;\R^{D\times D}.
+\end{equation}
+We linearly pack a basis of $V_{\le\lmax}$ by $\iota(l,m)\coloneqq l^2+l+m$.
+The matrix $\bD(R)$ is block-diagonal in this packing.
+
+\paragraph{Equivariance.}
+A map $\Phi:V_{\le\lmax}^{\otimes p}\to V_{\le\lmax}^{\otimes q}$ between tensor powers is \emph{$\SO(3)$-equivariant} if
+$\Phi(\bD(R)x_1,\dots,\bD(R)x_p)=\bD(R)\Phi(x_1,\dots,x_p)$ for all $R\in\SO(3)$.
+It is \emph{$\SO(3)$-invariant} if its image lies in the $l=0$ subspace.
+
+\paragraph{Feature space.}
+Let $C\in\N$ be a channel width.
+A \emph{node feature} at atom $i$ is an element $\bh_i\in V_{\le\lmax}\otimes\R^C\cong\R^{D\times C}$;
+$\SO(3)$ acts on the first factor only.
+The $l$-block of $\bh_i$ is $\bh_i^{(l)}\in V_l\otimes\R^C$.
+
+% =============================================================
+\section{Local Frame on a Directed Edge}\label{sec:frame}
+
+\paragraph{Goal.}
+For each directed pair $(i,j)$ with $r_{ij}>0$ we choose a rotation that maps $\brh_{ij}$ to a fixed reference vector $\bz\coloneqq(0,0,1)^\top\in\Sph$.
+This is exactly the data of a section $\sigma:\Sph\setminus\{*\}\to\SO(3)$ of the bundle $\SO(3)\to\Sph$ given by the orbit map; the obstruction to a global section is one point on $\Sph$ (the Euler-angle singularity).
+DPA4 uses two charts and blends them with a $C^\infty$ partition of unity to obtain a globally smooth lift.
+
+\paragraph{Quaternion charts.}
+Let $S^3\coloneqq\{\bq\in\R^4:\|\bq\|=1\}$ be the unit $3$-sphere of $\R^4$, identified with the group of unit quaternions $\bq=q_w+q_x\,\mathbf{i}+q_y\,\mathbf{j}+q_z\,\mathbf{k}$ in the components $(q_w,q_x,q_y,q_z)\in\R^4$.
+The standard double cover $R:S^3\to\SO(3)$, under which $\bq$ and $-\bq$ represent the same rotation, gives the identification $\SO(3)\cong S^3/\{\pm 1\}$.
+Explicitly, $R$ is the map
+\begin{equation}\label{eq:R-quat}
+R(\bq) \;=\;
+\begin{pmatrix}
+1-2(q_y^2+q_z^2) & 2(q_xq_y-q_wq_z) & 2(q_xq_z+q_wq_y)\\
+2(q_xq_y+q_wq_z) & 1-2(q_x^2+q_z^2) & 2(q_yq_z-q_wq_x)\\
+2(q_xq_z-q_wq_y) & 2(q_yq_z+q_wq_x) & 1-2(q_x^2+q_y^2)
+\end{pmatrix}\;\in\;\SO(3),
+\end{equation}
+or, equivalently, the conjugation action $R(\bq)\bm{v}=\bq\,\bm{v}\,\bq^{*}$ on the embedding $\R^3\hookrightarrow\mathbb{H}$, $\bm{v}\mapsto v_x\mathbf{i}+v_y\mathbf{j}+v_z\mathbf{k}$, where $\bq^{*}=q_w-q_x\mathbf{i}-q_y\mathbf{j}-q_z\mathbf{k}$ is the quaternion conjugate.
+
+For $\brh=(x,y,z)\in\Sph$ define
+\begin{equation}\label{eq:charts}
+\bq^{+}(\brh)\;=\;\frac{(1+z,\;y,\;-x,\;0)}{\sqrt{2(1+z)}},
+\qquad
+\bq^{-}(\brh)\;=\;\frac{(-x,\;0,\;1-z,\;y)}{\sqrt{2(1-z)}},
+\end{equation}
+defined respectively for $z>-1$ and $z<+1$.
+Each is a smooth lift on its domain satisfying $R(\bq^{\pm}(\brh))\,\brh=\bz$, where $R:S^3\to\SO(3)$ is the standard double cover.
+
+\paragraph{Blending.}
+Let $\lambda(\brh)\coloneqq(1+z)/2\in[0,1]$ and choose the sign of $\bq^{-}$ to make $\langle\bq^{+},\bq^{-}\rangle\geq 0$ (shortest arc).
+Define
+\begin{equation}\label{eq:nlerp}
+\bq_{ij} \;\coloneqq\; \frac{\lambda\,\bq^{+}(\brh_{ij}) + (1-\lambda)\,\bq^{-}(\brh_{ij})}{\bigl\|\lambda\,\bq^{+}(\brh_{ij}) + (1-\lambda)\,\bq^{-}(\brh_{ij})\bigr\|}.
+\end{equation}
+The denominator is bounded away from zero on the overlap by the shortest-arc choice, so $\brh\mapsto\bq_{ij}\in S^3$ is $C^\infty$ on all of $\Sph$.
+Pulling $\bq_{ij}$ through $R$ yields a $C^\infty$ rotation
+\begin{equation}
+R_{ij}\coloneqq R(\bq_{ij})\in\SO(3),\qquad R_{ij}\,\brh_{ij}=\bz.
+\end{equation}
+
+\paragraph{Edge-local action.}
+The local representation acts on features by $\bD_{ij}\coloneqq\bD(R_{ij})$.
+By construction $\bD_{ij}$ fixes the direction $\bz$ pointwise; the residual symmetry stabilising $\bz$ is the subgroup $\SO(2)_{\bz}\subset\SO(3)$ generated by rotations about $\bz$.
+Working in the real basis $\{\mathbf{e}_m^{(l)}\}_{m=-l}^{+l}$ of $V_l$, the restriction of $V_l$ to $\SO(2)_{\bz}$ decomposes into real irreducible subrepresentations as
+\begin{equation}\label{eq:so2decomp}
+V_l\bigm|_{\SO(2)_{\bz}}\;=\;
+\underbrace{\R\,\mathbf{e}_0^{(l)}}_{\text{trivial $1$-d}}
+\;\oplus\;\bigoplus_{m=1}^{l}\mathcal{V}_m^{(l)},
+\qquad
+\mathcal{V}_m^{(l)}\;\coloneqq\;\R\,\mathbf{e}_{-m}^{(l)}\oplus\R\,\mathbf{e}_{+m}^{(l)},
+\end{equation}
+where $R_\theta\in\SO(2)_{\bz}$ acts trivially on $\R\,\mathbf{e}_0^{(l)}$ and on $\mathcal{V}_m^{(l)}$ ($m\geq 1$) in the basis $(\mathbf{e}_{-m}^{(l)},\mathbf{e}_{+m}^{(l)})$ by the planar rotation
+\begin{equation}\label{eq:so2-rot}
+R_\theta\bigm|_{\mathcal{V}_m^{(l)}}\;=\;\begin{pmatrix}\cos m\theta & -\sin m\theta\\ \sin m\theta & \phantom{-}\cos m\theta\end{pmatrix}.
+\end{equation}
+Each $\mathcal{V}_m^{(l)}$ is a $2$-dimensional real irreducible representation of $\SO(2)_{\bz}$, isomorphic as a real $\SO(2)_{\bz}$-representation to the complex line $\C_m$ on which $R_\theta$ acts by multiplication by $e^{im\theta}$.
+The total dimension is $1+2l=2l+1=\dim V_l$.
+Individual real lines $\R\,\mathbf{e}_{\pm m}^{(l)}$ with $m\neq 0$ are \emph{not} invariant under $\SO(2)_{\bz}$ on their own; only the pair $\mathcal{V}_m^{(l)}$ is.
+
+\paragraph{Remark: why no Clebsch--Gordan is needed.}
+Clebsch--Gordan coefficients are the explicit basis of the intertwiner space for a \emph{bilinear} $G$-equivariant product of irreps,
+\[
+V_{a}\otimes V_{b}\longrightarrow V_{c},
+\]
+and they are non-trivial only when both factors are at $l>0$.
+For an SO(3)-equivariant such product, the selection rule is $|a-b|\le c\le a+b$ and the basis $\langle a\,m_a;b\,m_b\mid c\,m_c\rangle$ is a non-trivial table; evaluating it at all admissible triples up to $\lmax$ costs $\mathcal{O}(\lmax^6)$.
+This is the operation around which networks built on full SO(3) irreps (e.g.\ NequIP, MACE) organise their cost: they assign to each edge an \emph{equivariant} feature $Y_l^{m}(\brh_{ij})$ at $l=0,1,\dots,\lmax$ and then combine it with the source node feature $\bh_j$ via an SO(3) tensor product, which forces a CG expansion.
+
+DPA4 is structurally different: the only edge-side object ever multiplied into an equivariant node feature is the \emph{$\SO(3)$-invariant} ($l=0$) radial profile $\brho_{ij,l}$.
+The angular content of the edge geometry enters the architecture not as an equivariant feature but as the rotation operator $\bD_{ij}\in\bD(\SO(3))$ from \S\ref{sec:frame}, which acts on a single equivariant feature by frame change ($\bh_j\mapsto\bD_{ij}\bh_j$), not as a factor in a tensor product.
+Concretely:
+\begin{itemize}[leftmargin=2em]
+\item In the geometric initial embedding (\S\ref{sec:init}, equation~\eqref{eq:gie}), the message is the product $Y_l^{m'}(\brh_{ij})\cdot\brho_{ij,l,c}$: an equivariant degree-$l$ vector multiplied by an invariant scalar — the trivial intertwiner $V_l\otimes\R\to V_l$.
+\item In the edge convolution (\S\ref{sec:so2conv}), the source feature is first rotated to the local frame, modulated per degree by the invariant scalar $\rho_l$, mixed by the SO(2)-equivariant linear operator $L^{\mathrm{SO2}}$, and rotated back: at no point are two equivariant features multiplied together.
+\item The gated nonlinearity $\Gamma_{\psi,\bG}$ multiplies higher-$l$ blocks by a sigmoid gate computed from the $\SO(3)$-invariant $l=0$ slice — again $V_l\otimes\R\to V_l$.
+\end{itemize}
+Every multiplicative combination is therefore of the trivial form "scalar $\times$ equivariant", whose intertwiner is one-dimensional and $G$-independent; no CG coefficient is required, in either $\SO(3)$ or $\SO(2)$.
+
+The local-frame construction of \S\ref{sec:frame} plays a complementary role: it makes the residual symmetry abelian, so even if one wanted to introduce a bilinear equivariant product in the local frame, the Clebsch--Gordan series of the abelian group $\SO(2)_{\bz}$,
+\begin{equation}\label{eq:so2-cg}
+\C_{m_1}\otimes\C_{m_2}\;\cong\;\C_{m_1+m_2},
+\end{equation}
+degenerates to the Kronecker delta $\delta_{m_3,m_1+m_2}$ and no tabulated coefficient is needed.
+The two facts together — equivariant edge features kept at $l=0$, and the abelian residual symmetry — yield a per-edge angular cost of $\mathcal{O}(\lmax\,\mmax\,C)$, in contrast to the $\mathcal{O}(\lmax^6)$ scaling of SO(3)-CG architectures.
+
+% =============================================================
+\section{Smooth Cutoff, Radial Basis, and Bridging Window}\label{sec:radial}
+
+Let $\rcut>0$ be a fixed cutoff radius.
+
+\paragraph{Cutoff envelope.}
+For an integer exponent $p\in\N$ let $a_p,b_p,c_p,d_p\in\R$ be the unique solution of $s_p(\rcut)=s_p'(\rcut)=s_p''(\rcut)=s_p'''(\rcut)=0$ for
+\begin{equation}\label{eq:env}
+s_p(r) \coloneqq\begin{cases}
+1+x^p\bigl(a_p+b_p x+c_p x^2+d_p x^3\bigr),& x=r/\rcut\in[0,1),\\[2pt]
+0,& x\geq 1.
+\end{cases}
+\end{equation}
+Solving yields $(a_p,b_p,c_p,d_p)=\bigl(-\tbinom{p+3}{3},3\tbinom{p+3}{2}/{(p+1)},\dots\bigr)$;
+in closed form
+\(
+a_p=-\tfrac{(p+1)(p+2)(p+3)}{6}
+\), \(
+b_p=\tfrac{p(p+2)(p+3)}{2}
+\), \(
+c_p=-\tfrac{p(p+1)(p+3)}{2}
+\), \(
+d_p=\tfrac{p(p+1)(p+2)}{6}
+\).
+For $p=5$, $s_5(r)=1-56x^5+140x^6-120x^7+35x^8$;
+for $p=7$, $s_7(r)=1-120x^7+540x^8-1080x^9+840x^{10}$.
+
+\begin{lemma}\label{lem:envelope}
+$s_p\in C^3(\R)$, $s_p(0)=1$, $s_p(r)=0$ for $r\geq\rcut$, and all derivatives of $s_p$ of orders $0,1,2,3$ vanish at $r=\rcut$.
+\end{lemma}
+
+We henceforth fix two instances: $s\coloneqq s_5$ for per-edge message weighting, and $\sigma_r\coloneqq s_7$ folded into the radial basis below.
+
+\paragraph{Radial basis.}
+Fix $n_r\in\N$ and a vector of positive frequencies $\omega=(\omega_1,\dots,\omega_{n_r})\in\R_{>0}^{n_r}$.
+The radial basis is the function $\bphi:\R_{\geq 0}\to\R^{n_r}$ with components
+\begin{equation}\label{eq:rbf}
+\phi_n(r)\;\coloneqq\;\frac{\sin(\omega_n r)}{r}\cdot \sigma_r(r),\qquad n=1,\dots,n_r,
+\end{equation}
+with $\phi_n(0)=\omega_n\,\sigma_r(0)$ by continuous extension.
+Each $\phi_n$ is real-analytic on $\R_{>0}$ and lies in $C^3(\R)$.
+The frequencies $\omega$ are learnable; their initial values are $\omega_n^{(0)}=n\pi/\rcut$.
+
+\paragraph{Bridging window.}
+Choose $0<\rin<\rout$.
+Let $h_{\mathrm{c}},h_{\mathrm{w}}:[0,1]\to[0,1]$ be the septic Hermite polynomials
+\begin{align}
+h_{\mathrm{c}}(t)&\coloneqq 20t^4-45t^5+36t^6-10t^7,\label{eq:hclamp}\\
+h_{\mathrm{w}}(t)&\coloneqq 35t^4-84t^5+70t^6-20t^7.\label{eq:hsw}
+\end{align}
+The boundary conditions are tailored to the two distinct gluing requirements they will fulfil.
+The clamp polynomial $h_{\mathrm{c}}$ must glue $\rin$ (constant) on the left to $r$ (identity) on the right, so its slope must equal the slopes of those two functions at the endpoints:
+\begin{equation}\label{eq:hc-bcs}
+h_{\mathrm{c}}(0)=0,\ \ h_{\mathrm{c}}(1)=1,\ \ h_{\mathrm{c}}'(0)=0,\ \ h_{\mathrm{c}}'(1)=1,\ \ h_{\mathrm{c}}''(0)=h_{\mathrm{c}}''(1)=h_{\mathrm{c}}'''(0)=h_{\mathrm{c}}'''(1)=0.
+\end{equation}
+The switch polynomial $h_{\mathrm{w}}$ must glue the constants $0$ on the left and $1$ on the right, so \emph{all} of its first three derivatives vanish at both endpoints:
+\begin{equation}\label{eq:hw-bcs}
+h_{\mathrm{w}}(0)=0,\ \ h_{\mathrm{w}}(1)=1,\ \ h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0\quad(k=1,2,3).
+\end{equation}
+These $4+4=8$ conditions on each side determine the unique septic interpolants \eqref{eq:hclamp}--\eqref{eq:hsw}.
+
+Define the \emph{clamped distance map} $\rtilde:\R_{\geq 0}\to\R_{\geq 0}$ and the \emph{bridging amplitude} $w:\R_{\geq 0}\to[0,1]$ by
+\begin{equation}\label{eq:rtilde}
+\rtilde(r)\coloneqq\begin{cases}\rin,&r\leq\rin,\\ \rin+(\rout-\rin)\,h_{\mathrm{c}}\!\bigl(t(r)\bigr),&\rin<r<\rout,\\ r,&r\geq\rout,\end{cases}
+\qquad
+w(r)\coloneqq\begin{cases}0,&r\leq\rin,\\ h_{\mathrm{w}}\!\bigl(t(r)\bigr),&\rin<r<\rout,\\ 1,&r\geq\rout,\end{cases}
+\end{equation}
+where $t(r)=(r-\rin)/(\rout-\rin)$.
+Both are $C^3$ on $\R_{>0}$.
+The \emph{clamped displacement} is
+\begin{equation}\label{eq:rvec-tilde}
+\widetilde{\br}_{ij}\;\coloneqq\;\rtilde(r_{ij})\,\brh_{ij},\qquad \|\widetilde\br_{ij}\|=\rtilde(r_{ij}),
+\end{equation}
+which preserves direction exactly and replaces $r_{ij}$ by $\rtilde(r_{ij})$ in scalar magnitude.
+
+% =============================================================
+\section{Source-Freeze Gate}\label{sec:sfpg}
+
+\paragraph{Per-node gate.}
+For each atom $j$, let $\Nb_{\mathrm{out}}(j)\coloneqq\{i:r_{ji}<\rcut,\,i\neq j\}$ denote the set of forward neighbours.
+Define the \emph{source-freeze gate}
+\begin{equation}\label{eq:sfpg}
+\eta_j \;\coloneqq\; \prod_{i\in\Nb_{\mathrm{out}}(j)} w\bigl(r_{ji}\bigr) \;\in\;[0,1].
+\end{equation}
+
+\begin{lemma}\label{lem:eta}
+$\eta_j$ is a $C^3$ function of $\{\bR_i\}_{i=1}^N$ on the open set $\{\bR_i\neq\bR_j\}$, and
+\begin{equation}\label{eq:eta-zero}
+\exists\,i\in\Nb_{\mathrm{out}}(j)\ \text{with}\ r_{ji}\leq\rin \;\Longrightarrow\; \eta_j=0.
+\end{equation}
+\end{lemma}
+\begin{proof}
+A finite product of $C^3$ functions is $C^3$.
+The implication follows from $w(r)=0$ for $r\leq\rin$.
+\end{proof}
+
+\paragraph{Smooth degree.}
+For each atom $i$, define
+\begin{equation}\label{eq:deg}
+d_i \;\coloneqq\; \sum_{j\in\Nb_{\mathrm{out}}(i)} s\bigl(r_{ij}\bigr)^2,
+\qquad
+n_i \;\coloneqq\; \bigl(d_i+\varepsilon\bigr)^{-1/2},
+\end{equation}
+where $\varepsilon>0$ is a fixed regulariser.
+Squaring $s$ makes $d_i\in C^6$.
+
+% =============================================================
+\section{Truncation to a Reduced Local Layout}\label{sec:trunc}
+
+For computational reasons DPA4 carries, inside the local frame, only those $(l,m)$ pairs with $|m|\leq\mmax$ for a fixed $\mmax\in\{0,\dots,\lmax\}$.
+Define the index set and reduced dimension
+\begin{equation}\label{eq:Imm}
+\Idx_{\mmax}\;\coloneqq\;\bigl\{(l,m):0\leq l\leq\lmax,\ |m|\leq\min(l,\mmax)\bigr\},\qquad
+D_m\;\coloneqq\;|\Idx_{\mmax}|.
+\end{equation}
+Let $\bP_{\mmax}:\R^{D}\to\R^{D_m}$ be the orthogonal projector onto $\Idx_{\mmax}$ and $\bP_{\mmax}^\top$ its adjoint (inclusion).
+The truncated edge rotation is
+\begin{equation}
+\bD_{ij}^{\le\mmax}\;\coloneqq\;\bP_{\mmax}\bD_{ij}\;\in\;\R^{D_m\times D},
+\end{equation}
+and the truncated round-trip $\bD_{ij}^{\top}\bP_{\mmax}^\top\bP_{\mmax}\bD_{ij}$ is the orthogonal projector onto the span of $\{\bD_{ij}\,\Idx_{\mmax}\}$ in $V_{\le\lmax}$, hence is not the identity when $\mmax<\lmax$.
+To compensate the per-degree norm consumed by truncation, define the diagonal operator $K:\R^{D}\to\R^{D}$ acting on the $(l,m)$ basis element by
+\begin{equation}\label{eq:rescale}
+K_{\iota(l,m),\iota(l,m)}\;\coloneqq\;\rho_l,\qquad
+\rho_l\;\coloneqq\;\sqrt{\frac{2l+1}{2\min(l,\mmax)+1}}.
+\end{equation}
+Two points about $K$:
+\begin{itemize}[leftmargin=2em]
+\item It is \emph{not} a single scalar.
+The value $\rho_l$ depends on the degree $l$ but is independent of the order $m$, so $K$ acts as the constant $\rho_l$ on every row of the degree-$l$ block.
+Concretely, as a $D\times D$ diagonal matrix,
+\begin{equation}\label{eq:K-block}
+K \;=\; \diag\!\bigl(\rho_0\,I_{1},\;\rho_1\,I_{3},\;\rho_2\,I_{5},\dots,\rho_{\lmax}\,I_{2\lmax+1}\bigr),
+\end{equation}
+where $I_{2l+1}$ is the identity on the $(2l+1)$-dimensional block of degree $l$.
+The total number of diagonal entries is $\sum_{l=0}^{\lmax}(2l+1)=D$.
+\item $\rho_l=1$ for every $l\le\mmax$ (no truncation loss), and $\rho_l>1$ for $l>\mmax$ (compensating for the discarded $|m|>\mmax$ coefficients of that degree).
+\end{itemize}
+The composition $K\,\bD_{ij}^{\top}\bP_{\mmax}^\top$ will be called the \emph{rescaled lift} and is the canonical right inverse used after edge-local processing.
+
+% =============================================================
+\section{Equivariant Operators}\label{sec:ops}
+
+We define four classes of parameterised maps that constitute the building blocks of DPA4.
+Throughout this section $C,C',F\in\N$ are channel and focus widths.
+
+\paragraph{Classification by Schur's lemma.}
+Before defining the operators we record what they exhaust.
+For a compact group $G$ acting on a finite-dimensional real vector space, the real form of Schur's lemma classifies the space of $G$-equivariant linear maps between isotypic decompositions:
+\[
+\mathrm{Hom}_G(V_a,V_b)=0\ \text{if }V_a\not\cong V_b,\qquad
+\mathrm{End}_G(V_a)\in\{\R,\C,\mathbb{H}\}\ \text{according to the Frobenius--Schur type of }V_a.
+\]
+Applied to $V_{\le\lmax}\otimes\R^C$ this gives the following two universal classifications, which are the entire content of the linear theory below.
+
+\emph{Global $\SO(3)$.} Each $V_l$ is a real-type irreducible with $\mathrm{End}_{\SO(3)}(V_l)=\R$, so
+\begin{equation}\label{eq:hom-so3}
+\mathrm{Hom}_{\SO(3)}\bigl(V_{\le\lmax}\otimes\R^C,\,V_{\le\lmax}\otimes\R^{C'}\bigr)\;\cong\;\bigoplus_{l=0}^{\lmax}\R^{C\times C'},
+\end{equation}
+i.e., one independent $C\times C'$ matrix per degree; cross-$l$ mixing is forbidden.
+This is exactly the space realised by $L^{\mathrm{deg}}$ below, of which $L^{\mathrm{ch}}$ is the special case in which all degrees share the same matrix.
+
+\emph{Edge-local $\SO(2)_{\bz}$.} The irreducibles are the trivial 1-d rep (each $(l,0)$ line, real type) and the planar-rotation reps $\C_m$ for $m\ge 1$ (complex type, $\mathrm{End}_{\SO(2)_{\bz}}\cong\C$):
+\begin{equation}\label{eq:hom-so2}
+\mathrm{Hom}_{\SO(2)_{\bz}}\bigl(V_{\le\lmax}\otimes\R^C,\,V_{\le\lmax}\otimes\R^{C'}\bigr)\;\cong\;
+\bigoplus_{l,l'}\R^{C\times C'}\;\oplus\;\bigoplus_{m=1}^{\mmax}\!\bigoplus_{\substack{l,l'\\\geq m}}\C^{C\times C'},
+\end{equation}
+where the $m=0$ block allows arbitrary cross-$l$ mixing (trivial rep, $\mathrm{End}=\R$), each fixed-$m>0$ block is governed by complex multiplication realised by the pair $(\bU^{(l,l',m)},\bV^{(l,l',m)})$, and cross-$m$ mixing is forbidden.
+This is exactly the space realised by $L^{\mathrm{SO2}}$ below.
+
+\paragraph{Beyond linear.}
+The architectural freedom not covered by \eqref{eq:hom-so3}--\eqref{eq:hom-so2} consists of:
+(i) multiplication by an $\SO(3)$-invariant scalar function of geometry — used in DPA4 as the per-degree radial profile $\brho_l(r)$, the smooth cutoff $s(r)$, and the source-freeze gate $\eta_j$;
+(ii) gated nonlinearities of the form $\bh_{(l,m)}\mapsto\bh_{(l,m)}\cdot\sigma(\text{invariant})$, used in $\Gamma_{\psi,\bG}$ below;
+(iii) bilinear Clebsch--Gordan tensor products $V_{l_1}\otimes V_{l_2}\to V_{l_3}$ allowed by the SO(3) selection rule $|l_1-l_2|\le l_3\le l_1+l_2$ (cost $\mathcal{O}(L^6)$ in the truncation $L=\lmax$), \emph{not} used by DPA4;
+(iv) their $\SO(2)_{\bz}$ analogue $\C_{m_1}\otimes\C_{m_2}\to\C_{m_1\pm m_2}$, \emph{not} used by DPA4;
+(v) permutation-equivariant set-aggregation over neighbours, weighted by invariant scalars, used in both the envelope-weighted sum and the envelope-gated softmax attention.
+DPA4 adopts (i), (ii), (v) and deliberately omits (iii)--(iv); avoiding the cubic-in-$L$ cost of (iii) is the algorithmic motivation for working in the local frame.
+
+\paragraph{Channel mixing.}
+Given $\bW\in\R^{C\times C'}$, the channel-mixing operator $L^{\mathrm{ch}}_{\bW}:V_{\le\lmax}\otimes\R^C\to V_{\le\lmax}\otimes\R^{C'}$ is
+\begin{equation}
+\bigl(L^{\mathrm{ch}}_{\bW}\bh\bigr)_{\iota(l,m),c'}\;=\;\sum_{c=1}^{C}\bW_{c,c'}\,\bh_{\iota(l,m),c},
+\end{equation}
+which commutes with $\bD(R)$ for every $R\in\SO(3)$ since it does not mix the $\iota$-axis.
+
+\paragraph{Degree-wise mixing.}
+Given $\bW=(\bW^{(0)},\dots,\bW^{(\lmax)})\in\prod_{l=0}^{\lmax}\R^{C\times C'}$, the degree-wise mixing operator $L^{\mathrm{deg}}_{\bW}$ acts independently on each $l$-block:
+\begin{equation}
+\bigl(L^{\mathrm{deg}}_{\bW}\bh\bigr)_{\iota(l,m),c'}\;=\;\sum_{c=1}^{C}\bW^{(l)}_{c,c'}\,\bh_{\iota(l,m),c}.
+\end{equation}
+\begin{proposition}\label{prop:so3lin}
+For every $R\in\SO(3)$, $L^{\mathrm{deg}}_{\bW}\bD(R)=\bD(R)L^{\mathrm{deg}}_{\bW}$.
+The same statement holds, a fortiori, for the channel-mixing special case $L^{\mathrm{ch}}_{\bW}$.
+\end{proposition}
+\begin{proof}
+$\bW^{(l)}$ acts only on the channel axis of the degree-$l$ block, so for each $l$ the map commutes with $D^l(R)$, hence with $\bD(R)$ overall.
+\end{proof}
+
+\paragraph{$\SO(2)$-equivariant mixing.}
+For each pair of degrees $0\le l,l'\le\lmax$, let $\bA^{(l,l',0)}\in\R^{C\times C'}$ be an unconstrained linear map (the $m=0$ cross-$l$ mixers).
+For each triple $(l,l',m)$ with $1\le m\le\min(l,l',\mmax)$, let $\bU^{(l,l',m)},\bV^{(l,l',m)}\in\R^{C\times C'}$ (the $m$-stratum mixers between degrees $l$ and $l'$).
+Optionally, let $\bm{b}_0\in\R^{C'}$ be an additive bias acting on the $l=0$ slot only (no bias is allowed on $l\ge 1$, since constant shifts of non-trivial irreducibles would break $\SO(2)_{\bz}$-equivariance).
+Pack the whole collection as the parameter $\bW=(\bA,\bU,\bV,\bm{b}_0)$.
+Define $L^{\mathrm{SO2}}_{\bW}$ on the truncated layout by
+\begin{align}
+\bigl(L^{\mathrm{SO2}}_{\bW}\bx\bigr)_{(l,0),c'}
+ &= \sum_{l'=0}^{\lmax}\sum_{c=1}^{C}A^{(l,l',0)}_{c,c'}\,\bx_{(l',0),c}\;+\;\bm{b}_{0,c'}\,\delta_{l,0},\label{eq:so2-m0}\\
+\begin{pmatrix}\bigl(L^{\mathrm{SO2}}_{\bW}\bx\bigr)_{(l,-m),c'}\\
+\bigl(L^{\mathrm{SO2}}_{\bW}\bx\bigr)_{(l,+m),c'}\end{pmatrix}
+ &= \sum_{l'\geq m}\sum_{c=1}^{C}\begin{pmatrix} U^{(l,l',m)}_{c,c'} & -V^{(l,l',m)}_{c,c'}\\
+ V^{(l,l',m)}_{c,c'} &  U^{(l,l',m)}_{c,c'}\end{pmatrix}
+ \begin{pmatrix}\bx_{(l',-m),c}\\ \bx_{(l',+m),c}\end{pmatrix},\label{eq:so2-mn}
+\end{align}
+where the parameter $\bA^{(l,l',0)}$ allows arbitrary mixing across $l,l'$ within the $m=0$ slice, while in \eqref{eq:so2-mn} mixing within a fixed $|m|$-stratum is restricted to the SO(2)-equivariant $2\times 2$ block-coupling structure.
+Setting $\bm{b}_0\equiv 0$ yields the bias-free variant of $L^{\mathrm{SO2}}$.
+
+\begin{theorem}\label{thm:so2-eq}
+For every $\theta\in[0,2\pi)$, $L^{\mathrm{SO2}}_{\bW}\,\bD(R_{\theta\bz})=\bD(R_{\theta\bz})\,L^{\mathrm{SO2}}_{\bW}$, where $R_{\theta\bz}\in\SO(2)_{\bz}$ is the rotation by $\theta$ about $\bz$.
+\end{theorem}
+\begin{proof}
+For $m=0$ the action of $\bD(R_{\theta\bz})$ is trivial on every $(l,0)$ subspace, so any linear map among $m=0$ coefficients commutes with it.
+For $m>0$ the $2\times 2$ block in \eqref{eq:so2-mn} is the real realisation of the complex scalar $U+iV$ acting by multiplication on $\C_m$.
+Since $\bD(R_{\theta\bz})$ acts on $\C_m$ by multiplication by $e^{im\theta}$, and complex multiplication is commutative, the operators commute.
+\end{proof}
+
+\paragraph{Equivariant RMS normalisation.}
+For $\bh\in V_{\le\lmax}\otimes\R^C$, write the scalar mean $\bar h\coloneqq C^{-1}\sum_{c}\bh_{\iota(0,0),c}$ and the degree-balanced second moment
+\begin{equation}\label{eq:sigma2}
+\sigma^2(\bh) \;\coloneqq\; \sum_{l=0}^{\lmax}\sum_{m=-l}^{+l}\sum_{c=1}^{C}\frac{1}{(2l+1)(\lmax+1)C}\,\bigl(\bh_{\iota(l,m),c}-\delta_{l,0}\,\bar h\bigr)^{2}.
+\end{equation}
+Given per-degree scales $\gamma=(\gamma_0,\dots,\gamma_{\lmax})\in\R^{\lmax+1}$ and an $l=0$ bias $\beta\in\R^{C}$, the \emph{equivariant RMS normalisation} is
+\begin{equation}\label{eq:rmsnorm}
+\bigl(N_{\gamma,\beta}\bh\bigr)_{\iota(l,m),c}\;=\;\gamma_l\cdot\frac{\bh_{\iota(l,m),c}-\delta_{l,0}\,\bar h}{\sqrt{\sigma^2(\bh)+\varepsilon}} \;+\;\delta_{l,0}\,\beta_c.
+\end{equation}
+
+\begin{proposition}\label{prop:rms-eq}
+$N_{\gamma,\beta}$ commutes with $\bD(R)$ for every $R\in\SO(3)$.
+\end{proposition}
+\begin{proof}
+The numerator of \eqref{eq:rmsnorm} is $\SO(3)$-equivariant (subtraction of a scalar from the $l=0$ slice and identity elsewhere).
+The denominator $\sigma^2$ is invariant since each $l$-block transforms by an orthogonal $D^l(R)$.
+The per-degree scaling commutes with $D^l(R)$ for every $l$.
+\end{proof}
+
+\paragraph{Gated nonlinearity.}
+Let $\psi:\R\to\R$ be a smooth scalar nonlinearity (e.g.\ $\psi(t)=t\,\sigma(t)$, SiLU, where $\sigma(t)=(1+e^{-t})^{-1}$).
+Given a per-degree projection $\bG=(\bG^{(1)},\dots,\bG^{(\lmax)})$ with $\bG^{(l)}\in\R^{C\times C}$, define $\Gamma_{\psi,\bG}:V_{\le\lmax}\otimes\R^C\to V_{\le\lmax}\otimes\R^C$ by
+\begin{equation}\label{eq:gated}
+\bigl(\Gamma_{\psi,\bG}\bh\bigr)_{\iota(l,m),c}\;=\;\begin{cases}
+\psi\!\bigl(\bh_{\iota(0,0),c}\bigr), & l=0,\\[2pt]
+\bh_{\iota(l,m),c}\cdot\sigma\!\Bigl(\sum_{c'}\bG^{(l)}_{c',c}\,\bh_{\iota(0,0),c'}\Bigr), & l\geq 1.
+\end{cases}
+\end{equation}
+
+\begin{proposition}
+$\Gamma_{\psi,\bG}$ is $\SO(3)$-equivariant.
+\end{proposition}
+\begin{proof}
+The $l=0$ slice is $\SO(3)$-trivial, so $\psi(\cdot)$ on it is invariant.
+For $l\ge 1$, the gate is a scalar function of the invariant $l=0$ slice and therefore commutes with $D^l(R)$ when applied multiplicatively to a degree-$l$ vector.
+\end{proof}
+
+\paragraph{Scalar-keyed convex combination of equivariant tensors.}\label{sec:dar}
+A general-purpose construction we will reuse is the following: given several equivariant tensors of the same shape, form their convex combination with weights computed from their $\SO(3)$-invariant scalar content alone.
+Concretely, let
+$\bx^{(1)},\dots,\bx^{(S)}\in V_{\le\lmax}\otimes\R^C$
+be a finite collection of node-level equivariant features, all of the same shape, and let
+$\pi:V_{\le\lmax}\otimes\R^C\to\R^{C'}$
+be a fixed $\SO(3)$-invariant scalar projection (the canonical choice is $\pi(\bx)\coloneqq\bx|_{l=0}$, viewed as a vector in $\R^{C}$ after flattening the trivial degree axis; in general $\pi$ may include a subsequent RMS normalisation of the $l=0$ slice).
+Choose a learnable query $\bm{q}\in\R^{C'}$; equivalently, in a state-conditioned variant, set $\bm{q}\coloneqq W_q\,\pi(\bx^{\mathrm{cur}})$ for a linear map $W_q\in\R^{C'\times C'}$ and an auxiliary equivariant tensor $\bx^{\mathrm{cur}}$ of the same shape.
+Define
+\begin{equation}\label{eq:dar}
+\mathcal{A}\bigl(\bx^{(1)},\dots,\bx^{(S)};\bm{q}\bigr)
+\;\coloneqq\;
+\sum_{s=1}^{S}\alpha_s\,\bx^{(s)}\;\in\;V_{\le\lmax}\otimes\R^C,
+\qquad
+\alpha_s\;\coloneqq\;\frac{\exp\!\langle\bm{q},\pi(\bx^{(s)})\rangle}{\sum_{s'=1}^{S}\exp\!\langle\bm{q},\pi(\bx^{(s')})\rangle}.
+\end{equation}
+At initialisation, $\bm{q}$ (or, in the state-conditioned variant, $W_q$) is set to zero, so $\alpha_s=1/S$ uniformly and $\mathcal{A}$ reduces to the unweighted mean $S^{-1}\sum_s\bx^{(s)}$.
+
+\begin{proposition}\label{prop:dar-eq}
+For every $R\in\SO(3)$,
+$\mathcal{A}(\bD(R)\bx^{(1)},\dots,\bD(R)\bx^{(S)};\bm{q})\;=\;\bD(R)\,\mathcal{A}(\bx^{(1)},\dots,\bx^{(S)};\bm{q})$.
+\end{proposition}
+\begin{proof}
+By assumption $\pi$ takes values in the trivial representation, so the inner products $\langle\bm{q},\pi(\bx^{(s)})\rangle$ are $\SO(3)$-invariant; hence so are the weights $\alpha_s$.
+The output \eqref{eq:dar} is a finite sum of $\SO(3)$-equivariant tensors weighted by $\SO(3)$-invariant scalars, which itself transforms by $\bD(R)$ as a whole.
+\end{proof}
+
+% =============================================================
+\section{Per-Atom State and Initial Embeddings}\label{sec:init}
+
+\paragraph{State.}
+A \emph{state} of the message-passing computation is a tuple $X=(\bh_1,\dots,\bh_N)\in\bigl(V_{\le\lmax}\otimes\R^C\bigr)^{N}$.
+The group $S_N$ acts by permuting the index $i$; $\SO(3)$ acts on each $\bh_i$ in the first tensor factor.
+
+\paragraph{Type embedding.}
+Fix a learnable table $T\in\R^{n_t\times C}$.
+The initial state $X^{(0)}$ has
+\begin{equation}\label{eq:type}
+\bh_i^{(0)}\bigm|_{l=0,m=0,c}\;=\;T_{Z_i,c},\qquad \bh_i^{(0)}\bigm|_{l\geq 1}\;=\;0.
+\end{equation}
+The padding row of $T$, used by masking, is held at zero.
+
+\paragraph{Geometric initial embedding (GIE).}
+For $l\geq 1$ and $m'\in\{-l,\dots,+l\}$, the $(l,0)$-column of the inverse edge rotation $\bD_{ij}^{\top}$ evaluated at row $\iota(l,m')$ is, up to the basis normalisation, the real spherical harmonic $Y_l^{m'}(\brh_{ij})$.
+Denote
+\begin{equation}\label{eq:Y}
+Y_l^{m'}(\brh_{ij})\;\coloneqq\;\bigl[\bD_{ij}^{\top}\bigr]_{\iota(l,m'),\,\iota(l,0)}.
+\end{equation}
+Let $\Te^{(1)},\Te^{(2)}\in\R^{n_t\times C}$ be learnable species embedding tables and define the \emph{per-edge species embedding}
+\begin{equation}\label{eq:Tedge}
+\Te_{\mathrm{edge}}(i,j) \;\coloneqq\; \Te^{(1)}_{Z_i,:}+\Te^{(2)}_{Z_j,:} \;\in\;\R^{C},
+\end{equation}
+a vector that depends on the species pair $(Z_i,Z_j)$ only.
+We treat $\Te_{\mathrm{edge}}(i,j)$ as a vector of length $C$ broadcast uniformly across the degree axis to a tensor in $\R^{(\lmax+1)\times C}$ when added to radial features.
+
+Let $\Pi^{\mathrm{rad}}:\R^{n_r}\to\R^{(\lmax+1)\times C}$ be a bias-free multilayer perceptron with SiLU activations ($\mathrm{SiLU}(t)=t\,\sigma(t)$); being bias-free ensures $\Pi^{\mathrm{rad}}(0)=0$, so masked or out-of-cutoff edges (for which $\bphi=0$) contribute nothing.
+The per-edge per-degree radial features are
+\begin{equation}\label{eq:rho-edge}
+\brho_{ij} \;\coloneqq\; \Pi^{\mathrm{rad}}\!\bigl(\bphi(\rtilde_{ij})\bigr)+\Te_{\mathrm{edge}}(i,j) \;\in\;\R^{(\lmax+1)\times C},
+\end{equation}
+with $\Te_{\mathrm{edge}}(i,j)\in\R^{C}$ broadcast to all $(\lmax+1)$ degree slots.
+The \emph{geometric initial embedding} adds to the state
+\begin{equation}\label{eq:gie}
+\bh_i^{(0)}\bigm|_{\iota(l,m'),c} \;\mathrel{+}=\; n_i\!\sum_{j:r_{ij}<\rcut}\eta_j\,Y_l^{m'}(\brh_{ij})\,\brho_{ij,l,c},\qquad l\geq 1.
+\end{equation}
+
+\begin{proposition}\label{prop:gie-eq}
+For every $R\in\SO(3)$, the map $\{\bR_i\}\mapsto\{\bh_i^{(0)}\}$ defined by \eqref{eq:type}-\eqref{eq:gie} satisfies $\bh_i^{(0)}(\{R\bR_j\})=\bD(R)\,\bh_i^{(0)}(\{\bR_j\})$.
+\end{proposition}
+\begin{proof}
+The $l=0$ part is independent of positions.
+The $l\ge 1$ part is a finite sum of products of (a) the scalar $\eta_j\,n_i\,\brho_{ij,l,c}$, which depends only on rotation-invariant data (distances and species), and (b) the degree-$l$ harmonic $Y_l^{m'}(\brh_{ij})$, whose vector $(Y_l^{m'}(\brh))_{m'}$ transforms by $D^l(R)$ under $\brh\mapsto R\brh$.
+\end{proof}
+
+\paragraph{Environment FiLM (optional).}
+FiLM (\emph{Feature-wise Linear Modulation}, Perez \emph{et al.}, 2018) is an affine conditioning $\bx\mapsto\gamma(\bm{c})\odot\bx+\beta(\bm{c})$ in which a per-channel scale $\gamma$ and shift $\beta$ are learned functions of a conditioning input $\bm{c}$.
+Here the conditioning is the local geometry seen from atom $i$, and the conditioned features are the species-embedded scalar slice $\bh_i^{(0)}|_{l=0}$.
+Define the four-vector $\bu_{ij}\in\R^4$ by
+\begin{equation}\label{eq:utilde}
+\bu_{ij,0}\coloneqq\frac{s(\rtilde_{ij})}{\rtilde_{ij}},\qquad
+\bu_{ij,k}\coloneqq\bu_{ij,0}\,\brh_{ij,k}\ (k=1,2,3).
+\end{equation}
+For a separately parameterised radial--species map $\bg:\R_{\geq 0}\times\{1,\dots,n_t\}^2\to\R^{C_{\mathrm{env}}}$, set
+\begin{equation}
+A_i \;\coloneqq\; n_i\sum_{j:r_{ij}<\rcut}\eta_j\,\bu_{ij}\otimes \bg(\rtilde_{ij};Z_i,Z_j)\;\in\;\R^{4\times C_{\mathrm{env}}}.
+\end{equation}
+The compact descriptor $\mathcal{D}_i\coloneqq A_i^{\top}A_i^{(\cdot,1{:}k)}\in\R^{C_{\mathrm{env}}\times k}$ is $\SO(3)$-invariant because the spatial part of $\bu_{ij}$ transforms by $R\in\SO(3)$ while the temporal component is invariant.
+With learnable log-scalars $\lambda_\alpha,\lambda_\beta\in\R$, weight matrices $W_\alpha,W_\beta$, and an $\SO(3)$-trivial RMS norm $N_0$, the FiLM update on the scalar slice is
+\begin{equation}\label{eq:film}
+\bh_i^{(0)}\bigm|_{l=0}\;\leftarrow\;\bigl[1+\exp(\lambda_\alpha)\tanh\!\bigl(N_0(W_\alpha\,\mathrm{vec}\,\mathcal{D}_i)\bigr)\bigr]\odot\bh_i^{(0)}\bigm|_{l=0}+\exp(\lambda_\beta)\tanh\!\bigl(N_0(W_\beta\,\mathrm{vec}\,\mathcal{D}_i)\bigr).
+\end{equation}
+At initialisation, $\lambda_\alpha=\lambda_\beta=\log(0.01)$, making the FiLM update a near-identity.
+
+% =============================================================
+\section{Edge Convolution in the Local Frame}\label{sec:so2conv}
+
+The \emph{edge convolution} is a single $\SO(3)$-equivariant operator
+\begin{equation}\label{eq:Cdef}
+\mathcal{C}_\theta\,:\,\bigl(V_{\le\lmax}\otimes\R^C\bigr)^{N}\;\longrightarrow\;\bigl(V_{\le\lmax}\otimes\R^C\bigr)^{N},
+\qquad
+X\;\longmapsto\;\Delta X,
+\end{equation}
+that performs one round of inter-atomic message passing on the directed neighbour graph: for each atom $i$, the output $\bigl(\mathcal{C}_\theta X\bigr)_i$ aggregates contributions from every $j\in\Nb_{\mathrm{out}}(i)$ in a way that respects the symmetries of \S\ref{sec:setup} and the edge-local frame of \S\ref{sec:frame}.
+The subscript $\theta$ collects every learnable parameter introduced in the remainder of this section.
+
+The construction proceeds in nine stages.
+It internally carries an enlarged hidden width $H=F\cdot C_f$ with focus count $F\in\N$ and per-focus width $C_f\in\N$, and contracts back to the descriptor channel width $C$ in the final stage.
+At training time zero, the down-projection of the final stage is zero-initialised, so $\mathcal{C}_\theta\equiv 0$ initially.
+
+\paragraph{Stage 1: pre-mixing.}
+Fix a degree-wise mixing $L^{\mathrm{deg}}_{\mathrm{pre}}:V_{\le\lmax}\otimes\R^{C}\to V_{\le\lmax}\otimes\R^{H}$.
+The hidden representation at every node is $\bh'_i=L^{\mathrm{deg}}_{\mathrm{pre}}\,\bh_i$.
+
+\paragraph{Stage 2: local-frame transport.}
+For each directed edge $(i,j)$ with $r_{ij}<\rcut$ define
+\begin{equation}\label{eq:xloc}
+\bx_{ij}\;\coloneqq\;\bD_{ij}^{\le\mmax}\,\bh'_j\;\in\;\R^{D_m\times H}.
+\end{equation}
+
+\paragraph{Stage 3: per-degree radial modulation.}
+Let $\widetilde\brho_{ij}\coloneqq L^{\mathrm{ch}}_{\bW_{\mathrm{r}}}\brho_{ij}\in\R^{(\lmax+1)\times H}$ be the radial features lifted to the hidden width.
+The modulation is
+\begin{equation}\label{eq:radmod}
+\bx_{ij,(l,m),c}\;\leftarrow\;\widetilde\rho_{ij,l,c}\cdot\bx_{ij,(l,m),c},\qquad (l,m)\in\Idx_{\mmax},\ c=1,\dots,H.
+\end{equation}
+
+\paragraph{Stage 4: multi-focus split.}
+View $\R^{H}=\R^{F}\otimes\R^{C_f}$ and write $\bx_{ij}\in\R^{D_m\times F\times C_f}$.
+
+\paragraph{Stage 5: equivariant mixing stack.}
+Let $\Theta=(L^{\mathrm{SO2}}_1,N_1,\Gamma_1,\dots,L^{\mathrm{SO2}}_S,N_S,\Gamma_S)$ be a finite sequence of $\SO(2)$ linear maps, equivariant RMS norms, and gated activations.
+By convention, the last layer drops both its pre-norm and its activation: $N_S\equiv\mathrm{Id}$ and $\Gamma_S\equiv\mathrm{Id}$.
+The stack action is the composition with residual shortcuts:
+\begin{equation}\label{eq:so2-stack}
+\bx_{ij}\;\leftarrow\;\bx_{ij}+\Lambda_{s}\odot\Gamma_s\!\bigl(L^{\mathrm{SO2}}_s\,N_s(\bx_{ij})\bigr),\qquad s=1,\dots,S,
+\end{equation}
+where $\Lambda_s\in\R^{F\times C_f}$ are learnable per-stream scales (initially $10^{-3}$) and $\odot$ is broadcast multiplication on the focus/channel axes.
+
+\paragraph{Stage 5a: layer-$0$ bias correction.}
+When the first SO(2) linear map $L^{\mathrm{SO2}}_1$ in the stack carries the optional $l=0$ bias $\bm{b}_0$ of \eqref{eq:so2-m0} (here treated as a per-focus $\R^{F\times C_f}$-shaped parameter so it can be multiplied component-wise by the per-focus, per-channel modulation factor), this bias does \emph{not} pass through the radial modulation \eqref{eq:radmod} or the envelope $s(r_{ij})$.
+Left as-is, $\bm{b}_0$ would behave as a constant additive contribution to the $l=0$ slice of every edge message, including edges whose envelope has decayed to zero, breaking the smooth cutoff at $r_{ij}=\rcut$.
+To restore consistency, the implementation \emph{rescales the bias by the same modulation factor that multiplies the rest of the layer-$0$ output} and subtracts off the original additive bias.
+Concretely, after applying $L^{\mathrm{SO2}}_1$ at $s=1$, the $l=0$ slot of $\bx_{ij}$ is updated by
+\begin{equation}\label{eq:bias-corr}
+\bx_{ij,(0,0),f,c}\;\mathrel{+}=\;\bm{b}_{0,f,c}\cdot\bigl(\widetilde\rho_{ij,0,c}\,s(r_{ij})-1\bigr),
+\end{equation}
+which, combined with the bias's nominal addition $+\bm{b}_{0,f,c}$ inside $L^{\mathrm{SO2}}_1$, yields a net contribution of $\bm{b}_{0,f,c}\cdot\widetilde\rho_{ij,0,c}\,s(r_{ij})$ to the layer-$0$ output --- that is, the bias is modulated edge-wise by the same product of radial features and envelope as every other $l=0$ channel, and vanishes $C^3$-smoothly at the cutoff.
+The correction is applied only at $s=1$; subsequent SO(2) layers receive no bias re-treatment because their inputs are already in the modulated regime.
+
+\paragraph{Stage 5b (optional): intra-stack memory.}
+The plain stack \eqref{eq:so2-stack} can be augmented by the scalar-keyed convex combination $\mathcal{A}$ of \eqref{eq:dar}, wired inside the SO(2) layer loop so that each layer sees an attention-weighted combination of the running history of all earlier intermediate states of the same SO(2) stack.
+Concretely, define the history of equivariant snapshots recursively by $\mathcal{H}_0=(\bx_{ij}^{[0]})$ with $\bx_{ij}^{[0]}\coloneqq\bx_{ij}$ (the input to the stack), and for $s=1,\dots,S$ set
+\begin{equation}\label{eq:so2-depth-attn}
+\bx_{ij}^{(s,\mathrm{in})}\;\coloneqq\;\mathcal{A}\!\bigl(\mathcal{H}_{s-1};\bm{q}^{(s)}\bigr),
+\end{equation}
+where the scalar projection $\pi$ is the canonical one $\bx\mapsto\bx|_{l=0}$, the invariant content of which is well-defined under the residual $\SO(2)_{\bz}$ symmetry of the local frame, and $\bm{q}^{(s)}\in\R^{F\cdot C_f}$ is a per-layer query (either learnable or computed from $\bx_{ij}^{[s-1]}|_{l=0}$ via a per-layer linear map).
+Run the standard layer-$s$ update of \eqref{eq:so2-stack} on $\bx_{ij}^{(s,\mathrm{in})}$, denote its output by $\bx_{ij}^{[s]}$ and the layer increment by $\delta_s\coloneqq\bx_{ij}^{[s]}-\bx_{ij}^{(s,\mathrm{in})}$, and update the history
+\begin{equation}\label{eq:so2-history}
+\mathcal{H}_s\;\coloneqq\;\mathcal{H}_{s-1}\cup\{\delta_s\},
+\end{equation}
+so that layer $s+1$ has access to the initial input and to every per-layer increment produced so far.
+$\SO(2)_{\bz}$-equivariance follows from Proposition~\ref{prop:dar-eq} applied to the residual $\SO(2)_{\bz}$ action together with the layer-$s$ equivariance of \eqref{eq:so2-stack}.
+At initialisation $\bm{q}^{(s)}=0$, so the attention weights are uniform across $\mathcal{H}_{s-1}$ and \eqref{eq:so2-depth-attn} reduces to the unweighted mean of the history; the model learns layer-specific attention patterns from the loss.
+This component is optional; when disabled, the stack reverts to the plain composition \eqref{eq:so2-stack}.
+
+\paragraph{Stage 6: cross-focus competition.}
+Let $\bx^{(0)}_{ij}\in\R^{F\times C_f}$ denote the $(l,m)=(0,0)$ slice of $\bx_{ij}$ at the entry of the stack \eqref{eq:so2-stack}.
+For a learnable parameter $W^{\mathrm{cf}}\in\R^{C_f\times F}$, temperature $\tau>0$, and label-smoothing parameter $\epsilon\in[0,1)$, define
+\begin{equation}\label{eq:focuscomp}
+\zeta_{ij,f}=\frac{\exp\!\bigl(\tau^{-1}\sum_{c}W^{\mathrm{cf}}_{c,f}\,N_0(\bx^{(0)}_{ij})_{f,c}\bigr)}{\sum_{f'}\exp\!\bigl(\tau^{-1}\sum_{c}W^{\mathrm{cf}}_{c,f'}\,N_0(\bx^{(0)}_{ij})_{f',c}\bigr)},
+\quad
+\alpha_{ij,f}=(1-\epsilon)\zeta_{ij,f}+\epsilon/F,
+\end{equation}
+and reweight $\bx_{ij}\leftarrow\alpha_{ij}\odot\bx_{ij}$ (with $\alpha$ broadcast across the $(l,m)$ and $c$ axes).
+Because $\bx^{(0)}_{ij}$ is $\SO(2)_{\bz}$-invariant, this multiplication does not break the equivariance of Theorem~\ref{thm:so2-eq}.
+
+\paragraph{Stage 7: global lift and rescale.}
+The edge message is
+\begin{equation}\label{eq:edge-msg}
+\bm{m}_{ij}\;\coloneqq\;K\,\bigl(\bD_{ij}^{\le\mmax}\bigr)^{\top}\,\bx_{ij}\;\in\;\R^{D\times H},
+\end{equation}
+with $K$ as in \eqref{eq:rescale}.
+
+\paragraph{Stage 8: aggregation over neighbours (choice of A or B).}
+The edge messages $\{\bm{m}_{ij}\}_{j\in\Nb_{\mathrm{out}}(i)}$ are combined into a single per-atom update $(\Delta\bh')_i$ by exactly one of the two mutually exclusive variants below.
+The two variants share the same input, the same output type $(\Delta\bh')_i\in\R^{D\times H}$, and feed into the same downstream Stage 9; they differ only in how they weight the contributions of individual neighbours.
+Variant A is the default; Variant B is enabled when an attention-head count $H_a\in\N$ is configured.
+
+\subparagraph{Variant A --- envelope-weighted sum.}
+The plain aggregation produces
+\begin{equation}\label{eq:agg-plain}
+\bigl(\Delta\bh'\bigr)_i\;\coloneqq\;n_i\!\sum_{j:r_{ij}<\rcut} s(r_{ij})\,\eta_j\,\bm{m}_{ij}\;\in\;\R^{D\times H}.
+\end{equation}
+The combined edge weight $s(r_{ij})\,\eta_j$ is an $\SO(3)$-invariant scalar that acts uniformly on all $(l,m)$ components of $\bm{m}_{ij}$; it is therefore an additional ``scalar $\times$ equivariant'' multiplication on top of the per-degree radial modulation \eqref{eq:radmod}, and introduces no new equivariant edge feature.
+In total, the only edge-side scalars that ever multiply the equivariant message between Stage 2 and aggregation are the per-degree radial features $\brho_{ij,l}$ (in-frame, per-degree), the truncation rescale $\rho_l$ (a fixed factor, no parameters), and the envelope/gate product $s(r_{ij})\,\eta_j$ (global per-edge); all four are $\SO(3)$-invariant.
+
+\subparagraph{Variant B --- envelope-gated multi-head attention.}
+The attention path replaces the plain envelope-weighted sum \eqref{eq:agg-plain} by a destination-wise normalised sum whose weights are learned scalar functions of $l=0$ invariants.
+It is built in seven explicit substeps.
+
+Choose an attention-head count $H_a\in\N$ that divides the per-focus width $C_f$, and let $d_a\coloneqq C_f/H_a$.
+The total hidden width thus factorises as $H=F\cdot C_f=F\cdot H_a\cdot d_a$.
+Let
+\[
+Q,\,K_{\mathrm{att}}\in\R^{F\times C_f\times C_f},\quad
+W^{\mathrm{rb}}\in\R^{C_f\times F\times H_a},\quad
+W^{\mathrm{og}}\in\R^{C_f\times F\times H_a},\quad
+\zeta_a\in\R^{F\times H_a}
+\]
+be learnable parameters; $Q,K_{\mathrm{att}}$ act as focus-wise linear maps (one independent $C_f\times C_f$ matrix per focus).
+
+\emph{(B1) Queries and keys.}
+The $\SO(3)$-invariant $l=0$ slice $\bh_n|_{l=0}\in\R^{H}$ of every node feature is reshaped on the channel axis as $\R^{F\times C_f}$ and normalised by a focus-wise scalar RMS norm $N_0$.
+Define
+\begin{equation}\label{eq:qk}
+\bq_n \;\coloneqq\; Q\,N_0\bigl(\bh_n|_{l=0}\bigr),\qquad
+\bk_n \;\coloneqq\; K_{\mathrm{att}}\,N_0\bigl(\bh_n|_{l=0}\bigr),\qquad n=1,\dots,N,
+\end{equation}
+both in $\R^{F\times C_f}$, then split the $C_f$-axis into $H_a$ heads of width $d_a$:
+\begin{equation}\label{eq:qk-split}
+\bq_n\;\in\;\R^{F\times H_a\times d_a},\qquad \bk_n\;\in\;\R^{F\times H_a\times d_a}.
+\end{equation}
+
+\emph{(B2) Edge logits with radial bias.}
+For each edge $(i,j)$, focus $f$, and head $h$, the scaled dot product is augmented with a per-edge radial bias derived from the $l=0$ slice of the lifted radial features $\widetilde\rho_{ij,0,c}$:
+\begin{equation}\label{eq:logit}
+\ell_{ij}^{(f,h)} \;\coloneqq\; \frac{\langle \bq_{i,f,h,:},\,\bk_{j,f,h,:}\rangle}{\sqrt{d_a}}
+\;+\; \sum_{c=1}^{C_f}W^{\mathrm{rb}}_{c,f,h}\,\widetilde\rho_{ij,0,c}.
+\end{equation}
+
+\emph{(B3) Destination-wise stable softmax with envelope-and-gate weighting.}
+For every destination $i$ and every $(f,h)$, set $\mu_i^{(f,h)}\coloneqq\max_{k:r_{ki}<\rcut}\ell_{ki}^{(f,h)}$, with the convention that edges having $s(r_{ki})^2\,\eta_k=0$ contribute $-\infty$ before the maximum so they are excluded from the normalisation.
+The attention weight is
+\begin{equation}\label{eq:attw}
+\alpha_{ij}^{(f,h)} \;\coloneqq\;
+\frac{s(r_{ij})^2\,\eta_j\,\exp\!\bigl(\ell_{ij}^{(f,h)}-\mu_i^{(f,h)}\bigr)}
+{\softplus(\zeta_a^{(f,h)})\,\exp\!\bigl(-\mu_i^{(f,h)}\bigr)\;+\;\displaystyle\sum_{k:r_{ki}<\rcut}s(r_{ki})^2\,\eta_k\,\exp\!\bigl(\ell_{ki}^{(f,h)}-\mu_i^{(f,h)}\bigr)}.
+\end{equation}
+Two mechanisms work together to make the weights well-defined and smooth at the cutoff:
+\begin{enumerate}[leftmargin=2em,label=(\roman*)]
+\item the numerator factor $s(r_{ij})^2$ drives $\alpha_{ij}^{(f,h)}\to 0$ as $r_{ij}\to\rcut^{-}$, $C^3$-smoothly together with its first three derivatives, by the regularity of the cutoff envelope (Lemma~\ref{lem:envelope});
+\item the term $\softplus(\zeta_a^{(f,h)})\exp(-\mu_i^{(f,h)})$ in the denominator is a strictly positive regulariser that keeps the denominator bounded below by $\softplus(\zeta_a^{(f,h)})\exp(-\mu_i^{(f,h)})>0$ even when every incident edge of atom $i$ is silenced (all $s(r_{ki})\to 0$ or $\eta_k\to 0$), so the limit $\alpha_{ij}^{(f,h)}\to 0$ is well-defined and free of $0/0$ indeterminacies.
+\end{enumerate}
+
+\emph{(B4) Head split of the message.}
+The full-frame message $\bm{m}_{ij}\in\R^{D\times H}$ of \eqref{eq:edge-msg} is reshaped on its channel axis as
+\begin{equation}\label{eq:m-head-split}
+\bm{m}_{ij}\;\in\;\R^{D\times F\times H_a\times d_a},
+\end{equation}
+yielding per-(focus, head) value slices $\bm{m}_{ij}^{(f,h)}\in\R^{D\times d_a}$.
+
+\emph{(B5) Per-(focus, head) attention aggregation.}
+\begin{equation}\label{eq:attagg}
+\bA_i^{(f,h)} \;\coloneqq\; \sum_{j:r_{ij}<\rcut}\alpha_{ij}^{(f,h)}\,\bm{m}_{ij}^{(f,h)} \;\in\;\R^{D\times d_a}.
+\end{equation}
+No $1/\sqrt{\deg_i}$ rescale appears: the softmax denominator in \eqref{eq:attw} already provides the per-destination normalisation that $n_i$ would have supplied in the plain path \eqref{eq:agg-plain}.
+
+\emph{(B6) Destination-side output gate.}
+Computed from atom $i$'s $\SO(3)$-invariant $l=0$ slice via the same focus-wise scalar RMSNorm $N_0$,
+\begin{equation}\label{eq:outgate}
+G_i^{(f,h)}\;\coloneqq\;\sigma\!\Bigl(\sum_{c=1}^{C_f}W^{\mathrm{og}}_{c,f,h}\,N_0\!\bigl(\bh_i|_{l=0}\bigr)_{f,c}\Bigr)\;\in\;(0,1).
+\end{equation}
+This gate multiplies each (focus, head) slot of the aggregated value:
+\begin{equation}\label{eq:gated-agg}
+\bigl(\Delta\bh'\bigr)_i^{(f,h)} \;\coloneqq\; G_i^{(f,h)}\,\bA_i^{(f,h)} \;\in\;\R^{D\times d_a}.
+\end{equation}
+
+\emph{(B7) Merge of (focus, head, head-dim) into the hidden width.}
+The four axes $(D,F,H_a,d_a)$ are concatenated back to $(D,H)$ with $H=F\cdot H_a\cdot d_a$:
+\begin{equation}\label{eq:agg-attn}
+\bigl(\Delta\bh'\bigr)_i \;\in\;\R^{D\times H}.
+\end{equation}
+This $(\Delta\bh')_i$ is the analogue of \eqref{eq:agg-plain} on the attention path; the subsequent post-mixing step $L^{\mathrm{deg}}_{\mathrm{post}}:\R^{D\times H}\to\R^{D\times C}$ then projects the result back to the descriptor channel width $C$.
+
+In summary, the construction is
+\[
+\boxed{\;
+\bigl(\Delta\bh'\bigr)_i^{(f,h)}\;=\;G_i^{(f,h)}\;\sum_{j:r_{ij}<\rcut}\;\alpha_{ij}^{(f,h)}\,\bm{m}_{ij}^{(f,h)}\;
+}\quad\text{(with $\alpha_{ij}^{(f,h)}$ from \eqref{eq:attw} and $G_i^{(f,h)}$ from \eqref{eq:outgate})},
+\]
+followed by the focus-and-head merge \eqref{eq:agg-attn}.
+Every scalar appearing here ($\alpha$, $G$, $s$, $\eta$, $\zeta_a$, $\widetilde\rho_{ij,0}$) is $\SO(3)$-invariant; the only equivariant object on the right-hand side is $\bm{m}_{ij}^{(f,h)}$.
+
+\paragraph{Stage 9: post-mixing.}
+A final degree-wise map $L^{\mathrm{deg}}_{\mathrm{post}}:V_{\le\lmax}\otimes\R^{H}\to V_{\le\lmax}\otimes\R^{C}$, with weights initialised at zero, returns the update to the descriptor channel width:
+\begin{equation}\label{eq:Cpostmix}
+\bigl(\mathcal{C}_\theta X\bigr)_i \;\coloneqq\; L^{\mathrm{deg}}_{\mathrm{post}}\bigl((\Delta\bh')_i\bigr) \;\in\;\R^{D\times C}.
+\end{equation}
+This completes the definition of the operator $\mathcal{C}_\theta$ promised in \eqref{eq:Cdef}: $\theta$ is the tuple of all parameters introduced in Stages 1--9 (the pre/post degree-wise maps, the per-degree radial map $\widetilde\brho$, the SO(2) stack $\Theta$ with the optional intra-stack memory, the cross-focus weights, the attention parameters when active, and the output gate).
+
+\begin{theorem}\label{thm:conv-eq}
+$\mathcal{C}_{\theta}$ is $\SO(3)$-equivariant: under $\bR_i\mapsto R\bR_i$, the increment $\Delta\bh_i$ transforms as $\bD(R)\,\Delta\bh_i$.
+\end{theorem}
+\begin{proof}
+Under a global rotation, $\bq_{ij}\mapsto\bq_{ij}\cdot R^{-1}$ (in the sense of the double cover), so $\bD_{ij}\mapsto\bD_{ij}\bD(R)^{-1}$.
+Therefore $\bx_{ij}$ is invariant by \eqref{eq:xloc}.
+The stack \eqref{eq:so2-stack} acts within the local frame and preserves the layout (Theorem~\ref{thm:so2-eq}, Proposition~\ref{prop:rms-eq}, gated activation equivariance).
+The cross-focus weights \eqref{eq:focuscomp} are $\SO(2)_{\bz}$-invariant.
+The lift $K\,(\bD_{ij}^{\le\mmax})^{\top}$ then maps the invariant local features to the global frame as $\bD(R)\,K\,(\bD_{ij}^{\le\mmax})^{\top}\bx_{ij}$ on transformed configurations.
+Aggregation \eqref{eq:agg-plain} or attention is a sum of these messages weighted by $\SO(3)$-invariant scalars ($s$, $\eta$, attention weights), hence inherits the same transformation rule.
+$L^{\mathrm{deg}}_{\mathrm{post}}$ commutes with $\bD(R)$.
+\end{proof}
+
+% =============================================================
+\section{The Equivariant Feed-Forward Network}\label{sec:effn}
+
+The equivariant feed-forward block $\mathcal{F}_\theta:V_{\le\lmax}\otimes\R^C\to V_{\le\lmax}\otimes\R^C$ is parameterised by a tuple $\theta$ collecting two degree-wise linear maps and the parameters of an equivariant nonlinearity.
+Three variants of $\mathcal{F}_\theta$ are admitted, all $\SO(3)$-equivariant by Propositions~\ref{prop:so3lin} and the equivariance of their respective nonlinearities.
+The second linear map of each variant is zero-initialised, so $\mathcal{F}_\theta\equiv 0$ at training time zero and the residual stream around $\mathcal{F}_\theta$ starts as the identity.
+
+\paragraph{Variant 1: gated FFN (standard).}
+\begin{equation}\label{eq:effn-std}
+\mathcal{F}_\theta^{\mathrm{std}}\,\bh\;\coloneqq\;L^{\mathrm{deg}}_{\theta_2}\,\Gamma_{\psi,\bG}\,L^{\mathrm{deg}}_{\theta_1}\,\bh,
+\end{equation}
+with $L^{\mathrm{deg}}_{\theta_1}:V_{\le\lmax}\otimes\R^C\to V_{\le\lmax}\otimes\R^{C_h}$ (an up-projection by a factor $C_h\geq C$), $L^{\mathrm{deg}}_{\theta_2}:V_{\le\lmax}\otimes\R^{C_h}\to V_{\le\lmax}\otimes\R^C$ (zero-initialised down-projection), and $\Gamma_{\psi,\bG}$ the gated activation of \eqref{eq:gated}.
+
+When the optional GLU split is enabled, $L^{\mathrm{deg}}_{\theta_1}$ instead outputs a doubled channel width $2C_h$, and the channel axis of its output is partitioned as $\R^{2C_h}=\R^{C_h}\oplus\R^{C_h}$ into a \emph{value} block $\bm{v}$ and a \emph{gate} block $\bm{g}$; the activation is replaced by the pointwise pair-wise product $\bm{v}\odot\psi(\bm{g})$ on each $(l,m)$ slot, followed by the $\Gamma_{\psi,\bG}$-style gating on $l\geq 1$ channels from $l=0$.
+This is the standard SwiGLU variant when $\psi=\SiLU$.
+
+\paragraph{Variant 2: spherical-grid FFN.}
+For applications where channel-wise nonlinearity on equivariant features is not flexible enough, $\mathcal{F}_\theta$ may instead map the higher-degree slices to a finite sampling of the sphere $\Sph$, apply a pointwise nonlinearity there, and project back.
+Fix a finite set of $A\in\N$ quadrature points $\{(\theta_a,\phi_a)\}_{a=1}^A\subset\Sph$ with associated weights $\{w_a\}_{a=1}^A\subset\R_{>0}$.
+Real spherical harmonics evaluated at the quadrature points give a pair of linear maps (independent of the configuration)
+\begin{equation}\label{eq:s2-grid}
+\mathsf{P}:\;V_{\le\lmax}\to\R^{A},\qquad \mathsf{P}^{\dagger}:\;\R^{A}\to V_{\le\lmax},
+\end{equation}
+where $(\mathsf{P}\bx)_a=\sum_{l,m}Y_l^m(\theta_a,\phi_a)\,\bx_{(l,m)}$ samples a degree-$l$ function on the chosen grid, and $\mathsf{P}^{\dagger}$ is the corresponding quadrature-weighted adjoint, $((\mathsf{P}^{\dagger}\bm{f}))_{(l,m)}=\sum_{a}w_a\,Y_l^m(\theta_a,\phi_a)\,\bm{f}_a$.
+Both maps act channel-wise; both are $\SO(3)$-covariant in the sense that $\mathsf{P}^{\dagger}\mathsf{P}=\Pi_{\le\lmax}$, the orthogonal projector onto $V_{\le\lmax}$, when the quadrature is exact on degree-$2\lmax$ trigonometric polynomials.
+
+The spherical-grid FFN is then
+\begin{equation}\label{eq:effn-grid}
+\mathcal{F}_\theta^{\mathrm{grid}}\,\bh
+\;\coloneqq\;
+L^{\mathrm{deg}}_{\theta_2}\;\bigl(\,\bh_0' + \mathsf{P}^{\dagger}\circ \Psi \circ \mathsf{P}\,(\bh - \bh|_{l=0})\,\bigr),
+\end{equation}
+where:
+\begin{itemize}[leftmargin=2em]
+\item $\bh_0'\coloneqq L^{\mathrm{ch}}_W\bigl(\psi\bigl(L^{\mathrm{ch}}_{W'}(\bh|_{l=0})\bigr)\bigr)$ is a scalar SwiGLU/GLU branch applied to the $l=0$ slice (a channel-wise MLP, $\SO(3)$-invariant because $l=0$ is the trivial representation), embedded back into the $l=0$ slot of $V_{\le\lmax}$;
+\item $\Psi:\R^{A\times C_h}\to\R^{A\times C_h}$ is a pointwise channel-mixing nonlinearity at each quadrature point — a small per-point MLP with SiLU activations and bias-free linear layers, identical at every point of the grid;
+\item $L^{\mathrm{deg}}_{\theta_1}$ up-projects to width $C_h$ before $\mathsf{P}$; $L^{\mathrm{deg}}_{\theta_2}$ is the zero-initialised down-projection at the end.
+\end{itemize}
+Pointwise operations on the grid are $\SO(3)$-equivariant only as a composition with $\mathsf{P}$ and $\mathsf{P}^{\dagger}$: the underlying $\SO(3)$ acts on the grid by permutation/interpolation under the standard quadrature, and the pair $(\mathsf{P}^{\dagger}\circ\,\cdot\,\circ\mathsf{P})$ intertwines this action with the action on $V_{\le\lmax}$.
+Hence $\mathcal{F}_\theta^{\mathrm{grid}}$ is $\SO(3)$-equivariant.
+
+\paragraph{Variant 3: spherical-grid SwiGLU activation.}
+A hybrid of Variants 1 and 2: the first linear map $L^{\mathrm{deg}}_{\theta_1}$ produces a doubled hidden width $2C_h$, and a \emph{spherical-grid SwiGLU} activation $\Gamma^{\mathrm{S2}}$ replaces $\Gamma_{\psi,\bG}$:
+\begin{equation}\label{eq:effn-s2glu}
+\mathcal{F}_\theta^{\mathrm{S2}}\,\bh \;\coloneqq\; L^{\mathrm{deg}}_{\theta_2}\,\Gamma^{\mathrm{S2}}\!\bigl(L^{\mathrm{deg}}_{\theta_1}\,\bh\bigr).
+\end{equation}
+The action of $\Gamma^{\mathrm{S2}}$ on a hidden tensor $\bm{y}\in V_{\le\lmax}\otimes\R^{2C_h}$ is:
+\begin{enumerate}[leftmargin=2em,label=(\alph*)]
+\item split the channel axis $\R^{2C_h}=\R^{C_h}\oplus\R^{C_h}$ into a value block $\bm{v}$ and a gate block $\bm{g}$;
+\item on the $l=0$ slice, return the SwiGLU $\bm{v}|_{l=0}\odot\psi(\bm{g}|_{l=0})$ on the $C_h$-dimensional channel axis (a scalar pointwise operation);
+\item on the $l\geq 1$ slices, send the value block through $\mathsf{P}$ to the spherical grid, multiply pointwise on the grid by $\psi$ applied to the grid image of the gate block, send back through $\mathsf{P}^{\dagger}$;
+\item further multiply the resulting $l\geq 1$ slices by a sigmoidal scalar gate computed from the $l=0$ slice (as in $\Gamma_{\psi,\bG}$ of \eqref{eq:gated}).
+\end{enumerate}
+This produces a single output of width $C_h$, ready for the down-projection by $L^{\mathrm{deg}}_{\theta_2}$.
+
+\paragraph{Equivariance summary.}
+All three variants share the same boundary conditions: $L^{\mathrm{deg}}_{\theta_2}$ is zero-initialised at training time zero (so $\mathcal{F}_\theta\equiv 0$ initially), and each variant is $\SO(3)$-equivariant.
+For Variant 1 this follows from Propositions~\ref{prop:so3lin} and the equivariance of $\Gamma_{\psi,\bG}$.
+For Variants 2 and 3, the spherical-grid maps $\mathsf{P},\mathsf{P}^{\dagger}$ intertwine the $\SO(3)$ action on $V_{\le\lmax}$ with the standard $\SO(3)$ action on $\R^A$ (rotation of quadrature points), so pointwise operations on the grid become $\SO(3)$-equivariant when sandwiched between $\mathsf{P}$ and $\mathsf{P}^{\dagger}$.
+
+% =============================================================
+\section{The Interaction Block}\label{sec:block}
+
+The interaction block $\mathcal{B}_\theta:X\mapsto X'$ is the composition of one edge convolution and $n_{\mathrm{f}}\in\N$ equivariant feed-forward blocks, each wrapped in a residual shortcut and bracketed by optional equivariant RMS norms on either side of the residual branch (the "sandwich-norm" pattern).
+Let
+\[
+\bigl(\nu^{\mathrm{c,pre}},\nu^{\mathrm{c,post}},\nu^{\mathrm{f,pre}},\nu^{\mathrm{f,post}}\bigr)\in\{0,1\}^{4}
+\]
+be a 4-bit configuration choosing, independently for each branch, whether to apply pre- and post-norms.
+For each enabled position, instantiate an equivariant RMS norm $N$ (in the sense of \eqref{eq:rmsnorm}, possibly with its own learnable parameters); for each disabled position, set the corresponding $N\equiv\mathrm{Id}$.
+With these conventions, $\mathcal{B}_\theta$ acts on a state $X=(\bh_1,\dots,\bh_N)$ by
+\begin{equation}\label{eq:block}
+\begin{aligned}
+\bh_i^{(1)} &= \bh_i \;+\; N^{\mathrm{c,post}}\!\Bigl(\mathcal{C}_\theta\bigl(N^{\mathrm{c,pre}}\bh\bigr)\Bigr)_i,\\
+\bh_i^{(u+1)} &= \bh_i^{(u)} \;+\; \lambda_u\odot N^{\mathrm{f,post}}_u\!\Bigl(\mathcal{F}_{\theta_u}\bigl(N^{\mathrm{f,pre}}_u\,\bh_i^{(u)}\bigr)\Bigr),\quad u=1,\dots,n_{\mathrm{f}},\\
+\bh_i' &= \bh_i^{(n_{\mathrm{f}}+1)},
+\end{aligned}
+\end{equation}
+where $\lambda_u\in\R^{C}$ are learnable per-channel scales initialised at $10^{-3}$ and acting by broadcast multiplication on the channel axis of each $(l,m)$ slot.
+By Proposition~\ref{prop:rms-eq} and the equivariance of $\mathcal{C}_\theta$ (Theorem~\ref{thm:conv-eq}) and $\mathcal{F}_{\theta_u}$ (\S\ref{sec:effn}), every term of \eqref{eq:block} is $\SO(3)$-equivariant.
+
+The four norm switches collapse to four practical patterns:
+\begin{itemize}[leftmargin=2em]
+\item \emph{pre-norm only} ($\nu^{\mathrm{c,pre}}=\nu^{\mathrm{f,pre}}=1$, the rest $0$): the default of \eqref{eq:block}; equivalent to the standard Pre-LN Transformer-style stabilisation, with the residual stream itself unnormalised across blocks.
+\item \emph{post-norm only} ($\nu^{\mathrm{c,post}}=\nu^{\mathrm{f,post}}=1$): each residual contribution is normalised after the (non-linear) update, with the residual stream itself untouched.
+\item \emph{sandwich norm} ($\nu^{\mathrm{c,pre}}=\nu^{\mathrm{c,post}}=\nu^{\mathrm{f,pre}}=\nu^{\mathrm{f,post}}=1$): both pre- and post-norms active, mirroring the bracketed structure used in some modern equivariant Transformers.
+\item \emph{no-norm} (all four $=0$): the bare residual composition $\bh_i'=\bh_i+\mathcal{C}_\theta(\bh)_i+\sum_u\lambda_u\odot\mathcal{F}_{\theta_u}(\bh_i^{(u)})$.
+\end{itemize}
+At initialisation, the second linear maps of both $\mathcal{C}_\theta$ ($L^{\mathrm{deg}}_{\mathrm{post}}$) and each $\mathcal{F}_{\theta_u}$ (the down-projection of the FFN) are zero (cf.\ \S\ref{sec:so2conv}, \S\ref{sec:effn}), so every additive term in \eqref{eq:block} vanishes and $\mathcal{B}_\theta$ starts as the identity map on the state.
+
+% =============================================================
+\section{The DPA4 Energy}\label{sec:energy}
+
+\paragraph{Block stack.}
+Fix a number of blocks $B\in\N$ and two non-increasing sequences $\lmax^{(1)}\geq\dots\geq\lmax^{(B)}$ and $\mmax^{(b)}\leq\lmax^{(b)}$.
+Block $b$ operates on the truncation of the state to the subspace $V_{\le\lmax^{(b)}}\otimes\R^C$ and uses $(\lmax^{(b)},\mmax^{(b)})$ in its edge convolution.
+Let $\mathcal{B}_{\theta_b}^{(b)}$ denote block $b$ and define
+\begin{equation}\label{eq:final-state}
+X^{(B)} \;\coloneqq\;\mathcal{B}_{\theta_B}^{(B)}\circ\cdots\circ\mathcal{B}_{\theta_1}^{(1)}\,X^{(0)}.
+\end{equation}
+
+\paragraph{Scalar readout.}
+Let $\mathcal{O}:\R^{C}\to\R$ be a scalar MLP and define the per-atom learned energy
+\begin{equation}\label{eq:Ei}
+E_i^{\mathrm{NN}}\;\coloneqq\;\mathcal{O}\!\bigl(\bh_i^{(B)}\bigm|_{l=0}\bigr),\qquad
+E^{\mathrm{NN}}\;\coloneqq\;\sum_{i=1}^{N}E_i^{\mathrm{NN}}.
+\end{equation}
+
+\paragraph{Optional case FiLM (multi-task only).}
+In the multi-task setting, where a single network is trained jointly on $K\geq 2$ datasets, an optional second FiLM conditioner is inserted into the readout $\mathcal{O}$.
+Given a one-hot case index $\bm{c}_t\in\R^{K}$ for the dataset of frame $t$, learnable matrices $W_\alpha^{\mathrm{case}},W_\beta^{\mathrm{case}}\in\R^{C\times K}$ produce a per-case scale and shift
+$\gamma_t=1+W_\alpha^{\mathrm{case}}\bm{c}_t$, $\beta_t=W_\beta^{\mathrm{case}}\bm{c}_t$,
+and the input to the scalar MLP is modulated as
+$\bh_i^{(B)}|_{l=0}\;\mapsto\;\gamma_t\odot \bh_i^{(B)}|_{l=0}+\beta_t$.
+This case FiLM modifies only the readout, not the descriptor; the descriptor $\bh_i^{(B)}$ remains case-independent, and the rotation-invariance, smoothness, and freezing properties of \S\ref{sec:thms} are unaffected.
+In the single-task setting considered throughout this document, $K=1$ and the case FiLM reduces to the identity.
+
+\paragraph{Analytical ZBL branch.}\label{sec:zbl}
+Let $k_e>0$ be the Coulomb constant in the chosen units, $a_0>0$ the Bohr radius, and define for ordered pairs $(i,j)$ with $r_{ij}>0$
+\begin{equation}\label{eq:zbl}
+E_{ij}^{\mathrm{ZBL}}(r)\;\coloneqq\;\frac{k_e\,Z_iZ_j}{r}\,\Phi\!\Bigl(\frac{r}{a_{ij}}\Bigr),\qquad
+a_{ij}\;\coloneqq\;\frac{0.88534\,a_0}{Z_i^{0.23}+Z_j^{0.23}},
+\end{equation}
+\begin{equation}\label{eq:zbl-Phi}
+\Phi(x)\;\coloneqq\;0.18175\,e^{-3.1998x}+0.50986\,e^{-0.94229x}+0.28022\,e^{-0.4029x}+0.028171\,e^{-0.20162x}.
+\end{equation}
+The analytical branch is $E^{\mathrm{ZBL}}\coloneqq\tfrac{1}{2}\sum_{i\neq j}E_{ij}^{\mathrm{ZBL}}(r_{ij})$.
+
+\paragraph{Bridged total energy.}
+The geometric inputs consumed by the learned branch are the clamped pairs $\{(\widetilde\br_{ij},\rtilde_{ij})\}$ defined in \eqref{eq:rvec-tilde}, whereas the ZBL branch consumes the true distances $\{r_{ij}\}$.
+The total energy is
+\begin{equation}\label{eq:Etot}
+E\bigl(Z,R\bigr)\;=\;E^{\mathrm{NN}}\bigl(Z,R;\{\widetilde\br_{ij}\}\bigr)+E^{\mathrm{ZBL}}\bigl(Z,R;\{r_{ij}\}\bigr).
+\end{equation}
+Forces and virial are the gradients of $E$ with respect to positions and the cell.
+
+% =============================================================
+\section{Properties}\label{sec:thms}
+
+\begin{theorem}[Symmetry]\label{thm:symm}
+The map $(Z,R)\mapsto E(Z,R)$ defined by \eqref{eq:Etot} is invariant under translations of $R$, under species-preserving permutations of atom indices, and under $\SO(3)$ acting diagonally on positions.
+\end{theorem}
+\begin{proof}
+Translational invariance: every operation depends on $R$ only through the differences $\bR_j-\bR_i$.
+Permutation invariance: aggregation over $\Nb_{\mathrm{out}}(i)$ is by unordered sum; all parameters depend on $Z_i$, not on $i$.
+$\SO(3)$-invariance: Proposition~\ref{prop:gie-eq} ensures $X^{(0)}$ transforms as $\bD(R)X^{(0)}$; Theorem~\ref{thm:conv-eq} and Proposition~\ref{prop:rms-eq} (and equivariance of $\mathcal{F}_\theta$ and $\Gamma_{\psi,\bG}$) preserve this through every block, so $X^{(B)}$ transforms by $\bD(R)$.
+$E_i^{\mathrm{NN}}$ depends only on the $l=0$ slice of $\bh_i^{(B)}$, which lies in the trivial representation.
+$E^{\mathrm{ZBL}}$ depends only on scalar distances.
+\end{proof}
+
+\begin{theorem}[Smoothness]\label{thm:smooth}
+$E\in C^3$ on the open set $\Omega\coloneqq\{R:\bR_i\neq\bR_j\ \forall i\neq j\}$.
+\end{theorem}
+\begin{proof}
+$s_p\in C^3$ (Lemma~\ref{lem:envelope}), $\rtilde,w\in C^3$ on $\R_{>0}$ by construction, $\bphi\in C^\infty$ on $\R_{>0}$, the two-chart quaternion is $C^\infty$ on $\Sph$ by \eqref{eq:nlerp}, and hence $\bD_{ij}\in C^\infty$ on $\Omega$.
+Every parametric map introduced in \S\ref{sec:ops}, \S\ref{sec:init}, \S\ref{sec:so2conv}, and \S\ref{sec:effn} is smooth on its domain, and the denominator of the attention weight \eqref{eq:attw} is bounded below by $\softplus(\zeta_a^{(h)})\exp(-\mu_i^{(h)})>0$.
+$E^{\mathrm{ZBL}}$ is $C^\infty$ on $\Omega$.
+A finite composition and sum of $C^3$ scalars is $C^3$.
+\end{proof}
+
+\begin{theorem}[Conservativeness]\label{thm:cons}
+The forces $\bmF_i=-\partial E/\partial\bR_i$ and the stress $\bm{\Pi}_{\alpha\beta}=\partial E/\partial\epsilon_{\alpha\beta}\big|_{\epsilon=0}$ are the exact gradient and stress of the same scalar potential $E$ defined in \eqref{eq:Etot}.
+\end{theorem}
+\begin{proof}
+By Theorem~\ref{thm:smooth}, $E$ is a $C^3$ scalar function of $R$ and of the cell.
+The conclusion is the definition of gradient and stress of a scalar potential.
+\end{proof}
+
+\paragraph{Frozen zone.}
+Say that a pair $(j,k)$ is \emph{frozen} if $r_{jk}\leq\rin$.
+
+\begin{theorem}[Strict freezing of the learned branch]\label{thm:freeze}
+Suppose configuration $(Z,R)\in\Omega$ contains a frozen pair $(j,k)$.
+Then for every variation $\delta R$ that preserves frozen-ness (i.e.\ $r_{jk}(R+\delta R)\leq\rin$),
+\begin{equation}
+\frac{\partial E^{\mathrm{NN}}}{\partial\bR_j}(Z,R)\;=\;\frac{\partial E^{\mathrm{NN}}}{\partial\bR_k}(Z,R)\;=\;0,
+\end{equation}
+and consequently the forces on $j$ and $k$ coincide with the pure ZBL forces:
+\begin{equation}
+\bmF_j=-\partial E^{\mathrm{ZBL}}/\partial\bR_j,\qquad
+\bmF_k=-\partial E^{\mathrm{ZBL}}/\partial\bR_k.
+\end{equation}
+\end{theorem}
+\begin{proof}
+By Lemma~\ref{lem:eta} applied to $j$ (with $k\in\Nb_{\mathrm{out}}(j)$ and $r_{jk}\leq\rin$), $\eta_j=0$; symmetrically $\eta_k=0$.
+Every neighbour message reaching any node, in any aggregation summed over a source index $s$, carries a multiplicative factor $\eta_s$ — by \eqref{eq:gie}, \eqref{eq:agg-plain}, \eqref{eq:attw}, and (when active) \eqref{eq:film}.
+By induction on the block index, no node feature at any depth contains a contribution sourced from $j$ or $k$.
+At the source side itself, the clamped distance map fixes $\rtilde(r_{jk})=\rin$ and the clamped direction $\brh_{jk}$ enters only as part of an $\eta_j$-gated message, which vanishes.
+Therefore $E^{\mathrm{NN}}$ is constant under any variation that keeps the pair frozen.
+The force statement is the negative gradient of \eqref{eq:Etot}.
+\end{proof}
+
+% =============================================================
+\section{Discussion: Local Frame, Global Frame, and Clebsch--Gordan}\label{sec:discuss-frames}
+
+This section addresses a natural question raised by the absence of equivariant--equivariant tensor products in DPA4 (\S\ref{sec:frame}, "trivialisation of Clebsch--Gordan"): \emph{since DPA4 only ever multiplies an equivariant feature by an $\SO(3)$-invariant scalar, do we still need the per-edge local frame, or could the entire architecture be re-expressed in the fixed global frame?}
+The answer is that the local frame is not needed for avoiding Clebsch--Gordan, but it is needed for a more subtle purpose: \emph{cross-degree, direction-dependent, edge-conditioned linear maps} on equivariant features.
+This section makes the equivalence precise.
+
+\subsection{Three CG-free regimes}\label{sec:three-regimes}
+
+All three constructions below are $\SO(3)$-equivariant and use no Clebsch--Gordan coefficient anywhere in their parameterisation; they differ only in what class of operators they realise.
+
+\paragraph{Regime (I): global frame, degree-preserving.}
+The architecture is restricted to the global-frame operators of \S\ref{sec:ops} (channel mixing $L^{\mathrm{ch}}$, degree-wise mixing $L^{\mathrm{deg}}$, equivariant RMS norm, gated activation) plus invariant-weighted scatter aggregation.
+The most general message $\bm{m}_{ij}^{\mathrm{(I)}}\in V_{\le\lmax}\otimes\R^{C}$ producible at edge $(i,j)$ within this regime is
+\begin{equation}\label{eq:regI-msg}
+\bigl(\bm{m}_{ij}^{\mathrm{(I)}}\bigr)_{(l,m),c}
+\;=\;\sum_{c'}\bigl[\bm{W}^{(l)}(r_{ij};Z_i,Z_j)\bigr]_{c',c}\,\bh_{j,(l,m),c'},
+\end{equation}
+where $\bm{W}^{(l)}(\cdot)\in\R^{C\times C}$ is a per-degree, edge-conditioned channel-mixing matrix whose entries depend only on the $\SO(3)$-invariants $r_{ij},Z_i,Z_j$.
+The aggregated update at atom $i$ is
+\begin{equation}\label{eq:regI-agg}
+\bigl(\Delta\bh\bigr)_i \;=\; n_i\sum_{j:r_{ij}<\rcut} s(r_{ij})\,\eta_j\,\bm{m}_{ij}^{\mathrm{(I)}}.
+\end{equation}
+Note the strict block-diagonality in degree:
+\begin{equation}\label{eq:regI-blockdiag}
+(\bm{m}_{ij}^{\mathrm{(I)}})_{(l_3,m_3)} \;=\;0\quad\text{whenever}\quad l_3\neq l_1\text{ for the source slot }l_1.
+\end{equation}
+There is no way for the source's $\bh_j^{(l_1)}$ to contribute to the destination's $\bh_i^{(l_3)}$ slot when $l_1\ne l_3$, nor any way for the message to depend on the edge direction $\brh_{ij}$.
+Direction information enters only through the GIE seed of \eqref{eq:gie} at the initial state $X^{(0)}$.
+
+\paragraph{Regime (II): local frame, DPA4.}
+The architecture of \S\ref{sec:so2conv}: the source feature is transported to the per-edge frame by $\bD_{ij}$, modulated by the scalar radial $\widetilde\rho_{ij,l}$, mixed by the $\SO(2)_{\bz}$-equivariant linear operator $L^{\mathrm{SO2}}$, and lifted back by $K\,(\bD_{ij}^{\le\mmax})^{\top}$.
+The most general message $\bm{m}_{ij}^{\mathrm{(II)}}$ producible at edge $(i,j)$ from a \emph{single} source feature, with no bilinear products of two equivariant tensors, is
+\begin{equation}\label{eq:regII-msg}
+\bm{m}_{ij}^{\mathrm{(II)}}\;=\;K\,\bigl(\bD_{ij}^{\le\mmax}\bigr)^{\top}\,L^{\mathrm{SO2}}\!\bigl[\,\diag(\widetilde\brho_{ij})\,\bigl(\bD_{ij}^{\le\mmax}\,\bh_j\bigr)\,\bigr],
+\end{equation}
+where $\diag(\widetilde\brho_{ij})$ is the diagonal matrix with $\widetilde\rho_{ij,l,c}$ on the $(l,\cdot,c)$ entry.
+This composition can be \emph{not} block-diagonal in degree: the central operator $L^{\mathrm{SO2}}$ couples different $l$'s within each fixed $|m|$-stratum (Schur for $\SO(2)_{\bz}$, equation \eqref{eq:hom-so2}).
+We may rewrite \eqref{eq:regII-msg} in the equivalent global-frame form
+\begin{equation}\label{eq:regII-global}
+\bigl(\bm{m}_{ij}^{\mathrm{(II)}}\bigr)_{(l_3,m_3),c}
+\;=\;\sum_{l_1,m_1,c'}\bigl[\bm{\Phi}_{ij}\bigr]_{(l_3,m_3),(l_1,m_1),c',c}\,\bh_{j,(l_1,m_1),c'},
+\end{equation}
+where $\bm{\Phi}_{ij}$ is the edge-conditioned kernel
+\begin{equation}\label{eq:regII-Phi}
+\bm{\Phi}_{ij}\;=\;K\,\bigl(\bD_{ij}^{\le\mmax}\bigr)^{\top}\,\bm{W}\,\diag(\widetilde\brho_{ij})\,\bD_{ij}^{\le\mmax},
+\end{equation}
+with $\bm{W}$ collecting the parameters of $L^{\mathrm{SO2}}$.
+By construction $\bm{\Phi}_{ij}$ transforms equivariantly under $\SO(3)$ (rotations of the configuration), and its dependence on the edge direction $\brh_{ij}$ enters only through the two rotation operators $\bD_{ij}$.
+Aggregation is then \eqref{eq:regI-agg} with $\bm{m}_{ij}^{\mathrm{(II)}}$ in place of $\bm{m}_{ij}^{\mathrm{(I)}}$.
+
+\paragraph{Regime (III): global frame with Clebsch--Gordan, MACE/NequIP-style.}
+The angular content of the edge is carried explicitly as an equivariant feature $Y_{l_2}^{m_2}(\brh_{ij})\in V_{l_2}$ for each $l_2\in\{0,\dots,\lmax\}$, and the message is built from a CG-tensor product of $\bh_j$ with $\bm{Y}(\brh_{ij})$:
+\begin{equation}\label{eq:regIII-msg}
+\bigl(\bm{m}_{ij}^{\mathrm{(III)}}\bigr)_{(l_3,m_3),c}
+\;=\;\sum_{l_1,l_2}\bm{R}^{(l_1,l_2,l_3)}_{c}(r_{ij};Z_i,Z_j)\;\sum_{m_1,m_2}\bigl\langle l_1\,m_1;\,l_2\,m_2\,\big|\,l_3\,m_3\bigr\rangle\,\bh_{j,(l_1,m_1),c}\,Y_{l_2}^{m_2}(\brh_{ij}),
+\end{equation}
+with selection rule $|l_1-l_2|\le l_3\le l_1+l_2$ and learnable per-channel radial coefficients $\bm{R}^{(l_1,l_2,l_3)}_c(\cdot)\in\R$.
+This is a genuine bilinear equivariant product of two equivariant objects, $\bh_j$ and $\bm{Y}(\brh_{ij})$, and the Clebsch--Gordan symbols are unavoidable for the SO(3)-equivariant parameterisation.
+DPA4 does \emph{not} use this regime.
+
+\subsection{Expressiveness ladder}\label{sec:expr-ladder}
+
+The three regimes form a strict inclusion of operator classes at the per-edge level:
+\begin{equation}\label{eq:ladder}
+\underbrace{\bigl\{\bm{m}_{ij}^{\mathrm{(I)}}\bigr\}}_{\text{degree-preserving}}
+\;\subsetneq\;
+\underbrace{\bigl\{\bm{m}_{ij}^{\mathrm{(II)}}\bigr\}}_{\text{cross-}l,\ \text{single-source}}
+\;\subseteq\;
+\underbrace{\bigl\{\bm{m}_{ij}^{\mathrm{(III)}}\bigr\}}_{\text{full SO(3)-equivariant bilinear}}.
+\end{equation}
+
+\begin{lemma}[Regime I is a proper subset of Regime II]
+Every message of the form \eqref{eq:regI-msg} is obtainable as a special case of \eqref{eq:regII-global} by choosing the cross-$l$ blocks of $\bm{W}$ in $L^{\mathrm{SO2}}$ to vanish.
+Conversely, since $\bm{\Phi}_{ij}$ in \eqref{eq:regII-Phi} generically has nonzero off-diagonal-in-$l$ entries (whenever $L^{\mathrm{SO2}}$'s cross-$l$ mixers are nonzero), Regime II achieves messages that violate \eqref{eq:regI-blockdiag}, so the inclusion is strict.
+\end{lemma}
+
+\paragraph{Why $l$-mixing is impossible in Regime I.}
+The block-diagonality \eqref{eq:regI-blockdiag} of Regime I messages is not an arbitrary stylistic choice; it is forced by Schur's lemma.
+For each fixed edge invariants $(r_{ij},Z_i,Z_j)$ the operator
+\[
+\bm{T}_{ij}:\bh_j\;\longmapsto\;\bm{m}_{ij}^{(\mathrm{I})}
+\]
+is an $\SO(3)$-equivariant linear map $V_{\le\lmax}\otimes\R^C\to V_{\le\lmax}\otimes\R^C$, because in Regime I the kernel depends only on rotation-invariant data.
+Applying the real Schur classification of \eqref{eq:hom-so3}, the space of such equivariant linear maps is
+\[
+\mathrm{Hom}_{\SO(3)}\bigl(V_{\le\lmax}\otimes\R^C,V_{\le\lmax}\otimes\R^C\bigr)
+\;=\;\bigoplus_{l=0}^{\lmax}\R^{C\times C},
+\]
+i.e.\ one $C\times C$ matrix per degree, and the zero map between different degrees: cross-$l$ entries are forbidden by Schur and not by an architectural design choice.
+Equivalently in component form,
+\begin{equation}\label{eq:schur-blockdiag}
+\bigl[\bm{T}_{ij}\bigr]_{(l_3,m_3),(l_1,m_1)}\;=\;\delta_{l_3,l_1}\,\delta_{m_3,m_1}\,\bm{W}^{(l_1)}(r_{ij};Z_i,Z_j),
+\end{equation}
+recovering exactly the form \eqref{eq:regI-msg}.
+The only way to obtain a non-zero cross-$l$ matrix element while preserving $\SO(3)$-equivariance is to let the kernel depend on the edge direction $\brh_{ij}$ — and to do so in a way that transforms covariantly with the configuration under $\SO(3)$ rotations.
+Regime II achieves this through the rotation operators $\bD_{ij},\bD_{ij}^{\top}$ that bracket $L^{\mathrm{SO2}}$ in \eqref{eq:regII-Phi}; Regime III achieves the same through the equivariant edge feature $\{Y_{l_2}^{m_2}(\brh_{ij})\}$ and an explicit Clebsch--Gordan contraction.
+In both cases the kernel is no longer a fixed equivariant linear map but a \emph{family} of equivariant linear maps parameterised by $\brh_{ij}\in\Sph$, and Schur's no-cross-$l$ theorem of \eqref{eq:hom-so3} does not apply to such direction-dependent families.
+
+\begin{lemma}[Regime II as a sub-parameterisation of Regime III]
+For any edge $(i,j)$, the kernel $\bm{\Phi}_{ij}$ of \eqref{eq:regII-Phi} admits a Clebsch--Gordan expansion of the form
+\begin{equation}\label{eq:Phi-CG-expand}
+\bigl[\bm{\Phi}_{ij}\bigr]_{(l_3,m_3),(l_1,m_1)}
+\;=\;\sum_{l_2=|l_3-l_1|}^{l_3+l_1}\widetilde R^{(l_1,l_2,l_3)}(r_{ij})\;\sum_{m_2}\bigl\langle l_1\,m_1;\,l_2\,m_2\,\big|\,l_3\,m_3\bigr\rangle\,Y_{l_2}^{m_2}(\brh_{ij}),
+\end{equation}
+where $\widetilde R^{(l_1,l_2,l_3)}(r_{ij})$ is an effective radial coefficient determined by $L^{\mathrm{SO2}}$ and $\widetilde\brho_{ij}$ via a finite linear combination of $\bm{W}$ entries.
+Hence Regime II messages are a subset of Regime III messages, obtained by tying together the $\widetilde R^{(l_1,l_2,l_3)}$ across different $l_2$ that share the same residual $|m|$-stratum.
+\end{lemma}
+
+The proof of the second lemma is a routine consequence of the matrix-element factorisation $\bD_{ij}^{(l)}(R)=\sum Y_l^m(\hat{R\,\bz})\cdots$ together with the Wigner-Eckart theorem; we omit it.
+
+\subsection{Why DPA4 stops at Regime II}\label{sec:why-regII}
+
+The architectural choice between (II) and (III) is not about expressiveness in the limit but about \emph{parameterisation cost} of an equivariant cross-$l$ kernel:
+
+\begin{itemize}[leftmargin=2em]
+\item In Regime III, every admissible triple $(l_1,l_2,l_3)$ with $|l_1-l_2|\le l_3\le l_1+l_2$ contributes one radial coefficient $\bm{R}^{(l_1,l_2,l_3)}_c(r)$ per channel, and the bilinear contraction over $(m_1,m_2)$ via the 3-$j$ symbols $\langle l_1 m_1;l_2 m_2|l_3 m_3\rangle$ has nominal cost $\mathcal{O}(\lmax^6)$ per edge.
+\item In Regime II, the same kernel is parameterised by the entries of $L^{\mathrm{SO2}}$, of size $\mathcal{O}(\lmax\,\mmax\,C^2)$, with the angular dependence carried implicitly by the rotation operators $\bD_{ij},\bD_{ij}^{\top}$ that act on the source feature. The per-edge cost is $\mathcal{O}(\lmax\,\mmax\,H)$ for the linear part and $\mathcal{O}(D\cdot D_m)$ for the rotation operators.
+\item Truncation by $\mmax\le\lmax$ in Regime II discards exactly those Clebsch--Gordan triples that would couple $|m|>\mmax$ channels in Regime III, recovering them only via the per-degree rescale $\rho_l$ of \eqref{eq:rescale}.
+\end{itemize}
+
+For DPA4's target operating regime ($\lmax$ small, $\mmax$ small, $C$ moderate, $E$ large), the difference between the two parameterisations is dramatic: Regime II's cost is essentially the same as a degree-preserving Regime-I operator (linear in $\lmax$ and $\mmax$), while Regime III's cost grows as the sixth power of $\lmax$.
+This is the algorithmic motivation for the local-frame design.
+
+\subsection{What the local frame is, mathematically}\label{sec:lf-summary}
+
+To summarise the abstract content of \S\ref{sec:so2conv} in light of \eqref{eq:regII-Phi}, the per-edge message $\bm{m}_{ij}^{\mathrm{(II)}}$ in DPA4 is:
+\begin{equation}\label{eq:lf-form}
+\boxed{\;
+\bm{m}_{ij}^{\mathrm{(II)}} \;=\; \bm{\Phi}_{ij}\,\bh_j,\qquad
+\bm{\Phi}_{ij}\;\coloneqq\;K\,\bigl(\bD_{ij}^{\le\mmax}\bigr)^{\top}\,\bm{W}\,\diag(\widetilde\brho_{ij})\,\bD_{ij}^{\le\mmax}
+\;}
+\end{equation}
+— a per-edge $\SO(3)$-equivariant linear map between two equivariant features, applied to a single source.
+No object on the right-hand side is the tensor product of two equivariant features; both rotations $\bD_{ij},\bD_{ij}^{\top}$ act on the same single feature $\bh_j$, and all scalars ($\widetilde\brho_{ij}$, $K$) are invariants of the edge.
+The Clebsch--Gordan coefficients that would explicitly expand $\bm{\Phi}_{ij}$ in the basis $\{Y_l^m(\brh_{ij})\}$, as in \eqref{eq:Phi-CG-expand}, are implicit in the matrix elements of $\bD_{ij}$ and never need to be computed in floating-point arithmetic.
+
+The local frame is therefore best understood not as a different ingredient from Regime III but as a different \emph{parameterisation} of the same SO(3)-equivariant edge-conditioned linear-map space, organised to make the angular dependence cheap and the cross-$l$ mixing rich.
+If one were to drop the local frame entirely (Regime I), one would lose the cross-$l$ mixing but retain everything else, including the equivariance, smoothness, and freezing properties of \S\ref{sec:thms}.
+
+% =============================================================
+\section*{Notation Index}
+
+\begin{tabular}{ll}
+$N$ & number of atoms\\
+$Z_i\in\{1,\dots,n_t\}$ & atomic species of atom $i$\\
+$\bR_i\in\R^3$ & position of atom $i$\\
+$\br_{ij}=\bR_j-\bR_i$, $r_{ij}=\|\br_{ij}\|$, $\brh_{ij}=\br_{ij}/r_{ij}$ & edge vector, distance, direction\\
+$\lmax,\mmax\in\Z_{\geq 0}$ & maximum degree, maximum truncation order $(\mmax\leq\lmax)$\\
+$D=(\lmax+1)^2$, $D_m=\sum_l(2\min(l,\mmax)+1)$ & full and truncated dimensions\\
+$\iota(l,m)=l^2+l+m$ & linear packing of $(l,m)$ in $V_{\le\lmax}$\\
+$V_l$, $D^l$, $V_{\le\lmax}$, $\bD(R)$ & irreducible blocks; full Wigner-D matrix\\
+$\bq_{ij}\in S^3$, $R_{ij}=R(\bq_{ij})$, $\bD_{ij}=\bD(R_{ij})$ & edge quaternion and rotation\\
+$\bP_{\mmax}$, $K$ with entries $\rho_l$ & truncation projector and per-degree rescale\\
+$s(r)=s_5(r)$, $\sigma_r(r)=s_7(r)$ & cutoff envelopes\\
+$\rin<\rout$, $\rtilde(r)$, $w(r)$ & bridging window and switches\\
+$\eta_j=\prod_{i\in\Nb_{\mathrm{out}}(j)} w(r_{ji})$ & source-freeze gate\\
+$d_i=\sum_j s(r_{ij})^2$, $n_i=(d_i+\varepsilon)^{-1/2}$ & smooth degree and its inverse square root\\
+$\bphi(r)\in\R^{n_r}$ & trainable-frequency radial basis\\
+$\Te_{\mathrm{edge}}(i,j)=\Te^{(1)}_{Z_i,:}+\Te^{(2)}_{Z_j,:}\in\R^{C}$ & per-edge species-pair embedding\\
+$\brho_{ij}\in\R^{(\lmax+1)\times C}$ & per-edge per-degree radial features (\eqref{eq:rho-edge})\\
+$C, F, C_f, H=FC_f$ & channel, focus, per-focus widths\\
+$\bh_i\in V_{\le\lmax}\otimes\R^C$ & node feature at atom $i$\\
+$L^{\mathrm{ch}}$, $L^{\mathrm{deg}}$, $L^{\mathrm{SO2}}$, $N_{\gamma,\beta}$, $\Gamma_{\psi,\bG}$ & equivariant operators \S\ref{sec:ops}\\
+$\mathcal{C}_\theta$, $\mathcal{F}_\theta$, $\mathcal{B}_\theta$ & edge convolution, EFFN, interaction block\\
+$E^{\mathrm{NN}}$, $E^{\mathrm{ZBL}}$, $E$ & learned, analytical, and total energies
+\end{tabular}
+
+\end{document}
