@@ -366,7 +366,7 @@ This follows from \eqref{eq:Lm-action} and the fact that $L_0$ is the identity i
 \end{proposition}
 
 \begin{remark}[Equivalence with DPA4's $\SO(2)$-linear operator]\label{rmk:so2-equiv}
-The operator $L^{\mathrm{SO2}}$ of \eqref{eq:LSO2} is mathematically the same operator as DPA4's $\SO(2)$-linear mixer (archi\_dpa4.tex, \S\ref{sec:ops}; source: \texttt{sezm\_nn/so2.py:SO2Linear}), up to the choice of fixed axis ($\by$ here vs.\ $\bz$ in DPA4) and the absence of the multi-stream \emph{focus} axis.
+The operator $L^{\mathrm{SO2}}$ of \eqref{eq:LSO2} is mathematically the same operator as DPA4's $\SO(2)$-linear mixer (``Equivariant Operators'' in archi\_dpa4.tex; source: \texttt{sezm\_nn/so2.py:SO2Linear}), up to the choice of fixed axis ($\by$ here vs.\ $\bz$ in DPA4) and the absence of the multi-stream \emph{focus} axis.
 By Schur's lemma applied to the real $\SO(2)$ action on the $m$-major reduced layout, the space of $\R$-linear $\SO(2)$-equivariant maps decomposes as
 \begin{equation}\label{eq:hom-so2-eqv3}
 \mathrm{Hom}_{\SO(2)}\bigl(\R^{D_m}\otimes\R^{C_{\mathrm{in}}},\;\R^{D_m}\otimes\R^{C_{\mathrm{out}}}\bigr)
@@ -407,8 +407,8 @@ These higher-level choices are the subject of \S\ref{sec:compare-diff}.
 The FFN needs a nonlinearity that respects $\SO(3)$-equivariance.
 EquiformerV3 implements one by a three-step sandwich: \emph{sample} the irrep feature at a fixed set of points on $\Sph$, apply an unconstrained pointwise MLP at every sample point, and \emph{project} the resulting samples back to irrep coefficients.
 The purpose of this section is to construct the sandwich and to give a complete proof of its equivariance.
-The non-trivial fact is that the grid values are \emph{not} $\SO(3)$-invariant: they transform under rotation by a row-permutation of grid points.
-Equivariance is recovered because the pointwise MLP commutes with that row-permutation, and the pull-back converts the row-permutation back into the Wigner-$D$ action on irrep coefficients.
+The non-trivial fact is that the grid values are \emph{not} $\SO(3)$-invariant: under a global rotation $g\in\SO(3)$ of the configuration they transform by the discrete function-rotation operator $\widetilde R_g$ on the grid, which is a band-limited interpolation (and a row-permutation only in the special case where $g$ maps grid points to grid points).
+Equivariance is recovered because the pointwise MLP commutes with $\widetilde R_g$ on the band-limited subspace, and the pull-back converts $\widetilde R_g$ back into the Wigner-$D$ action on irrep coefficients.
 
 \subsection{The $\Sph$-grid}\label{sec:S2grid}
 
@@ -457,44 +457,61 @@ Tracking through the sample using the spherical-harmonic transformation law $Y_l
 [\bm{S}\,(\bD(g)\bh)]_{(a,b),c}\;=\;\langle\bm{Y}_{ab},\bD(g)\bh_{:,c}\rangle\;=\;\langle\bD(g)^{\top}\bm{Y}_{ab},\bh_{:,c}\rangle\;=\;\langle\bm{Y}_{g^{-1}\hat\br_{ab}},\bh_{:,c}\rangle\;=\;f^{c}_{\bh}(g^{-1}\hat\br_{ab}).
 \end{equation}
 \emph{In words}: after rotating the feature, the grid value at index $(a,b)$ is the value of the \emph{original} function at the \emph{back-rotated} grid point $g^{-1}\hat\br_{ab}$.
-The grid values are not invariant — they are permuted (or, for a non-aligned $g$, interpolated) across grid indices.
+For a generic $g\in\SO(3)$, the point $g^{-1}\hat\br_{ab}$ is \emph{not} a grid point, so the right-hand side $f^{c}_{\bh}(g^{-1}\hat\br_{ab})$ is a value off the grid — interpolated from the discrete grid samples via the band-limited reconstruction.
+The rotation action on grid samples is therefore generically an interpolation, not a row-permutation.
 
-When the grid is closed under $g^{-1}$, i.e.\ when there exists a permutation $\pi_g$ of grid indices such that $g^{-1}\hat\br_{ab}=\hat\br_{\pi_g(a,b)}$, equation \eqref{eq:rot-grid} reads
+\paragraph{The induced action on grid samples.}
+Equation~\eqref{eq:rot-grid} can be written as the operator identity
 \begin{equation}\label{eq:rot-perm}
-\bm{S}\,(\bD(g)\bh)\;=\;P_g\,(\bm{S}\bh),
+\bm{S}\,\bD(g)\;=\;\widetilde R_g\,\bm{S},\qquad\widetilde R_g\;\coloneqq\;\bm{S}\,\bD(g)\,\bm{S}^{\dagger},
 \end{equation}
-where $P_g$ is the $(N_\beta N_\alpha)\times(N_\beta N_\alpha)$ row-permutation matrix with $[P_g]_{(a,b),(a',b')}=\delta_{(a',b'),\pi_g(a,b)}$.
-For a generic $g$ the closure fails and $P_g$ is replaced by a band-limited interpolation operator; the continuous statement \eqref{eq:rot-grid} is exact in both cases, only the discrete representation \eqref{eq:rot-perm} requires closure.
+where $\widetilde R_g\in\R^{(N_\beta N_\alpha)\times(N_\beta N_\alpha)}$ is the matrix representation of ``rotate the band-limited function by $g$ and resample at the grid points''.
+$\widetilde R_g$ is well-defined as a linear operator on the band-limited subspace $V^{\Sph}_{\le\lmax}=\bm{S}(V_{\le\lmax})$, where it acts exactly as the function rotation $f\mapsto f\circ g^{-1}$.
+Off the band-limited subspace, no operator on grid samples can exactly reproduce the function rotation, because the non-band-limited content of an off-grid function is not determined by the grid samples.
 
-The takeaway from \eqref{eq:rot-grid}--\eqref{eq:rot-perm}: \emph{$\bm{S}$ intertwines the Wigner-$D$ action on irrep coefficients with the function-shift action on grid samples.}
-Symbolically, $\bm{S}\circ\bD(g)\;=\;P_g\circ\bm{S}$.
+\paragraph{The special case $g$ aligned with the grid.}
+For the discrete subgroup of $\SO(3)$ that does map every grid point to a grid point, $\widetilde R_g$ reduces to a literal row-permutation $P_g$ with $[P_g]_{(a,b),(a',b')}=\delta_{(a',b'),\pi_g(a,b)}$ and $g^{-1}\hat\br_{ab}=\hat\br_{\pi_g(a,b)}$.
+This subgroup is measure-zero in $\SO(3)$ (and the e3nn grid has no non-trivial subgroup of this kind), but the special case is pedagogically useful: it gives the most concrete picture of ``rotation moves grid rows around''.
+Whenever we write $P_g$ below for visual clarity, the reader should interpret it as $\widetilde R_g$ for the generic case; the formal statements hold with $\widetilde R_g$ throughout.
+
+\paragraph{Takeaway.}
+$\bm{S}$ intertwines the Wigner-$D$ action on irrep coefficients with the discrete function-rotation $\widetilde R_g$ on grid samples:
+\[
+\bm{S}\circ\bD(g)\;=\;\widetilde R_g\circ\bm{S}.
+\]
+The grid values are not invariant; they live in the band-limited subspace $V^{\Sph}_{\le\lmax}$, on which $\widetilde R_g$ is the discrete representation of the abstract $\SO(3)$-action $f\mapsto f\circ g^{-1}$.
 
 \subsection{Pull-back intertwines back}\label{sec:pull-intertwines}
 
 The reverse statement holds for $\bm{S}^{\dagger}$.
-For a function on the grid, the rotation action is row-permutation $P_g$ (or interpolation); the spherical-harmonic projection of the rotated function is the Wigner-$D$-rotation of the projection.
-Concretely, applying \eqref{eq:Sdag-S} and \eqref{eq:rot-perm},
+The discrete spherical-harmonic projection of a band-limited function and then rotated by $\widetilde R_g$ equals the Wigner-$D$-rotation of the projection.
+Concretely, on the band-limited subspace $V^{\Sph}_{\le\lmax}$ where $\bm{S}^{\dagger}\bm{S}=I_D$,
 \begin{equation}\label{eq:Sdag-intertwine}
-\bm{S}^{\dagger}\,P_g\;=\;\bD(g)\,\bm{S}^{\dagger},
+\bm{S}^{\dagger}\,\widetilde R_g\;=\;\bD(g)\,\bm{S}^{\dagger}.
 \end{equation}
-i.e.\ $\bm{S}^{\dagger}$ intertwines the function-shift action back into the Wigner-$D$ action.
-This is just the adjoint of the statement $\bm{S}\circ\bD(g)=P_g\circ\bm{S}$ from the previous subsection, using that $\bm{S}^{\dagger}\bm{S}=I_D$ on the band-limited subspace.
+This is the inverse of the statement $\bm{S}\circ\bD(g)=\widetilde R_g\circ\bm{S}$ from the previous subsection: composing both sides with $\bm{S}^{\dagger}$ on the left and using $\bm{S}^{\dagger}\bm{S}=I_D$ gives \eqref{eq:Sdag-intertwine}.
+\emph{Crucially}, this identity holds only on $V^{\Sph}_{\le\lmax}$.
+For an input outside the band-limited subspace, the discrete pull-back aliases content above $\lmax$ onto the kept $l\le\lmax$ coefficients in a way that depends on how the rotated grid samples sit relative to the band structure --- and the aliasing is $g$-dependent, so \eqref{eq:Sdag-intertwine} fails by a $g$-dependent residual.
+This is the technical content of hypothesis (ii) of Theorem~\ref{thm:grid-sandwich} below.
 
-\subsection{Pointwise channel-mixing commutes with row-permutation}\label{sec:point-comm}
+\subsection{Pointwise channel-mixing commutes with the function-rotation}\label{sec:point-comm}
 
 Call a map $\Phi\colon\R^{(N_\beta N_\alpha)\times C}\to\R^{(N_\beta N_\alpha)\times C}$ \emph{pointwise in the grid index} if there is a single function $\phi\colon\R^C\to\R^C$ such that, for every grid index $(a,b)$,
 \begin{equation}\label{eq:Phi-pointwise}
 [\Phi(X)]_{(a,b),:}\;=\;\phi(X_{(a,b),:}).
 \end{equation}
 In words: $\Phi$ does not see the grid index; it sees only the channel vector at each row, and the \emph{same} channel-mixing rule applies at every row.
-The grid MLP \eqref{eq:gridmlp} below is exactly such a $\Phi$.
+The grid MLPs of \eqref{eq:gridmlp-A} and \eqref{eq:gridmlp-B} below are both such $\Phi$.
 
-\begin{lemma}[Pointwise commutes with permutation]\label{lem:point-perm}
-For any permutation matrix $P$ on grid indices and any $\Phi$ of the form \eqref{eq:Phi-pointwise},
+\begin{lemma}[Pointwise commutes with the function-rotation]\label{lem:point-perm}
+For any $\Phi$ of the form \eqref{eq:Phi-pointwise} and any $X\in V^{\Sph}_{\le\lmax}$ such that $\Phi(X)\in V^{\Sph}_{\le\lmax'}$ for some band limit $\lmax'$ at which the grid quadrature is exact,
 \begin{equation}\label{eq:point-perm}
-\Phi(P\,X)\;=\;P\,\Phi(X).
+\Phi(\widetilde R_g\,X)\;=\;\widetilde R_g\,\Phi(X).
 \end{equation}
 \end{lemma}
+
+For the special case where $g$ aligns with the grid ($\widetilde R_g=P_g$ a row-permutation), the band-limit hypothesis on $\Phi(X)$ can be dropped: the identity $\Phi(P_g X)=P_g\Phi(X)$ is purely combinatorial and holds for any pointwise $\Phi$ and any $X$.
+The combinatorial form is the source of the intuition; the generic form requires the band-limit hypothesis because $\widetilde R_g$ is defined only on a band-limited subspace.
 
 \begin{proof}
 Both sides have row $(a,b)$ equal to $\phi(X_{P(a,b),:})$.
@@ -525,20 +542,42 @@ Apply $\mathcal{F}$ to the rotated feature and use the three intertwining steps 
 \begin{align*}
 \mathcal{F}(\bD(g)\bh)
 \;&=\;\bm{S}^{\dagger}\,\Phi\,\bm{S}(\bD(g)\bh)\\
-\;&\stackrel{\eqref{eq:rot-perm}}{=}\;\bm{S}^{\dagger}\,\Phi\,(P_g\,\bm{S}\bh)\\
-\;&\stackrel{\eqref{eq:point-perm}}{=}\;\bm{S}^{\dagger}\,P_g\,\Phi(\bm{S}\bh)\\
+\;&\stackrel{\eqref{eq:rot-perm}}{=}\;\bm{S}^{\dagger}\,\Phi\,(\widetilde R_g\,\bm{S}\bh)\\
+\;&\stackrel{\eqref{eq:point-perm}}{=}\;\bm{S}^{\dagger}\,\widetilde R_g\,\Phi(\bm{S}\bh)\\
 \;&\stackrel{\eqref{eq:Sdag-intertwine}}{=}\;\bD(g)\,\bm{S}^{\dagger}\,\Phi(\bm{S}\bh)\\
 \;&=\;\bD(g)\,\mathcal{F}(\bh).
 \end{align*}
 The first equality is the definition of $\mathcal{F}$.
-The second uses that $\bm{S}$ intertwines Wigner-$D$ on irreps with permutation on the grid (\S\ref{sec:rot-on-grid}).
-The third uses that $\Phi$ pointwise commutes with row-permutation (Lemma~\ref{lem:point-perm}).
-The fourth uses that $\bm{S}^{\dagger}$ intertwines permutation on the grid back into Wigner-$D$ on irreps (\S\ref{sec:pull-intertwines}).
-For generic $g$ that does not close the grid, replace $P_g$ by the band-limited interpolation operator and replace \eqref{eq:rot-perm}--\eqref{eq:Sdag-intertwine} by their function-space versions $\bm{S}\circ\bD(g)=R_g\circ\bm{S}$ and $\bm{S}^{\dagger}\circ R_g=\bD(g)\circ\bm{S}^{\dagger}$, where $R_g$ is the function-shift $f\mapsto f\circ g^{-1}$; the same three-line chain goes through verbatim.
+The second uses that $\bm{S}$ intertwines Wigner-$D$ on irreps with the discrete function-rotation $\widetilde R_g$ on the grid (\S\ref{sec:rot-on-grid}, eq.~\eqref{eq:rot-perm}).
+The third uses that $\Phi$ pointwise commutes with $\widetilde R_g$ on the band-limited subspace produced by $\Phi$ (Lemma~\ref{lem:point-perm}, hypothesis (i)).
+The fourth uses that $\bm{S}^{\dagger}$ intertwines $\widetilde R_g$ on the band-limited subspace back into Wigner-$D$ on irreps (\S\ref{sec:pull-intertwines}, eq.~\eqref{eq:Sdag-intertwine}, valid by hypothesis (ii)).
 \end{proof}
 
 The theorem makes precise what was loosely stated earlier: equivariance does \emph{not} follow from the grid values being invariant — they are not.
 It follows from the conjunction of three facts: the sample intertwines Wigner-$D$ on irreps with the rotation action on grid samples; pointwise channel-mixing commutes with that rotation action; the pull-back intertwines back.
+
+\paragraph{Which step uses which hypothesis.}
+The two hypotheses of Theorem~\ref{thm:grid-sandwich} enter the proof at different steps, and which step they sit at determines what kind of equivariance breaks when they fail.
+\begin{itemize}[leftmargin=2em]
+\item \emph{Step 2 uses hypothesis (i) only.}
+The pointwise commutation $\Phi\circ R_g=R_g\circ\Phi$ is an elementwise statement about $\Phi$ acting on grid samples; it holds for any pointwise $\Phi$, including a pointwise nonlinearity such as $\SiLU$.
+\item \emph{Step 3 uses hypothesis (ii) crucially.}
+The identity $\bm{S}^{\dagger}\circ R_g=\bD(g)\circ\bm{S}^{\dagger}$ is an \emph{operator identity on the band-limited subspace} of grid functions $V^{\Sph}_{\le\lmax}=\bm{S}(V_{\le\lmax})$.
+For an input outside this subspace, the discrete pull-back aliases content above $\lmax$ onto kept $l\le\lmax$ coefficients, and the aliasing pattern depends on how the rotated grid samples sit relative to the band structure --- i.e.\ it depends on $g$.
+The identity then \emph{fails by a $g$-dependent error}, and the chain in step 3 reads
+\[
+\bm{S}^{\dagger}\,R_g\,\Phi(\bm{S}\bh)\;=\;\bD(g)\,\bm{S}^{\dagger}\,\Phi(\bm{S}\bh)\;+\;\epsilon_g(\Phi,\bh),
+\]
+with $\epsilon_g$ the quadrature-aliasing residual, exactly the $g$-dependent break in equivariance.
+The hypothesis (ii) of Theorem~\ref{thm:grid-sandwich} is the condition $\Phi(\bm{S}\bh)\in V^{\Sph}_{\le\lmax}$ for every band-limited $\bh$, i.e.\ that $\Phi$ preserves band-limitedness, in which case $\epsilon_g\equiv 0$.
+\end{itemize}
+
+\paragraph{Consequence for the two designs of \S\ref{sec:gridmlp}.}
+This is the technical content of the design-A vs.\ design-B distinction.
+For \emph{design A} (pointwise nonlinear $\Phi=\SiLU$ on grid), hypothesis (ii) is violated for every finite $(N_\beta,N_\alpha)$ because $\SiLU(\bm{S}\bh)$ has spherical-harmonic content at all degrees $l\ge 0$, so $\Phi(\bm{S}\bh)\notin V^{\Sph}_{\le\lmax}$.
+Step 3 of the proof then carries a non-zero $\epsilon_g$, and the discrete grid sandwich is only equivariant up to that aliasing error.
+For \emph{design B} (bilinear product on grid), $\Phi(\bm{S}\bh)$ is band-limited to $2\lmax$; if the quadrature exactness is enforced at $2\lmax$ — which $(N_\beta,N_\alpha)=(20,20)$ at $\lmax=6$ does — then $\Phi(\bm{S}\bh)\in V^{\Sph}_{\le\lmax}$ after the projection (since $\bm{S}^{\dagger}$ is exact on the $\le 2\lmax$-band-limited subspace), $\epsilon_g=0$, and the discrete sandwich is strictly equivariant.
+\emph{Hypothesis (i) alone — pointwise $\Phi$ — guarantees only the structural commutation of step 2; it is hypothesis (ii) that closes the gap to discrete equivariance, and that is the architectural content of choosing a band-limit-preserving $\Phi$.}
 
 \subsection{Two non-negotiable design constraints}\label{sec:constraints}
 
@@ -557,26 +596,88 @@ The grid MLP restricts the gate to depend only on $\bh_{l=0}$, which is rotation
 
 Both constraints are satisfied by the grid MLP defined below.
 
-\subsection{Grid MLP}\label{sec:gridmlp}
+\subsection{Grid MLP: two pointwise designs}\label{sec:gridmlp}
 
-The grid MLP applied in the FFN has the form
-\begin{equation}\label{eq:gridmlp}
-\mathcal{M}_{\Sph}(\bh^{\Sph};\bm{s})\;=\;\bm{W}_2\bigl(\,\SiLU(\bm{W}_1\bh^{\Sph})\;\odot\;\Sigmoid(\bm{w}_g\bm{s})\,\bigr),
+The grid MLP $\mathcal{M}_{\Sph}\colon\R^{(N_\beta N_\alpha)\times C}\to\R^{(N_\beta N_\alpha)\times C}$ takes a grid feature and a rotation-invariant scalar side-channel $\bm{s}=\bh_{l=0}\in\R^C$ and returns a grid feature of the same shape.
+Theorem~\ref{thm:grid-sandwich} requires two hypotheses on $\mathcal{M}_{\Sph}$:
+\emph{(i)} pointwise in the grid index (so the channel-mixing rule is the same at every row);
+\emph{(ii)} the quadrature is exact at the band limit produced by $\mathcal{M}_{\Sph}\circ\bm{S}$ on $\lmax$-band-limited inputs.
+Hypothesis (i) is structural; hypothesis (ii) depends on whether $\mathcal{M}_{\Sph}$ preserves \emph{band-limitedness} of the function it acts on.
+Below we exhibit two designs that both satisfy (i) but differ on (ii); both make the structural equivariance proof go through, but only one realises strict equivariance at modest grid sizes.
+
+\subsubsection*{Design A: pointwise nonlinear ("$S^2$ activation")}
+
+The conceptually simplest design applies a pointwise nonlinearity $\psi$ (e.g.\ $\SiLU$) channel-wise on the grid:
+\begin{equation}\label{eq:gridmlp-A}
+\mathcal{M}_{\Sph}^{(\mathrm{A})}(\bh^{\Sph};\bm{s})\;=\;\bm{W}_2\Bigl(\,\psi\bigl(\bm{W}_1\bh^{\Sph}\bigr)\;\odot\;\Sigmoid\bigl(\bm{w}_g\bm{s}\bigr)\,\Bigr),
 \end{equation}
-with $\bm{W}_1\in\R^{C_h\times C}$, $\bm{W}_2\in\R^{C\times C_h}$, $\bm{w}_g\in\R^{C_h\times C}$ learnable, $\bm{s}=\bh_{l=0}\in\R^C$ the rotation-invariant scalar side-channel, and $\odot$ pointwise multiplication on channels.
-At each grid row $(a,b)$ the operation is the same channel-mixing recipe; no operator looks at the grid index.
-In the default activation \texttt{sep-merge\_gates2\_swiglu} the $\SiLU$ in \eqref{eq:gridmlp} is replaced by SwiGLU,
-\begin{equation}\label{eq:swiglu}
-\SwiGLU(x;\bm{W}_a,\bm{W}_b)\;=\;(\bm{W}_a x)\odot\SiLU(\bm{W}_b x).
+with $\bm{W}_1\in\R^{C_h\times C}$, $\bm{W}_2\in\R^{C\times C_h}$, $\bm{w}_g\in\R^{C_h\times C}$ learnable.
+The Sigmoid gate $\Sigmoid(\bm{w}_g\bm{s})\in\R^{C_h}$ is a function only of the $\SO(3)$-invariant $\bm{s}$, so it broadcasts as the same vector at every grid row.
+All operations look only at the channel axis at each row; design A is pointwise in the grid index, hypothesis (i) of Theorem~\ref{thm:grid-sandwich} is satisfied.
+
+Hypothesis (ii), however, fails for any finite quadrature.
+$\SiLU$ has an analytic Taylor expansion $\SiLU(x)=\tfrac12 x+\tfrac14 x^2+\dots$ with non-zero coefficients of all orders.
+Applied to the band-limited function $\bm{W}_1\bm{S}\bh$, it produces a function whose spherical-harmonic expansion is supported at \emph{all} degrees, not just $l\le\lmax$.
+The discrete pull-back $\bm{S}^{\dagger}$ truncates to $l\le\lmax$, and the truncated tail aliases onto the kept coefficients in a frame-dependent way.
+Equivariance therefore holds only up to a discretisation error that decays with grid size but never reaches the machine-precision floor.
+
+\subsubsection*{Design B: bilinear (the EquiformerV3 SwiGLU-$\Sph$ activation)}
+
+EquiformerV3 uses instead a \emph{bilinear} pointwise operation on grid features, gated by a scalar:
+\begin{equation}\label{eq:gridmlp-B}
+\mathcal{M}_{\Sph}^{(\mathrm{B})}(\bh^{\Sph};\bm{s})\;=\;\bm{W}_2\Bigl(\,\Sigmoid\bigl(\bm{w}_g\bm{s}\bigr)\,\odot\,\bigl(\bm{W}_1^{(a)}\bh^{\Sph}\bigr)\,\odot\,\bigl(\bm{W}_1^{(b)}\bh^{\Sph}\bigr)\,\Bigr),
 \end{equation}
-By Theorem~\ref{thm:grid-sandwich}, the inner sandwich $\bm{S}^{\dagger}\circ\mathcal{M}_{\Sph}\circ\bm{S}$ is $\SO(3)$-equivariant.
+with $\bm{W}_1=[\bm{W}_1^{(a)};\bm{W}_1^{(b)}]\in\R^{2C_h\times C}$ producing two halves $g_a,g_b\in\R^{C_h}$ at each grid row; the bilinear Hadamard product $g_a\odot g_b$ is the only place where channel non-linearity enters.
+The Sigmoid gate is again a function of the invariant $\bm{s}$ only and broadcasts uniformly across the grid.
+Design B is also pointwise in the grid index, so hypothesis (i) holds.
+This is the SwiGLU-$\Sph$ activation of Liao et al.\ (\emph{EquiformerV3}, eq.~(7)) and is implemented by \texttt{GatedSwiGLUGridMLP.forward} in \texttt{transformer\_block.py}.
 
-\subsection{Quadrature exactness and aliasing}\label{sec:quad}
+The crucial property is that hypothesis (ii) now holds at modest grid sizes.
+A bilinear pointwise product of two $\lmax$-band-limited functions on $\Sph$ produces a function band-limited to $2\lmax$ (linear in each factor, polynomial degree adds).
+The Gauss--Legendre--Fourier quadrature on the e3nn grid is exact for any spherical-harmonic product $Y_{l_1}^{m_1}Y_{l_2}^{m_2}$ with $l_1+l_2\le 2L_{\mathrm{quad}}$, where $L_{\mathrm{quad}}$ is determined by $(N_\beta,N_\alpha)$.
+For the FFN default $(N_\beta,N_\alpha)=(20,20)$ at $\lmax=6$, the quadrature is exact at the bilinear band-limit $2\lmax=12$, so the band-limit-preserving design B satisfies hypothesis (ii) with equality.
+The grid sandwich is then \emph{strictly} $\SO(3)$-equivariant up to floating-point round-off.
 
-The hypothesis \eqref{eq:Sdag-S} of Theorem~\ref{thm:grid-sandwich} requires the quadrature to be exact at the band limit produced by $\Phi$ on $\lmax$-band-limited inputs.
-The Gauss--Legendre--Fourier quadrature on the e3nn grid is exact for the integral of any spherical-harmonic product $Y_{l_1}^{m_1}Y_{l_2}^{m_2}$ with $l_1+l_2\le 2L_{\mathrm{quad}}$, where $L_{\mathrm{quad}}$ is determined by $(N_\beta,N_\alpha)$.
-For a SwiGLU activation acting on $\lmax$-band-limited inputs, the relevant band limit is $2\lmax$, and the FFN default $(N_\beta,N_\alpha)=(20,20)$ at $\lmax=6$ comfortably exceeds this.
-If the grid were under-resolved, the pointwise nonlinearity $\phi$ would generate angular frequencies above the quadrature band-limit; the discrete pull-back $\bm{S}^{\dagger}$ would alias them onto the kept $l\le\lmax$ coefficients in a $g$-dependent way, and the third equality in the proof of Theorem~\ref{thm:grid-sandwich} would hold only up to a discretisation error.
+\subsubsection*{Numerical comparison (Liao et al., Table~6)}
+
+Liao et al.\ report the equivariance error of the FFN sublayer, $\|\Hb^{\mathrm{ffn}}(g\cdot\bh)-g\cdot\Hb^{\mathrm{ffn}}(\bh)\|$, as a function of grid resolution at $\lmax=6$ for three activation choices.
+The Gate activation, which avoids the grid altogether and is strictly equivariant by construction, provides the float32 round-off floor $\approx 1.3\times 10^{-6}$.
+Their measurements are summarised below; values in green match the round-off floor (strict equivariance), values in red sit above it (broken equivariance):
+
+\begin{center}
+\begin{tabular}{l|cccccc}
+\hline
+Activation & $(14,14)$ & $(18,18)$ & $(20,20)$ & $(24,24)$ & $(28,28)$ & $(32,32)$\\
+\hline
+Gate \eqref{eq:gridmlp-A}-style invariant scalar gate & $1.3\!\times\!10^{-6}$ & $1.3\!\times\!10^{-6}$ & $1.3\!\times\!10^{-6}$ & $1.3\!\times\!10^{-6}$ & $1.3\!\times\!10^{-6}$ & $1.3\!\times\!10^{-6}$\\
+Design A: $S^2$ (pointwise $\SiLU$ on grid) & $1.0\!\times\!10^{-2}$ & $3.4\!\times\!10^{-3}$ & $3.6\!\times\!10^{-4}$ & $9.8\!\times\!10^{-5}$ & $1.9\!\times\!10^{-5}$ & $2.0\!\times\!10^{-5}$\\
+Design B: SwiGLU-$\Sph$ (bilinear on grid) & $5.4\!\times\!10^{-2}$ & $2.1\!\times\!10^{-2}$ & $1.2\!\times\!10^{-6}$ & $1.2\!\times\!10^{-6}$ & $1.2\!\times\!10^{-6}$ & $1.2\!\times\!10^{-6}$\\
+\hline
+\end{tabular}
+\end{center}
+
+The pattern matches the theoretical prediction.
+Design A's error decays as the grid is refined but never reaches the round-off floor: at $(32,32)$ it still sits at $2\times 10^{-5}$, more than an order of magnitude above strict equivariance, because $\psi$'s output is not band-limited at any finite degree.
+Design B's error drops by four orders of magnitude when the grid crosses the bilinear-exactness threshold (between $(18,18)$ and $(20,20)$) and lands exactly on the round-off floor, because at $(20,20)$ the quadrature is exact at the bilinear band-limit $2\lmax$.
+
+\subsubsection*{Which design EquiformerV3 actually uses}
+
+EquiformerV3 uses design~B exclusively, in both the FFN sublayer (default activation \texttt{sep-merge\_gates2\_swiglu}) and the attention sublayer's in-frame value-stream activation \eqref{eq:attn-act}.
+The FFN's default grid resolution is $(N_\beta,N_\alpha)=(20,20)$ at $\lmax=6$; the attention sublayer uses the lower $(8,20)$ resolution permitted by the truncated $\mmax<\lmax$ layout in attention.
+Both are at or above the bilinear-exactness threshold for their respective layout, so the discrete grid sandwich is strictly equivariant.
+
+\subsection{Quadrature exactness, in summary}\label{sec:quad}
+
+The structural commutation argument of Theorem~\ref{thm:grid-sandwich} (sample-intertwine, pointwise-commute, pull-back-intertwine) holds for any $\mathcal{M}_{\Sph}$ that is pointwise in the grid index, including design~A.
+But the theorem also requires the quadrature exactness identity $\bm{S}^{\dagger}\bm{S}=I_D$ to hold on the band-limited subspace produced by $\mathcal{M}_{\Sph}\circ\bm{S}$.
+Whether this holds at a given grid depends on what $\mathcal{M}_{\Sph}$ does to band-limitedness:
+\begin{itemize}[leftmargin=2em]
+\item A \emph{pointwise nonlinearity} (Taylor series with non-zero coefficients of all orders) maps band-limited to all-band — quadrature exactness never holds at finite grid size.
+\item A \emph{bilinear pointwise product} maps $\lmax$-band-limited to $2\lmax$-band-limited — quadrature exactness holds at $(N_\beta,N_\alpha)$ satisfying $L_{\mathrm{quad}}\ge 2\lmax$.
+\item A \emph{linear-only} operator preserves the $\lmax$-band-limit exactly — quadrature exactness holds at $L_{\mathrm{quad}}\ge\lmax$, but the operator collapses to a per-degree channel mixer and is degenerate as a "nonlinearity".
+\end{itemize}
+The architectural problem of designing a strictly equivariant grid nonlinearity is therefore the problem of finding a non-trivial channel operation that is pointwise in the grid index \emph{and} maps band-limited functions to band-limited functions of bounded degree.
+SwiGLU-$\Sph$ \eqref{eq:gridmlp-B} is the smallest such operation: bilinear is the lowest non-linear polynomial degree on which the band-limit doubles to a fixed $2\lmax$.
 
 \subsection{The equivariant FFN}\label{sec:effn}
 
@@ -638,11 +739,13 @@ The local-frame feature is mixed by an $\SO(2)_{\by}$-equivariant linear operato
 The extra scalars $\balpha_{ij}$ are split into the attention-logit features $\bm{a}_{ij}\in\R^{H C^{\mathrm{a}}}$ and the gate scalars $\bm{s}_{ij}\in\R^{C_h+C_h/2}$ that drive the SwiGLU gates of the activation.
 Because the extra-scalar block of $L_0$ acts on the $m=0$ stratum of $\bm{x}^{\mathrm{loc}}_{ij}$, which is $\SO(3)$-invariant (the global rotation is absorbed by the per-edge frame change) and trivially $\SO(2)_{\by}$-invariant (the $m=0$ irrep of $\SO(2)$ is the trivial one), both $\bm{a}_{ij}$ and $\bm{s}_{ij}$ are $\SO(3)$-invariant scalar tuples.
 This invariance is what makes the attention logits below scalar-valued under rotation, and is what the equivariance of the whole attention sublayer (Proposition~\ref{prop:attn-equiv}) hinges on.
-The value stream is passed through a separable $\Sph$-grid activation
+The value stream is passed through the same SwiGLU-$\Sph$ grid activation \eqref{eq:gridmlp-B} as the FFN, with the scalar side-channel $\bm{s}_{ij}$ in place of $\bm{s}=\bh_{l=0}$:
 \begin{equation}\label{eq:attn-act}
-\bm{v}^{\mathrm{loc}}_{ij}\;\leftarrow\;\bm{S}^{\dagger}\,\bigl(\,\SwiGLU\bigl(\bm{S}\,\bm{v}^{\mathrm{loc}}_{ij}\bigr)\,\odot\,\Sigmoid(\bm{w}_g\bm{s}_{ij})\,\bigr),
+\bm{v}^{\mathrm{loc}}_{ij}\;\leftarrow\;\bm{S}^{\dagger}\,\Bigl(\,\Sigmoid(\bm{w}_g\bm{s}_{ij})\,\odot\,\bigl(\bm{W}_1^{(a)}\bm{S}\,\bm{v}^{\mathrm{loc}}_{ij}\bigr)\,\odot\,\bigl(\bm{W}_1^{(b)}\bm{S}\,\bm{v}^{\mathrm{loc}}_{ij}\bigr)\,\Bigr),
 \end{equation}
-which is the same construction as \eqref{eq:gridmlp} but with a separate scalar path added back into the $l=0$ slot when the activation name carries the \texttt{merge} flag.
+i.e.\ a bilinear pointwise product on the grid gated by an $\SO(2)_{\by}$-invariant scalar.
+When the activation name carries the \texttt{merge} flag, a separate scalar path is added back into the $l=0$ slot.
+The truncated-$\mmax$ layout reduces the effective band-limit in attention, so the smaller grid $(N_\beta,N_\alpha)=(8,20)$ already satisfies the bilinear quadrature-exactness condition in this sublayer.
 A second $\SO(2)_{\by}$-equivariant linear $L^{\mathrm{SO2}}_2$ then re-projects to the per-head value width:
 \begin{equation}\label{eq:so2-2}
 \bm{v}^{\mathrm{loc}}_{ij}\;\leftarrow\;L^{\mathrm{SO2}}_2\bigl(\bm{v}^{\mathrm{loc}}_{ij}\bigr)\in\R^{D_m\times H C^{\mathrm{v}}}.
@@ -897,7 +1000,8 @@ Both architectures implement the same $\Sph$-grid sandwich for the FFN nonlinear
 \emph{Variant 3} (spherical-grid SwiGLU activation, eq.~(60) of archi\_dpa4.tex) -- the \texttt{s2\_activation=True} path, where the activation itself is a grid-SwiGLU built from \texttt{SwiGLUS2Activation}, splitting the hidden width into value and gate, evaluating the gate on $\Sph$, multiplying pointwise, and projecting back.
 EquiformerV3's FFN \eqref{eq:effn-1} is structurally Variant~2: the same per-degree up-/down-projection, the same e3nn \texttt{ToS2Grid}/\texttt{FromS2Grid} construction for $\mathsf{P},\mathsf{P}^{\dagger}$, the same per-degree truncation rescale for $\mmax<\lmax$, the same per-grid-point pointwise MLP, and the same scalar-merge to the $l=0$ slot.
 The differences from DPA4's Variant~2 are: (i) DPA4 subtracts the $l=0$ slice before projecting to the grid ($\mathsf{P}(\bh-\bh|_{l=0})$ in eq.~(59) of archi\_dpa4.tex), so the grid path acts only on $l\ge 1$ and the $l=0$ slot is processed disjointly by the scalar SwiGLU branch, whereas EquiformerV3 keeps $l=0$ inside the grid input and adds the scalar branch on top of it;
-(ii) EquiformerV3's grid MLP multiplies the SwiGLU output by a sigmoid scalar gate $\Sigmoid(\bm{w}_g\bm{s})$ derived from $\bh_{l=0}$ \emph{inside} the grid (eq.~\eqref{eq:gridmlp}), while DPA4's \texttt{PointwiseGridMLP} has no scalar gate inside the grid, the scalar information entering only through the additive merge;
+(ii) EquiformerV3's grid MLP \eqref{eq:gridmlp-B} is a bilinear product of two linear projections on the grid, gated by a sigmoid scalar derived from $\bh_{l=0}$ (the SwiGLU-$\Sph$ design), while DPA4's \texttt{PointwiseGridMLP} is a $\mathrm{Linear}\to\SwiGLU\to\mathrm{Linear}$ stack with $\SiLU$ pointwise nonlinearity \emph{inside} the grid — design A in our taxonomy.
+The two are not equivariant by the same mechanism: the SwiGLU-$\Sph$ output is band-limited to $2\lmax$, which the $(20,20)$ quadrature handles exactly, so EquiformerV3's grid MLP is strictly equivariant up to float round-off; DPA4's pointwise $\SiLU$ on grid produces all-bandwidth content and is equivariant only up to a quadrature-aliasing error that decays with grid resolution but does not vanish at finite size;
 (iii) the grid path is opt-in (\texttt{grid\_mlp=False} default) in DPA4 and the default in EquiformerV3;
 (iv) the latitude grid in EquiformerV3 is dense ($N_\beta=20$) and the longitude grid sparse ($N_\alpha=8$ in attention, $N_\alpha=20$ in FFN), while DPA4's grid resolution choices are smaller in both axes.
 For the attention sublayer's in-frame activation, EquiformerV3's \texttt{sep-merge\_gates2\_swiglu} \eqref{eq:attn-act} corresponds to DPA4's Variant~3 used as the inter-mixer activation inside the \texttt{SO2Convolution} stack of $\SO(2)$-linear layers.
@@ -1011,8 +1115,8 @@ $\eta(r)$ & Gaussian smearing \eqref{eq:gauss}\\
 $\Hb_{\mathrm{rad}}$ & radial MLP \eqref{eq:radfn}\\
 $L^{\mathrm{ch}}$ & per-degree channel mixer (\texttt{SO3Linear})\\
 $L^{\mathrm{SO2}}=(L_0,L_1,\dots,L_{\mmax})$ & $\SO(2)_{\by}$-equivariant linear operator \eqref{eq:LSO2}\\
-$\bm{S},\bm{S}^{\dagger}$ & grid evaluation and pull-back \eqref{eq:sample}--\eqref{eq:grid-pull}\\
-$\mathcal{M}_{\Sph}$ & grid MLP \eqref{eq:gridmlp}\\
+$\bm{S},\bm{S}^{\dagger}$ & grid evaluation and pull-back \eqref{eq:sample}, \eqref{eq:grid-eval}\\
+$\mathcal{M}_{\Sph}$ & grid MLP (design A \eqref{eq:gridmlp-A} / design B SwiGLU-$\Sph$ \eqref{eq:gridmlp-B})\\
 $\Hb^{\mathrm{attn}}_\ell,\Hb^{\mathrm{ffn}}_\ell$ & block sublayers\\
 $\Hb^{\mathrm{TB}}_\ell$ & one transformer block \eqref{eq:tb-1}--\eqref{eq:tb-2}\\
 $\alpha^{(h)}_{ij}$ & per-edge per-head attention weight \eqref{eq:attn-softmax}\\
