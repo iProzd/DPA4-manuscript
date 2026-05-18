@@ -1140,6 +1140,117 @@ with selection rule $|l_1-l_2|\le l_3\le l_1+l_2$ and learnable per-channel radi
 This is a genuine bilinear equivariant product of two equivariant objects, $\bh_j$ and $\bm{Y}(\brh_{ij})$, and the Clebsch--Gordan symbols are unavoidable for the SO(3)-equivariant parameterisation.
 DPA4 does \emph{not} use this regime.
 
+\subsection{From Regime II to Regime III in the local frame}\label{sec:II-to-III}
+
+The passage from Regime II to Regime III is not obvious from the global-frame formulas above.
+In Regime II we used an $\SO(2)$-equivariant mixer $L^{\mathrm{SO2}}$ surrounded by $\bD_{ij}$ rotations and never wrote a Clebsch--Gordan coefficient anywhere; in Regime III the Clebsch--Gordan coefficient is the defining ingredient.
+Yet both yield the same operator class.
+The cleanest way to see the equivalence is to write Regime III in the local frame and watch the Clebsch--Gordan coefficients trivialise.
+We do that explicitly here.
+
+\paragraph{The local-frame value of the angular feature.}
+The Regime III message is built from the spherical harmonic $Y_{l_2}^{m_2}(\brh_{ij})$, viewed as an element of $V_{l_2}$.
+In the per-edge local frame, $\brh_{ij}$ is mapped to the local $\bz$-axis, so the relevant value is $Y_{l_2}^{m_2}(\bz)$.
+In the real-basis convention,
+\begin{equation}\label{eq:Y-at-pole}
+Y_{l_2}^{m_2}(\bz)\;=\;\sqrt{\frac{2l_2+1}{4\pi}}\,\delta_{m_2,0},
+\end{equation}
+i.e.\ the spherical harmonic at the north pole is a $\delta$-function on the $m_2=0$ line: every $m_2\ne 0$ component vanishes.
+All of the angular information that was carried by the $(2l_2+1)$-vector $\{Y_{l_2}^{m_2}(\brh_{ij})\}_{m_2}$ in the global frame is, in the local frame, concentrated entirely on the $m_2=0$ line; the rest of the information has been transferred to the rotation operator $\bD_{ij}$ that performed the frame change.
+
+\paragraph{The CG product in the local frame.}
+Start with the Regime III message \eqref{eq:regIII-msg} and rotate both the source feature and the angular feature into the per-edge local frame.
+Let $\bh^{\mathrm{loc}}_j\coloneqq\bD_{ij}\bh_j$ denote the source feature in the local frame.
+The Regime III message in the local frame reads
+\begin{align}\label{eq:regIII-loc-1}
+\bigl[\bm{m}_{ij}^{\mathrm{(III)}}\bigr]^{\mathrm{loc}}_{(l_3,m_3),c}
+\;&=\;\sum_{l_1,l_2}\bm{R}^{(l_1,l_2,l_3)}_c(r_{ij})\sum_{m_1,m_2}\bigl\langle l_1\,m_1;\,l_2\,m_2\,\big|\,l_3\,m_3\bigr\rangle\,\bh^{\mathrm{loc}}_{j,(l_1,m_1),c}\,Y_{l_2}^{m_2}(\bz)\\
+\;&=\;\sum_{l_1,l_2}\bm{R}^{(l_1,l_2,l_3)}_c(r_{ij})\sqrt{\frac{2l_2+1}{4\pi}}\sum_{m_1}\bigl\langle l_1\,m_1;\,l_2\,0\,\big|\,l_3\,m_3\bigr\rangle\,\bh^{\mathrm{loc}}_{j,(l_1,m_1),c},\label{eq:regIII-loc-2}
+\end{align}
+where in the second line we substituted \eqref{eq:Y-at-pole} and collapsed the sum over $m_2$ to its only non-zero term $m_2=0$.
+
+\paragraph{$m$-conservation collapses the inner sum.}
+The Clebsch--Gordan coefficient satisfies the selection rule $m_1+m_2=m_3$, so for $m_2=0$ the only contributing $m_1$ is $m_1=m_3$.
+The inner sum in \eqref{eq:regIII-loc-2} reduces to a single term, and we may rewrite the entire message as
+\begin{equation}\label{eq:regIII-loc-3}
+\boxed{\;\bigl[\bm{m}_{ij}^{\mathrm{(III)}}\bigr]^{\mathrm{loc}}_{(l_3,m),c}
+\;=\;\sum_{l_1}\,\bm{W}^{(l_1,l_3,|m|)}_{c}(r_{ij})\,\bh^{\mathrm{loc}}_{j,(l_1,m),c},\;}
+\end{equation}
+where the effective per-edge mixer is the Clebsch--Gordan-weighted radial combination
+\begin{equation}\label{eq:W-from-R}
+\bm{W}^{(l_1,l_3,|m|)}_{c}(r_{ij})\;\coloneqq\;\sum_{l_2=|l_1-l_3|}^{l_1+l_3}\bm{R}^{(l_1,l_2,l_3)}_c(r_{ij})\sqrt{\frac{2l_2+1}{4\pi}}\,\bigl\langle l_1\,m;\,l_2\,0\,\big|\,l_3\,m\bigr\rangle.
+\end{equation}
+The CG coefficient $\langle l_1\,m;l_2\,0|l_3\,m\rangle$ is a fixed numerical constant; it depends on $m$ but not on the configuration.
+The channel index $c$ is preserved across input and output: \eqref{eq:regIII-loc-3} is the natural per-channel form inherited from the per-channel radials of \eqref{eq:regIII-msg}, with no cross-channel mixing.
+
+\paragraph{Eq.~\eqref{eq:regIII-loc-3} in the DPA4 edge-convolution notation.}
+The locally-rotated source feature $\bh^{\mathrm{loc}}_j=\bD_{ij}\bh_j$ used in \eqref{eq:regIII-loc-3} is identical to the locally-rotated equivariant feature $\bx_{ij}=\bD^{\le\mmax}_{ij}\bh_j$ of Stage 2 \eqref{eq:xloc} (modulo the harmless restriction $\bD\to\bD^{\le\mmax}$ that drops $|m|>\mmax$ components when the truncated layout is used).
+Substituting $\bh^{\mathrm{loc}}_{j,(l_1,m),c}=\bx_{ij,(l_1,m),c}$ rewrites the Regime III message in the same input form as the DPA4 edge convolution pipeline:
+\begin{equation}\label{eq:regIII-loc-x}
+\bigl[\bm{m}_{ij}^{\mathrm{(III)}}\bigr]^{\mathrm{loc}}_{(l_3,m),c}\;=\;\sum_{l_1}\bm{W}^{(l_1,l_3,|m|)}_c(r_{ij})\,\bx_{ij,(l_1,m),c}.
+\end{equation}
+This is the cross-$l$-mixing generalisation of the per-degree radial modulation \eqref{eq:radmod}: where \eqref{eq:radmod} multiplies $\bx_{ij,(l,m),c}$ by a per-degree scalar $\widetilde\rho_{ij,l,c}$ that is diagonal in $l$, \eqref{eq:regIII-loc-x} replaces that diagonal scalar by an $|m|$-stratified matrix $\bm{W}^{(l_1,l_3,|m|)}_c$ that couples different degrees within the same $|m|$-stratum.
+The per-degree modulation \eqref{eq:radmod} is then the special case
+\begin{equation}\label{eq:radmod-as-W}
+\bm{W}^{(l_1,l_3,|m|)}_c(r_{ij})\;=\;\widetilde\rho_{ij,l_1,c}\,\delta_{l_1,l_3},
+\end{equation}
+i.e.\ a degree-diagonal mixer.
+Stages 3 and 5 of \S\ref{sec:so2conv} combined --- per-degree radial modulation \eqref{eq:radmod} followed by the $\SO(2)$-equivariant linear mixer $L^{\mathrm{SO2}}$ acting per $|m|$-stratum --- produce exactly the general $\bm{W}^{(l_1,l_3,|m|)}_c$ form of \eqref{eq:regIII-loc-x}, with $L^{\mathrm{SO2}}$ supplying the off-diagonal-in-$l$ couplings that \eqref{eq:radmod} cannot.
+The DPA4 edge convolution is therefore the local-frame version of the Regime III message construction, with the Clebsch--Gordan coefficients of \eqref{eq:W-from-R} absorbed into the learnable entries of $L^{\mathrm{SO2}}$ and the per-degree radial modulation $\widetilde\rho$.
+
+\paragraph{What \eqref{eq:regIII-loc-3} says.}
+Two features fall out of the local-frame rewriting:
+\begin{enumerate}[leftmargin=2em]
+\item \emph{The message is diagonal in $m$.}
+Source $m_1=m_3$: there is no cross-$m$ mixing at all.
+This is because the angular feature in the local frame has all its content at $m_2=0$, and $m$-conservation forces $m_1=m_3$.
+\item \emph{Within each fixed $|m|$-stratum, $l_1$ and $l_3$ are coupled arbitrarily.}
+The mixer $\bm{W}^{(l_1,l_3,|m|)}(r)$ is, for each fixed $(l_1,l_3,|m|)$, a numerical scalar (per channel pair) whose value depends on $r_{ij}$ through the radial coefficients $\bm{R}^{(l_1,l_2,l_3)}_c$ and on $m$ through the fixed CG coefficients.
+\end{enumerate}
+These are exactly the two features of Regime II's $\SO(2)$-equivariant operator $L^{\mathrm{SO2}}$ of \eqref{eq:so2-mn}: $|m|$-stratified, cross-$l$ mixing within each $|m|$-stratum, no cross-$|m|$ mixing.
+\emph{Regime III in the local frame is Regime II.}
+
+\paragraph{The two parameterisations side by side.}
+At the per-channel level, the local-frame mixer entry $\bm{W}^{(l_1,l_3,|m|)}_c(r)$ admits two equivalent presentations, differing only in how the $r$- and $m$-dependence is decomposed.
+
+\medskip
+\noindent
+\emph{Regime II (per-channel).}
+$\bm{W}^{(l_1,l_3,|m|)}_c(r)$ is an unconstrained learnable radial function, one per quadruple $(l_1,l_3,|m|,c)$.
+The $m$-dependence is independent across $|m|$-strata, and the total free-parameter count is one radial per $(l_1,l_3,|m|,c)$.
+
+\medskip
+\noindent
+\emph{Regime III (in the local frame).}
+The same per-edge mixer entry decomposes as
+\begin{equation}\label{eq:W-vs-R}
+\bm{W}^{(l_1,l_3,|m|)}_c(r)\;=\;\sum_{l_2=|l_1-l_3|}^{l_1+l_3}\bm{R}^{(l_1,l_2,l_3)}_c(r)\,K^{(l_1,l_2,l_3,m)},\qquad
+K^{(l_1,l_2,l_3,m)}\;\coloneqq\;\sqrt{\tfrac{2l_2+1}{4\pi}}\,\langle l_1\,m;\,l_2\,0\,|\,l_3\,m\rangle,
+\end{equation}
+with one learnable radial $\bm{R}^{(l_1,l_2,l_3)}_c(r)$ per CG triple $(l_1,l_2,l_3,c)$ and fixed numerical constants $K^{(l_1,l_2,l_3,m)}$ tying the $|m|$-strata together.
+
+\medskip
+The two presentations realise the same family of $|m|$-stratified per-channel mixers; they differ only in how the $m$-dependence is parameterised.
+Regime II treats different $|m|$-strata as independent radials; Regime III ties them together through a $(2\min(l_1,l_3)+1)$-dimensional basis of CG coefficients in $l_2$.
+
+\paragraph{A remark on channel mixing.}
+The discussion above is on the per-channel level (input channel $c$ maps to output channel $c$).
+The full DPA4 $L^{\mathrm{SO2}}$ operator additionally mixes channels via a $C\times C$ matrix per $(l_1,l_3,|m|)$-stratum, so Regime II as implemented is in fact the channel-mixing generalisation $\bm{W}^{(l_1,l_3,|m|)}_{c,c'}(r)$ of the per-channel form above.
+The channel-mixing story is \emph{orthogonal} to the angular structure: it can be added to either Regime II or Regime III without affecting the $m$-conservation, $|m|$-stratification, or CG-trivialisation conclusions of this subsection.
+Most MACE/NequIP-style Regime III networks add it through a final per-degree channel mixer $L^{\mathrm{ch}}$ following the CG product, exactly as in \eqref{eq:effn-std} of \S\ref{sec:effn}.
+
+\paragraph{The trivialisation of Clebsch--Gordan.}
+The reason no CG coefficient appears in DPA4 is now visible: when the angular feature $Y_{l_2}^{m_2}(\brh_{ij})$ is evaluated in the local frame, only its $m_2=0$ component is non-zero (eq.~\eqref{eq:Y-at-pole}).
+The CG sum over $(m_1,m_2)$ in the global formula collapses to a single $(m_1,0)$ term constrained by $m_1=m_3$, and the remaining $l_2$-sum becomes a CG-weighted sum of radial functions \eqref{eq:W-from-R} that can be absorbed into a single learnable mixer entry $\bm{W}^{(l_1,l_3,|m|)}(r)$ — exactly the entry of $L^{\mathrm{SO2}}$ that DPA4 already provides.
+\emph{There is nothing to compute: the CG coefficients $\langle l_1\,m;l_2\,0|l_3\,m\rangle$ are fixed numerical constants that get folded into the learnable radial-times-channel-mixer parameters.}
+DPA4 chooses the direct parameterisation by $\bm{W}^{(l_1,l_3,|m|)}(r)$ entries; it never names the implicit $\bm{R}^{(l_1,l_2,l_3)}(r)$ that a Regime III architecture would name.
+
+\paragraph{What about $Y_{l_2}^{m_2\ne 0}(\brh_{ij})$, did we lose information?}
+The answer is no: the $m_2\ne 0$ components of $Y_{l_2}$ in the global frame are exactly the entries of the rotation operator $\bD_{ij}^{(l_2)}$ at the column corresponding to $\bz$.
+Rotating to the local frame moves this angular information from the value of $Y_{l_2}$ at $\brh_{ij}$ to the entries of $\bD_{ij}$ that bracket $L^{\mathrm{SO2}}$ in Regime II.
+The total content is preserved; only the placement of the angular information in the parameterisation changes.
+
+% =============================================================
 \subsection{Expressiveness ladder}\label{sec:expr-ladder}
 
 The three regimes form a strict inclusion of operator classes at the per-edge level:
