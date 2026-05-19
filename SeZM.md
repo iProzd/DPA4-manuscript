@@ -1,6 +1,17 @@
-# SeZM: Smooth Equivariant Zone-bridging Model
+# DPA4 / SeZM Implementation Notes
 
-Technical reference for the SeZM descriptor and model, implemented in the PyTorch backend of DeePMD-kit.
+:::{note}
+**Supported backends**: PyTorch {{ pytorch_icon }}
+:::
+
+DPA4 is the DPA-series name for SeZM (Smooth Equivariant Zone-bridging
+Model), implemented in the PyTorch backend of DeePMD-kit. This document is
+the detailed implementation record; the public user-facing model guide is
+`doc/model/dpa4.md`. In input files, use `model.type: "dpa4"` and
+`descriptor.type: "dpa4"`; `SeZM` and `sezm` remain equivalent
+compatibility aliases for the same implementation.
+
+Training example: `examples/water/dpa4/input.json`.
 
 **Source files:**
 
@@ -16,7 +27,7 @@ SeZM is an SO(3)-equivariant message-passing descriptor designed for molecular d
 
 The descriptor maps local atomic environments to rotationally invariant scalar features through a stack of interaction blocks, each containing an SO(2) convolution operating in a per-edge local frame and an equivariant feed-forward network (FFN). Edge geometry — distances, radial basis, Wigner-D rotation matrices — is computed once per forward call and shared across all blocks, avoiding the cost multiplier that plagues per-block geometry recomputation.
 
-The descriptor and model are both registered as `SeZM` (alias `sezm`). The model-level scaffold `SeZMModel` handles energy/force/virial output, optional analytical short-range repulsion, and an end-to-end `torch.compile` path that supports second-order coordinate derivatives through Inductor.
+The descriptor and model are registered primarily as `dpa4`, with `SeZM` and `sezm` kept as equivalent aliases. The model-level scaffold `SeZMModel` handles energy/force/virial output, optional analytical short-range repulsion, and an end-to-end `torch.compile` path that supports second-order coordinate derivatives through Inductor.
 
 ### 1.1 Key Innovations
 
@@ -32,7 +43,7 @@ The descriptor and model are both registered as `SeZM` (alias `sezm`). The model
 
 - **Multi-focus SO(2) convolution.** Multiple parallel focus streams process the same geometric context inside the SO(2) operator. A cross-focus softmax competition (driven by `l=0` scalar invariants, with label smoothing to prevent dead focuses) re-weights the streams before rotate-back. Unlike MHA, which attends across sequence positions, multi-focus attends across parallel equivariant sub-channels on the same edge. Unlike sparse MoE, all focuses are computed and then soft-weighted, preserving SO(3) equivariance.
 
-- **Trainable-frequency radial basis.** Radial basis frequencies, initialized as integer harmonics `nπ/rcut`, are learnable parameters that adapt to the data distribution during training, improving expressiveness over a fixed grid.
+- **Configurable trainable radial basis.** The default Bessel basis uses trainable frequencies initialized as integer harmonics `nπ/rcut`; the optional Gaussian basis uses trainable centers over `[0, rcut]`. Both share the same `adam_freqs` parameter shape and downstream `n_radial` interface.
 
 **Training methodology:**
 
@@ -61,6 +72,7 @@ deepmd/pt/model/descriptor/
 │   │                           #   RadialBasis, RadialMLP
 │   ├── activation.py          # GatedActivation, SwiGLU, S2GridProjector,
 │   │                           #   SwiGLUS2Activation
+│   ├── lebedev.py             # Packaged Lebedev-rule loader for S2 quadrature
 │   ├── embedding.py           # SeZMTypeEmbedding, GeometricInitialEmbedding,
 │   │                           #   EnvironmentInitialEmbedding
 │   ├── norm.py                # EquivariantRMSNorm, ReducedEquivariantRMSNorm,
@@ -68,7 +80,7 @@ deepmd/pt/model/descriptor/
 │   ├── attention.py           # segment_envelope_gated_softmax
 │   ├── attn_res.py            # DepthAttnRes
 │   ├── so3.py                 # ChannelLinear, FocusLinear, SO3Linear
-│   ├── so2.py                 # SO2Linear, SO2Convolution
+│   ├── so2.py                 # SO2Linear, DynamicRadialDegreeMixer, SO2Convolution
 │   ├── ffn.py                 # EquivariantFFN, PointwiseGridMLP
 │   ├── block.py               # SeZMInteractionBlock
 │   ├── dens.py                # ForceEmbedding, denoising/direct-force heads
@@ -106,7 +118,7 @@ SeZMModel main forward path (core_compute):
   EdgeFeatureCache (built once per forward via build_edge_cache_from_edges):
     ├─ edges: (src, dst) global indices, edge_vec
     ├─ edge_type_feat: per-edge type embedding (src + dst)
-    ├─ edge_rbf: Bessel radial basis × C² envelope (trainable frequencies)
+    ├─ edge_rbf: configured radial basis × C³ envelope
     ├─ edge_env: C³ cutoff envelope (flattened to valid edges)
     ├─ D_full, Dt_full: block-diagonal Wigner-D matrices
     ├─ inv_sqrt_deg: inverse sqrt smooth degree for normalization
@@ -129,7 +141,7 @@ SeZMModel main forward path (core_compute):
       ├─ SO(2) Convolution
       │  ├─ pre_focus_mix: full-channel projection
       │  ├─ rotate to edge-local frame via Wigner-D
-      │  ├─ radial modulation + multi-layer SO2Linear stack
+      │  ├─ radial modulation / dynamic radial degree mixing + multi-layer SO2Linear stack
       │  ├─ optional cross-focus softmax competition
       │  ├─ rotate back to global frame
       │  └─ scatter-aggregate (envelope-weighted or attention)
@@ -172,7 +184,7 @@ Edge geometry computation — coordinate gathering, distance calculation, quater
 | `src`, `dst`      | `(E,)`             | Flattened node indices in `[0, N)`                |
 | `edge_type_feat`  | `(E, C)`           | Per-edge type embedding (src + dst lookup)        |
 | `edge_vec`        | `(E, 3)`           | Displacement vectors in Å                         |
-| `edge_rbf`        | `(E, n_radial)`    | Bessel radial basis × C² envelope                 |
+| `edge_rbf`        | `(E, n_radial)`    | Configured radial basis × C³ envelope             |
 | `edge_env`        | `(E, 1)`           | C³ cutoff envelope weights                        |
 | `deg`             | `(N, 1)`           | Smooth degree: `Σ_e edge_env²` per destination    |
 | `inv_sqrt_deg`    | `(N, 1, 1)`        | `rsqrt(deg + eps)` for normalization              |
@@ -203,7 +215,7 @@ The squared envelope ensures the degree is a smooth function of atomic positions
 
 Geometry computations always run in fp32+ (`compute_dtype = get_promoted_dtype(dtype)`) regardless of the model's working precision. This ensures accurate distances, quaternions, and Wigner-D matrices for stable training convergence.
 
-When the descriptor is in eval mode and the device supports it, `build_edge_cache` replaces the eager geometry chain with a fused Triton kernel (`kernels_edge_geometry_rbf.py`). Training always uses the eager chain to preserve the full PyTorch autograd graph for force/virial higher-order derivatives. The `edge_cache_to_dtype` helper converts float fields to the working dtype when entering the interaction blocks, and clears the rotation projection caches to prevent dtype mismatches.
+When the descriptor is in eval mode, uses `basis_type="bessel"`, and the device supports it, `build_edge_cache` replaces the eager geometry chain with a fused Triton kernel (`kernels_edge_geometry_rbf.py`). Training always uses the eager chain to preserve the full PyTorch autograd graph for force/virial higher-order derivatives. The Gaussian basis uses the vectorized eager RBF path. The `edge_cache_to_dtype` helper converts float fields to the working dtype when entering the interaction blocks, and clears the rotation projection caches to prevent dtype mismatches.
 
 ______________________________________________________________________
 
@@ -235,15 +247,25 @@ This double application ensures that a message, its first derivative, its second
 
 ### 5.2 Trainable Radial Basis
 
-`RadialBasis` (in `radial.py`) produces `n_radial` basis functions evaluated at each edge distance. The basis uses a sinc form:
+`RadialBasis` (in `radial.py`) produces `n_radial` basis functions evaluated at each edge distance. The `basis_type` setting selects the basis family.
+
+For `basis_type="bessel"` (default), the basis uses a sinc form:
 
 ```
 φ_n(r) = w_n · sinc(w_n · r / π) = sin(w_n · r) / r
 ```
 
-where `w_n = n · π / rcut` for `n = 1, ..., n_radial`. The sinc form is chosen for numerical stability near `r → 0`: unlike `sin(w·r)/r`, `sinc` is well-defined at zero and produces stable gradients. Each basis function is multiplied by the C² envelope (with `exponent` typically 7) before output.
+where `w_n = n · π / rcut` for `n = 1, ..., n_radial`. The sinc form is chosen for numerical stability near `r → 0`: unlike `sin(w·r)/r`, `sinc` is well-defined at zero and produces stable gradients.
 
-The frequencies `w_n` are stored as trainable parameters (`adam_freqs`) with the `adam_` prefix so that HybridMuon routes them to the Adam optimizer without weight decay. During training, the frequencies can shift away from their integer-harmonic initialization to better fit the data distribution.
+For `basis_type="gaussian"`, the basis uses trainable centers `c_n` initialized uniformly on `[0, rcut]`:
+
+```
+φ_n(r) = exp(-0.5 · ((r - c_n) / σ)²),   σ = rcut / max(n_radial - 1, 1)
+```
+
+Both basis families are multiplied by the C³ envelope (with `exponent` typically 7) before output.
+
+The trainable radial parameters are stored as `adam_freqs` with the `adam_` prefix so that HybridMuon routes them to the Adam optimizer without weight decay. In Bessel mode they are frequencies; in Gaussian mode they are centers. The parameter name and shape are unchanged across the two modes, so existing Bessel checkpoints continue to load with the default `basis_type="bessel"`.
 
 ### 5.3 RadialMLP
 
@@ -436,7 +458,16 @@ The `sandwich_norm` config `[so2_pre, so2_post, ffn_pre, ffn_post]` controls whi
 
 1. **Gather and rotate to local frame.** Source features are gathered per edge and rotated: `x_local = bmm(D_to_m, x_src)`, producing `(E, D_m, C)` where `D_m = Σ_l (2·min(l, mmax)+1)`.
 
-1. **Radial modulation.** Each coefficient is multiplied by its degree-specific radial feature: `x_local *= radial_feat[:, degree_index_m, :]`. The `degree_index_m` buffer maps each position in the m-major layout to its degree `l`.
+1. **Radial modulation or dynamic radial degree mixing.** In the default `radial_so2_mode="none"` path, each coefficient is multiplied by its degree-specific radial feature: `x_local *= radial_feat[:, degree_index_m, :]`. The `degree_index_m` buffer maps each position in the m-major layout to its degree `l`.
+
+   When `radial_so2_mode` is enabled, `DynamicRadialDegreeMixer` replaces this diagonal modulation by an edge-conditioned cross-degree kernel in the local SO(2) frame:
+
+   ```
+   degree:         z_e[l_out, m, c] = sum_l_in W_e[l_in, l_out, |m|](r) * x_e[l_in, m, c]
+   degree_channel: z_e[l_out, m, c] = sum_l_in W_e[l_in, l_out, |m|, c](r) * x_e[l_in, m, c]
+   ```
+
+   `degree` uses a kernel shared across channels. `degree_channel` uses a per-channel kernel, optionally low-rank when `radial_so2_rank > 0`. Channel mixing is handled by the following SO2Linear stack. For `|m| > 0`, the same dynamic degree kernel is applied to the `-m` and `+m` signed blocks, preserving SO(2) equivariance.
 
 1. **Reshape to multi-focus layout.** `x_local` is reshaped to `(E, F, D_m, Cf)` where `F = n_focus` and `Cf = focus_dim` (or `channels` when `focus_dim = 0`). The hidden width is `H = F × Cf`.
 
@@ -500,6 +531,13 @@ k = attn_k_proj(ScalarRMSNorm(x_l0[src]))     # (E, F, H, Dh)
 logits = dot(q, k) / sqrt(head_dim) + attn_radial_logit_proj(radial_l0)
 ```
 
+By default, attention is independent for each SO(2) focus stream. When
+`atten_f_mix=true`, all focus streams are viewed as one attention stream
+after rotate-back: `F_attn=1` and `C_attn=n_focus * focus_dim`. A degree-aware
+`SO3Linear` first mixes the full hidden width after rotate-back, then the same
+attention code path is used. Each head splits the mixed multi-focus hidden
+width instead of a single focus stream.
+
 **Destination-wise softmax with envelope gating:**
 
 ```
@@ -511,14 +549,17 @@ alpha = numerator / denominator[dst]
 
 The `z_bias` term (learnable, initialized to `softplus⁻¹(1)`) prevents the denominator from reaching zero when all edges have small envelope weights, which would produce division-by-zero at the cutoff boundary. Zero-weight edges (from padding or envelope) have their logits set to `−∞` before the grouped max, excluding them from the normalization entirely.
 
-**Output-side head gate:** After scatter-summing the attention-weighted messages, an output gate is applied per head:
+**Output-side head gate:** After scatter-summing the attention-weighted messages, an output gate is applied per head. Optional value and output projections can be enabled independently with `atten_v_proj` and `atten_o_proj`:
 
 ```
+value = attn_v_proj(message)                       # only when atten_v_proj=true
+output = scatter_sum(alpha × value, dst)
 gate = sigmoid(attn_output_gate_proj(ScalarRMSNorm(x_l0)))
 output = output × gate
+output = attn_o_proj(output)                       # only when atten_o_proj=true
 ```
 
-This query-dependent gate (analogous to the G1 gate in AlphaFold) allows the model to selectively suppress or amplify each attention head's contribution based on the destination atom's scalar features.
+This query-dependent gate allows the model to suppress or amplify each attention head based on the destination atom's scalar features. The optional projections are degree-aware, per-attention-focus `SO3Linear` maps: each degree `l` has its own channel projection, while all `m` components within the same degree share the same weights. The defaults keep the legacy value and output path without these projection parameters.
 
 When attention is active, `inv_sqrt_deg` is not applied — the softmax normalization replaces degree-based normalization.
 
@@ -548,6 +589,11 @@ The first SO3Linear projects to `2 × hidden` channels. `SwiGLUS2Activation` the
 1. Applies point-wise multiplication on the grid (one half gates the other)
 1. Projects grid features back to SO(3) coefficients
 1. Applies the sigmoid gate and merges the scalar branch back to `l = 0`
+
+The S2 projector has two quadrature backends:
+
+- **e3nn product grid** (default): the SO(2) path uses the automatic product grid `[2*mmax + 4, ceil_even(3*lmax + 2)]`. In the FFN path this is lifted to a square grid `[max(R_phi, R_theta), max(R_phi, R_theta)]`, matching the EquiformerV3 sampling rule.
+- **Lebedev quadrature** (`lebedev_quadrature=true` or `[so2, ffn]`): uses packaged Lebedev rules stored as Cartesian unit points and normalized weights. A scalar bool is broadcast to both S2 branches, while the list form controls SO(2) and FFN separately. The Burkardt source files use physics convention (`theta` is azimuth, `phi` is polar); the packaged `.npz` stores only Cartesian points to avoid runtime convention ambiguity. SeZM selects the smallest packaged rule with algebraic precision at least `3*lmax`, which is sufficient for the low-degree projection of the bilinear S2 product.
 
 **Grid-MLP path** (`grid_mlp=True`):
 
@@ -742,7 +788,7 @@ ______________________________________________________________________
 
 ## 11. Fitting Network
 
-The SeZM fitting net (`sezm_ener`) maps the scalar descriptor `(nf, nloc, channels)` to per-atom energies. It uses the same configuration keys as the standard DeePMD energy fitting (`neuron`, `activation_function`, `precision`, `seed`, ...).
+The SeZM fitting net maps the scalar descriptor `(nf, nloc, channels)` to per-atom energies. User input may spell it as `dpa4_ener`, while the internal implementation and serialized fitting type remain `sezm_ener`. It uses the same configuration keys as the standard DeePMD energy fitting (`neuron`, `activation_function`, `precision`, `seed`, ...).
 
 - `neuron = []` produces a direct linear projection from `channels` to scalar energy (no hidden layers).
 - When `neuron` is non-empty, each hidden layer is a GLU block: `Linear(in, 2×hidden) → split → value × act(gate)`. The internal hidden width is therefore double the user-specified value (e.g., `hidden=256` creates a 512-wide layer before the split).
@@ -758,9 +804,9 @@ ______________________________________________________________________
 
 ### 12.1 SeZMModel
 
-Set `model.type = "SeZM"` (alias `"sezm"`) to select the SeZM model scaffold. Internally it is built as `make_model(SeZMAtomicModel)`.
+Set `model.type = "dpa4"` to select the DPA4 / SeZM model scaffold. `SeZM` and `sezm` are accepted as compatibility aliases. Internally it is built as `make_model(SeZMAtomicModel)`.
 
-`descriptor.type` follows user input, and `fitting_net.type` is ignored — SeZM always uses `sezm_ener`. The fitting configuration is shared with the `dens` head when present.
+`descriptor.type` follows user input, and `fitting_net.type` is ignored — DPA4 builds the SeZM fitting implementation (`sezm_ener`) directly. `dpa4_ener` is accepted as the public input spelling. The fitting configuration is shared with the `dens` head when present.
 
 **Mode routing** is selected by `loss.type`:
 
@@ -771,7 +817,7 @@ The LAMMPS-style interface (`forward_lower`) supports only the `ener` path.
 
 ### 12.2 SeZMSpinModel
 
-SeZM spin is selected by keeping `model.type = "SeZM"` and adding the standard DeePMD `model.spin` block. The PyTorch factory builds `SeZMSpinModel`, a subclass of `SeZMModel`, rather than wrapping SeZM in the generic `SpinEnergyModel`. This keeps SeZM's `core_compute`, sparse-edge construction, ZBL injection, LoRA state, serialization, and compile cache in one model object.
+SeZM spin is selected by keeping `model.type = "dpa4"` and adding the standard DeePMD `model.spin` block. The PyTorch factory builds `SeZMSpinModel`, a subclass of `SeZMModel`, rather than wrapping SeZM in the generic `SpinEnergyModel`. This keeps SeZM's `core_compute`, sparse-edge construction, ZBL injection, LoRA state, serialization, and compile cache in one model object.
 
 The model follows DeePMD's virtual-atom spin convention:
 
@@ -860,7 +906,7 @@ HybridMuon uses name-based routing to separate optimizer paths (case-insensitive
 | 2D tensor (default)  | Muon      | —            |
 | Other shape          | AdamW     | decoupled    |
 
-SeZM parameters use `adam_` prefixes for norm scales, layer scales, radial frequencies, and type embeddings (`adam_scale`, `adam_so2_layer_scales`, `adam_ffn_layer_scales`, `adam_freqs`, `adam_type_embedding`) so they route to Adam without weight decay.
+SeZM parameters use `adam_` prefixes for norm scales, layer scales, trainable radial basis parameters, and type embeddings (`adam_scale`, `adam_so2_layer_scales`, `adam_ffn_layer_scales`, `adam_freqs`, `adam_type_embedding`) so they route to Adam without weight decay.
 
 **Recommended mode:** `muon_mode = "slice"`:
 
@@ -1072,7 +1118,9 @@ ______________________________________________________________________
 
 ## 18. Serialization
 
-`DescrptSeZM.serialize()` produces a flat dictionary:
+`DescrptSeZM.serialize()` produces a flat dictionary. The internal
+implementation payload keeps the SeZM type tag; user input and
+`model_def_script` should use `dpa4`.
 
 ```python
 {
@@ -1125,6 +1173,7 @@ ______________________________________________________________________
 | `sel`                 | int \| list[int]    | —           | Max neighbors (int: total, list: per-type)                                                         |
 | `env_exp`             | list[int]           | `[7, 5]`    | Envelope exponents `[rbf_env_exp, edge_env_exp]`                                                   |
 | `channels`            | int                 | 64          | Total channels per `(l,m)` coefficient                                                             |
+| `basis_type`          | str                 | `"bessel"`  | Radial basis family: `"bessel"` or `"gaussian"`                                                    |
 | `n_radial`            | int                 | 10          | Number of radial basis functions                                                                   |
 | `radial_mlp`          | list[int]           | `[64]`      | Hidden sizes for radial MLP; use `0` as placeholder for `channels`                                 |
 | `use_env_seed`        | bool                | True        | Enable FiLM conditioning from environment matrix                                                   |
@@ -1140,6 +1189,8 @@ ______________________________________________________________________
 | `so2_norm`            | bool                | False       | Pre-norm between SO(2) layers                                                                      |
 | `so2_layers`          | int                 | 4           | SO2Linear layers per convolution                                                                   |
 | `so2_attn_res`        | str                 | `"none"`    | SO(2)-internal depth attention (`none`/`independent`/`dependent`)                                  |
+| `radial_so2_mode`     | str                 | `"none"`    | Dynamic radial degree mixer (`none`/`degree`/`degree_channel`)                                     |
+| `radial_so2_rank`     | int                 | 0           | Low-rank channel factorization for `degree_channel`; `0` means full per-channel kernel             |
 | `ffn_neurons`         | int                 | 0           | FFN hidden width (0 = auto from channels)                                                          |
 | `grid_mlp`            | bool                | False       | Grid-MLP FFN variant                                                                               |
 | `ffn_blocks`          | int                 | 1           | FFN subblocks per interaction block                                                                |
@@ -1148,8 +1199,8 @@ ______________________________________________________________________
 | `layer_scale`         | bool                | False       | Learnable LayerScale (init 1e-3)                                                                   |
 | `full_attn_res`       | str                 | `"none"`    | Descriptor-level full attention residual                                                           |
 | `block_attn_res`      | str                 | `"none"`    | Descriptor-level block attention residual                                                          |
-| `s2_activation`       | list[bool]          | `[F, F]`    | `[so2_s2_enabled, ffn_s2_enabled]`                                                                 |
-| `s2_grid_resolution`  | list[int] \| None   | None        | `[R_phi, R_theta]` for S2-grid activation                                                          |
+| `s2_activation`       | list[bool]          | `[F, F]`    | `[so2_s2_enabled, ffn_s2_enabled]`; S2 grids are resolved automatically                            |
+| `lebedev_quadrature`  | bool \| list[bool]  | `[F, F]`    | Scalar switch for both branches, or `[so2_lebedev, ffn_lebedev]` for separate S2 projector control |
 | `activation_function` | str                 | `"silu"`    | Base activation                                                                                    |
 | `glu_activation`      | bool                | True        | Base GLU switch for FFN                                                                            |
 | `use_amp`             | bool                | True        | AMP with bf16 during training on CUDA                                                              |
@@ -1171,7 +1222,7 @@ remains independent and is not used for descriptor condition embedding.
 
 | Parameter                  | Type  | Default  | Description                                                                                                         |
 | -------------------------- | ----- | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| `model.type`               | str   | —        | `"SeZM"` / `"sezm"`                                                                                                 |
+| `model.type`               | str   | —        | `"dpa4"` (`"SeZM"` / `"sezm"` compatibility aliases)                                                                |
 | `model.use_compile`        | bool  | False    | Enable torch.compile path                                                                                           |
 | `model.pair_exclude_types` | list  | `[]`     | Excluded type pairs; copied into the descriptor edge mask and must match descriptor `exclude_types` if both are set |
 | `model.bridging_method`    | str   | `"none"` | `"none"` or `"ZBL"`                                                                                                 |
@@ -1269,7 +1320,7 @@ LoRA low-rank adapters let you fine-tune a pre-trained SeZM checkpoint on a down
 | leaf name ∈ {`adam_scale`, `adam_so2_layer_scales`, `adam_ffn_layer_scales`, `adamw_attn_logit_w`, `adamw_attn_z_bias_raw`, `adamw_attn_gate_w`, `adamw_focus_compete_w`, `adamw_pseudo_query`, `focus_compete_bias`}                                         | Fully unfrozen        | Small routed params, zero-cost. Matching is model-wide: every RMSNorm scale named `adam_scale` (per-block `pre/post_so2_norm`, `pre/post_ffn_norms`, `so2_inter_norms`, `key_norm` in every `DepthAttnRes`, radial-MLP norms, etc.) becomes trainable |
 | any leaf name containing `bias`                                                                                                                                                                                                                               | Fully unfrozen        | Constant offsets absorb domain mean shift. Includes the LoRA-preserved `SO3Linear.bias` / `SO2Linear.bias0` and every norm bias (`EquivariantRMSNorm.bias`, `ReducedEquivariantRMSNorm.bias0`) across the model                                       |
 | `type_embedding.adam_type_embedding`                                                                                                                                                                                                                          | **Frozen** (override) | Already converged on all elements                                                                                                                                                                                                                     |
-| `radial_basis.adam_freqs`                                                                                                                                                                                                                                     | **Frozen** (override) | Radial frequencies already converged                                                                                                                                                                                                                  |
+| `radial_basis.adam_freqs`                                                                                                                                                                                                                                     | **Frozen** (override) | Trainable radial basis parameters already converged                                                                                                                                                                                                   |
 | anything inside a `GatedActivation` submodule                                                                                                                                                                                                                 | **Frozen** (override) | Downstream gate patterns are stable; also shields `gate_linear.bias` from the generic "any bias unfrozen" rule                                                                                                                                        |
 | `GIE`, `InnerClamp`, `BridgingSwitch`, `C3CutoffEnvelope`, `WignerDCalculator`, `InterPotential`                                                                                                                                                              | No trainable params   | —                                                                                                                                                                                                                                                     |
 
@@ -1298,7 +1349,7 @@ Offline merge is also available via `merge_lora_into_base(model)` (destructive, 
 
 ```json
 "model": {
-  "type": "SeZM",
+  "type": "dpa4",
   "type_map": ["O", "H"],
   "descriptor": {...},
   "fitting_net": {...},
@@ -1312,10 +1363,10 @@ Offline merge is also available via `merge_lora_into_base(model)` (destructive, 
 `rank` is required; `alpha` is optional and defaults to `rank` (scaling `= 1.0`). Typical usage:
 
 ```bash
-dp --pt train input_lora.json --finetune pretrained.pt
+dp --pt train lora_ft.json --finetune pretrained.pt
 ```
 
-See `examples/water/sezm/input_lora.json` for a full example input.
+See `examples/water/dpa4/lora_ft.json` for a full example input.
 
 ### 22.6 Test Coverage
 
@@ -1373,7 +1424,7 @@ LAMMPS coord (fp64) → DeepPotPTExpt::compute → AOTIModelPackageLoader::run �
                    DeepPotPTExpt::extract_outputs ← keyed outputs (output_keys)
 ```
 
-A minimal end-to-end recipe ships in `examples/water/sezm/lmp/`.
+A minimal end-to-end recipe ships in `examples/water/dpa4/lmp/`.
 
 **Python `DeepPot` / `dp test` / ASE calculator.** Transparent through the standard deepmd Python API:
 
