@@ -39,6 +39,15 @@ the coupling and can break $C^2$ smoothness or the conservation property of the
 underlying model, rendering them unsuitable for high-energy collision and
 radiation-damage simulations.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.6\linewidth]{fig/fig1_CPS.pdf}
+    \caption{
+        CPS score versus training cost for representative MLIPs. Marker area is proportional to the number of model parameters, and the x-axis uses a logarithmic scale of A100 GPU-days. Dashed marker outlines indicate models trained with additional strategies such as direct-force pre-training or DeNS.
+    }
+    \label{fig:cps}
+\end{figure}
+
 Here we present DPA4, an interatomic potential architecture that addresses all
 three tensions simultaneously. Our contributions are as follows.
 \begin{enumerate}
