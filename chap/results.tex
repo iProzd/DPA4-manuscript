@@ -1,0 +1,266 @@
+\section{Results}
+\label{sec:results}
+
+% Figure ordering: the user-suggested layout puts the efficiency Pareto
+% plot as the headline figure (Fig. 1), since it encapsulates the
+% strongest message in one image. Architecture diagram follows as
+% Fig. 2.
+
+\subsection{The DPA4 architecture}
+\label{sec:arch_overview}
+
+% TODO: Fig. 2 --- main architecture figure (4 panels):
+%   (a) overall block diagram
+%   (b) SO(2)-equivariant local-frame edge update
+%   (c) attention block
+%   (d) ZBL coupling branch
+%
+% TODO: write 3 short paragraphs.
+%
+% ¶1 --- Local-frame SO(2) equivariance.
+%   Why SO(2) instead of SO(3): for each edge (i, j), set the local
+%   z-axis along the bond direction; the residual rotation symmetry
+%   becomes the abelian group SO(2). Equivariant operations under
+%   SO(2) are diagonal in the angular-order basis (e^{i m theta})
+%   and avoid the cubic cost of SO(3) Clebsch--Gordan tensor products.
+%   Headline: accuracy close to SO(3) models, cost close to invariant
+%   models.
+%   One-sentence differentiation from MACE / EquiformerV2 / eSEN /
+%   EScAIP --- emphasize what makes DPA4 distinct (e.g. specific
+%   choice of frame canonicalization / order of attention / fully
+%   compile-friendly).
+%
+% ¶2 --- Edge-conditioned attention.
+%   Why attention: pure local message passing struggles to capture
+%   long-range many-body correlations within a single layer.
+%   Motivating example: cite or describe behavior on a long-range +
+%   many-body system (e.g. zeolite frameworks or OC20 catalysis
+%   surfaces) where attention quantitatively closes the gap.
+%   Where attention is applied: edge-level / vertex-level / cross-layer
+%   --- one sentence here, full math deferred to Methods.
+%   Smoothness: attention weights are masked by a smooth cutoff so the
+%   resulting energy remains C^2 in atomic positions.
+%
+% ¶3 --- Native ZBL branch.
+%   Existing approach (DPA3, MACE-MP-0): ZBL is wrapped externally,
+%   adding a piecewise term that can break C^2 smoothness or
+%   conservativeness of the combined potential.
+%   DPA4 design: ZBL is a built-in pair branch combined with the NN
+%   branch via a C^2-smooth switch, before total-energy summation.
+%   Forces and virials therefore remain conservative by autograd
+%   construction. Full equations deferred to Methods.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{fig/fig2_combined.png}
+    \caption{
+        Overview of the DPA4 architecture.
+        (a) The full model combines a shared edge cache, geometry-aware input
+        embedding, stacked equivariant interaction blocks, and an atomic energy
+        head.
+        (b) Geometry and radial features are computed once and reused by the input
+        embedding and all interaction blocks.
+        (c) Each SO(2) multi-focus convolution rotates features to an edge-local
+        frame, applies radial modulation and focus competition, and aggregates
+        messages after rotating them back.
+        (d) Smooth gated attention operates on scalar channels and modulates edge
+        messages without breaking equivariance.
+    }
+    \label{fig:arch}
+\end{figure}
+
+\subsection{Matbench Discovery}
+\label{sec:matbench}
+
+\begin{table}
+    \centering
+    \caption{Results on the Matbench Discovery leaderboard, with all compliant models accessed before May 20, 2026.}
+
+    \resizebox{\linewidth}{!}{
+        \begin{tabular}{@{} l *{10}{c} c c @{}}
+            \toprule
+            \textbf{Model}      & \textbf{CPS}$\uparrow$ & \textbf{Acc}$\uparrow$ & \textbf{F1}$\uparrow$ & \textbf{DAF}$\uparrow$ & \textbf{Prec}$\uparrow$ & \textbf{MAE}$\downarrow$ & \textbf{RMSE}$\downarrow$ & \textbf{R2}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$ & \textbf{RMSD}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{Targets} \\
+            \midrule
+            DPA4-MAX            & 0.833                  &                        &                       &                        &                         &                          &                           &                       &                                   &                           &                             & EFSG             \\
+            \midrule
+            eSEN-30M-MP         & 0.797                  & 0.946                  & 0.831                 & 5.260                  & 0.804                   & 0.033                    & 0.078                     & 0.822                 & 0.340                             & 0.075                     & 30.1M                       & EFSG             \\
+            SevenNet-l3i5       & 0.714                  & 0.920                  & 0.760                 & 4.629                  & 0.708                   & 0.044                    & 0.087                     & 0.776                 & 0.550                             & 0.085                     & 1.17M                       & EFSG             \\
+            MatRIS v0.5.0 MPtrj & 0.681                  & 0.938                  & 0.809                 & 5.049                  & 0.772                   & 0.037                    & 0.082                     & 0.803                 & 0.861                             & 0.077                     & 5.83M                       & EFSGM            \\
+            GRACE-2L-MPtrj      & 0.681                  & 0.896                  & 0.691                 & 4.163                  & 0.636                   & 0.052                    & 0.094                     & 0.741                 & 0.525                             & 0.090                     & 15.3M                       & EFSG             \\
+            MACE-MP-0           & 0.644                  & 0.878                  & 0.669                 & 3.777                  & 0.577                   & 0.057                    & 0.101                     & 0.697                 & 0.647                             & 0.091                     & 4.69M                       & EFSG             \\
+            AlphaNet-MPTrj      & 0.566                  & 0.933                  & 0.799                 & 4.863                  & 0.743                   & 0.041                    & 0.091                     & 0.745                 & 1.310                             & 0.107                     & 16.2M                       & EFSG             \\
+            eqV2 S DeNS         & 0.522                  & 0.941                  & 0.815                 & 5.042                  & 0.771                   & 0.036                    & 0.085                     & 0.788                 & 1.676                             & 0.076                     & 31.2M                       & EFSD             \\
+            ORB v2 MPtrj        & 0.470                  & 0.922                  & 0.765                 & 4.702                  & 0.719                   & 0.045                    & 0.091                     & 0.756                 & 1.725                             & 0.101                     & 25.2M                       & EFSD             \\
+            M3GNet              & 0.428                  & 0.813                  & 0.569                 & 2.882                  & 0.441                   & 0.075                    & 0.118                     & 0.585                 & 1.412                             & 0.112                     & 228k                        & EFSG             \\
+            CHGNet              & 0.400                  & 0.851                  & 0.613                 & 3.361                  & 0.514                   & 0.063                    & 0.103                     & 0.689                 & 1.717                             & 0.095                     & 413k                        & EFSGM            \\
+            \bottomrule
+        \end{tabular}%
+    }
+\end{table}
+
+% TODO: Tab. 1 --- Matbench Discovery leaderboard.
+%   - Reuse DPA3 Table 1 layout; place DPA4 in the top row.
+%   - Required metrics: CPS, Acc, F1, DAF, Prec, MAE, R2,
+%     kappa_SRME, RMSD.
+%   - Compliance: trained on MPtrj only, evaluated on WBM.
+%   - Headline: DPA4 achieves the highest CPS among compliant models.
+
+% TODO: 1 short paragraph reporting multi-seed stability of CPS to
+% pre-empt the "leaderboard gaming" reviewer concern.
+
+\subsection{Small-molecule benchmarks}
+\label{sec:small_mol}
+
+% \begin{table}
+%   \scriptsize
+%   \caption{Test MAE on SPICE-MACE-OFF dataset. Energy (E) MAE is in meV/atom and force (F) MAE is in meV/\AA.}
+%   \label{table:spice}
+%   \centering
+%   \begin{threeparttable}
+%   \begin{spacing}{1.15}
+%   \begin{tabular}{l
+%     | R{0.55cm}R{0.55cm}  % MACE(M)
+%     | R{0.55cm}R{0.55cm}  % MACE(L)
+%     | R{0.55cm}R{0.55cm}  % EScAIP
+%     | R{0.55cm}R{0.55cm}  % eSEN
+%     | R{0.55cm}R{0.55cm}  % DPA3-L3
+%     | R{0.55cm}R{0.55cm}  % DPA3-L6
+%     | R{0.55cm}R{0.55cm}  % DPA3-L12
+%     | R{0.55cm}R{0.55cm}  % DPA3-L24
+%   }
+%     \toprule
+%      & \multicolumn{2}{c|}{MACE(M)} & \multicolumn{2}{c|}{MACE(L)} & \multicolumn{2}{c|}{EScAIP\tnote{a}} & \multicolumn{2}{c|}{eSEN} & \multicolumn{2}{c|}{DPA3-L3} & \multicolumn{2}{c|}{DPA3-L6} & \multicolumn{2}{c|}{DPA3-L12} & \multicolumn{2}{c}{DPA3-L24} \\\hline
+%     \textbf{Dataset} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} \\
+%     PubChem      & 0.91 & 20.57 & 0.88 & 14.75 & 0.53 & \underline{5.86} & \textbf{0.15} & \textbf{4.21} & 0.96 & 20.61 & 0.51 & 15.20 & 0.41 & 12.12 & \underline{0.24} & 8.47 \\
+%     DES370K M.   & 0.63 &  9.36 & 0.59 &  6.58 & 0.41 &  3.48 & \textbf{0.13} & \textbf{1.24} & 0.53 &  8.57 & 0.35 &  6.37 & 0.31 &  5.25 & \underline{0.18} & \underline{3.15} \\
+%     DES370K D.   & 0.58 &  9.02 & 0.54 &  6.62 & 0.38 & \underline{2.18} & \textbf{0.15} & \textbf{2.12} & 0.70 &  7.89 & 0.46 &  6.14 & 0.43 &  5.13 & \underline{0.23} & 3.19 \\
+%     Dipeptides   & 0.52 & 14.27 & 0.42 & 10.19 & 0.31 &  5.21 & \textbf{0.07} & \textbf{2.00} & 0.58 & 12.26 & 0.26 &  9.16 & 0.24 &  7.55 & \underline{0.13} & \underline{4.81} \\
+%     Sol. AA      & 1.21 & 23.26 & 0.98 & 19.43 & 0.61 & 11.52 & \textbf{0.25} & \textbf{3.68} & 0.76 & 20.38 & 0.60 & 15.48 & 0.38 & 12.69 & \underline{0.31} & \underline{8.77} \\
+%     Water        & 0.76 & 15.27 & 0.83 & 13.57 & 0.72 & 10.31 & \textbf{0.15} & \textbf{2.50} & 0.65 & 14.57 & 0.59 & 11.69 & 0.47 &  9.83 & \underline{0.32} & \underline{6.89} \\
+%     QMugs        & 0.69 & 23.58 & 0.54 & 16.93 & 0.41 &  8.74 & \textbf{0.12} & \textbf{3.78} & 1.04 & 21.61 & 0.34 & 16.17 & 0.32 & 12.90 & \underline{0.17} & \underline{8.66} \\\hline
+%     LWAMAE\tnote{b} & 0.73 & 15.42 & 0.65 & 11.66 & 0.46 &  5.87 & \textbf{0.14} & \textbf{2.58} & 0.73 & 14.08 & 0.43 & 10.69 & 0.36 &  8.74 & \underline{0.22} & \underline{5.78} \\\hline
+%     \textbf{\# Params} & \multicolumn{2}{c|}{2.3 M} & \multicolumn{2}{c|}{6.9 M} & \multicolumn{2}{c|}{45 M} & \multicolumn{2}{c|}{6.5 M} & \multicolumn{2}{c|}{0.9 M} & \multicolumn{2}{c|}{1.3 M} & \multicolumn{2}{c|}{2.5 M} & \multicolumn{2}{c}{4.9 M} \\
+%     \toprule
+%   \end{tabular}
+
+%   \begin{tablenotes}
+%     \item[a] \footnotesize Model uses direct-force prediction.
+%     \item[b] \footnotesize The Logarithmic Weighted Average MAE defined in Eq.~(1).
+%   \end{tablenotes}
+%   \end{spacing}
+%   \end{threeparttable}
+% \end{table}
+
+% TODO: SPICE-MACE-OFF (Fig. 3 left or top panel).
+%   - Same train/val/test split as Ref. [Kovacs2023] / DPA3.
+%   - Three model sizes: DPA4-{S, M, L} (or whatever sizes mirror
+%     DPA3-L{6,12,24}).
+%   - Baselines: MACE(M/L), eSEN, EScAIP.
+%   - Reuse DPA3 Fig. 2(a) layout (per-subset bar chart of energy MAE).
+%   - Headline: DPA4-L surpasses eSEN (previous SOTA) by [X%] on
+%     energy LWAMAE.
+
+% TODO: TorsionNet-500 (Fig. 3 right or bottom panel; zero-shot from
+% the SPICE-trained DPA4).
+%   - Metrics: MAE, RMSE, MAEB, NABH_h.
+%   - Target: NABH_h = 0 for the larger DPA4 sizes; MAEB < [TODO]
+%     kcal/mol.
+
+% TODO (optional, P1): rMD17 / 3BPA / acetylacetone.
+%   - Direct response to DPA3's stated limitation on small-molecule
+%     AIMD tasks.
+%   - One small table comparing DPA4 against MACE on these AIMD
+%     datasets.
+%   - Drop to Supplementary if results are not strongly favorable.
+
+\subsection{Training and inference efficiency}
+\label{sec:efficiency}
+
+% This subsection carries the strongest single message. Lead with the
+% Pareto figure.
+
+% TODO: Fig. 1 --- the headline Pareto plot.
+%   - x-axis: cumulative GPU-hours (or wall-clock training time), log scale
+%   - y-axis: WBM energy MAE (Matbench Discovery test), log scale
+%   - Plot every Matbench-Discovery-compliant model for which training
+%     trajectories are available (CHGNet, M3GNet, MACE-MP-0, SevenNet,
+%     GRACE, AlphaNet, MatRIS, eSEN-30M-MP, ORB, eqV2, DPA3-L24, ...).
+%   - Highlight DPA4 as a new Pareto frontier strictly below and to
+%     the left of all baselines.
+%   - This figure can also serve as the visual abstract.
+
+% TODO: Tab. 2 --- training & inference efficiency details.
+%   Rows: DPA3-L24, DPA4-L24, DPA4-L24 (no compile), MACE(L), eSEN.
+%   Columns:
+%     - # parameters
+%     - Training throughput (samples / s)
+%     - GPU-hours to reach target WBM MAE = [TODO: X] meV/atom
+%     - ASE single-point latency at 80 / 200 / 500 / 1000 / 5000 atoms (ms)
+%     - Peak GPU memory (GB) at fixed batch size
+
+% TODO: write 3 short paragraphs.
+
+% ¶1 --- Algorithmic efficiency.
+%   - SO(2) ops are diagonal in the angular-order basis: O(d * m_max)
+%     per edge, vs SO(3) Clebsch--Gordan products that scale as O(L^6)
+%     in the maximum spherical-harmonic order.
+%   - Report FLOPs ratio of DPA4's edge update vs a comparable
+%     MACE-style SO(3) model.
+
+% ¶2 --- Implementation efficiency (torch.compile).
+%   - Why traditional MLIPs (incl. DPA3) cannot be torch.compile'd
+%     cleanly: dynamic neighbor counts, in-place graph buffers, Python
+%     control flow on the hot path, custom CUDA kernels with no
+%     dispatcher coverage.
+%   - DPA4's redesign: padded-neighbor representation, functional
+%     (non-in-place) updates, use of torch.fx / make_fx-style tracing
+%     where appropriate, plus full dispatcher coverage on hot ops.
+%   - Report compile-time overhead and steady-state speedup from
+%     enabling torch.compile alone (i.e. with/without compile on
+%     identical model + hardware).
+
+% ¶3 --- End-to-end claim and hardware portability.
+%   - Headline: at matched WBM MAE, DPA4 reaches the target in
+%     [TODO: 5--10x] fewer GPU-hours and uses [TODO: X%] of DPA3's
+%     peak memory.
+%   - Inference at large system size (5000 atoms): [TODO: Yx] faster
+%     than DPA3-L24, [TODO: Zx] faster than MACE(L).
+%   - Portability: report training throughput on V100 and RTX 4090
+%     (in addition to A800) to demonstrate that DPA4 is usable on
+%     commodity GPUs, not just data-center accelerators.
+
+\subsection{Native ZBL coupling and extreme conditions}
+\label{sec:zbl}
+
+% TODO: Fig. 4(a) --- short-range energy curve.
+%   - For one or two atom pairs, plot the combined pair energy vs r,
+%     showing the smooth crossover from NN to ZBL.
+%   - Annotate r_in and r_out, and verify C^2 continuity visually.
+
+% TODO: Fig. 4(b) --- cascade case study.
+%   - Pick the simplest example with a clear DPA4-ZBL vs DPA4-noZBL gap.
+%   - Suggested: PKA cascade in W (well-known irradiation benchmark).
+%   - Plot total energy drift / atomic-displacement stability vs
+%     simulation time; show DPA4-noZBL diverging while DPA4-ZBL stays
+%     stable.
+%   - Optional: overlay DPA3-with-external-ZBL or MACE-MP-0-with-ZBL
+%     to show that wrapper-style ZBL breaks conservativeness on a
+%     measurable timescale.
+
+% TODO: write 1--2 paragraphs.
+%
+% ¶1 --- Why wrapper-style ZBL is not enough.
+%   Briefly recap how DPA3-style or MACE-MP-0-style ZBL is applied
+%   externally and why this can break C^2 smoothness or
+%   conservativeness.
+%
+% ¶2 --- DPA4's native coupling and impact.
+%   Smooth switch is applied per pair before energy summation; forces
+%   and virials remain conservative by construction. Use the case
+%   study to illustrate practical impact (high-energy collisions,
+%   compression/melting, rare close-distance configurations on
+%   reaction paths).
+
+\input{chap/results_ablation}
+
+% =============================================================

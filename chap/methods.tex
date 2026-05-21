@@ -1,0 +1,338 @@
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Datasets}
+
+% TODO: dataset descriptions.
+%   - For datasets reused from DPA3 (SPICE-MACE-OFF, TorsionNet-500,
+%     MPtrj+WBM), write a one-sentence summary and cite DPA3's
+%     Methods section.
+%   - For any newly added dataset, give a full description.
+
+\subsection{DPA4 model architecture}
+
+Consider a system of $N$ atoms with atomic numbers $\{Z_i\}$ and positions
+$\{\mathbf{R}_i\}$. DPA4 decomposes the total potential energy as a sum over
+atoms, $E = \sum_i E_i$, where the total energy further separates into a
+learned neural-network branch and an analytical ZBL branch:
+\begin{equation}
+    E = E^{\mathrm{NN}}(\tilde{r}) +
+    \frac{1}{2}\sum_{(i,j)} E_{ij}^{\mathrm{ZBL}}(r_{ij}).
+    \label{eq:total_energy}
+\end{equation}
+Here $r_{ij} = |\mathbf{R}_j - \mathbf{R}_i|$ is the true interatomic distance, while $\tilde{r}$ denotes effective distances after the zone-bridging pipeline (Section~\ref{sec:zbl_method}): inside the bridging window $[r_{\mathrm{in}}, r_{\mathrm{out}}]$, short-range pair distances seen by the descriptor are smoothly clamped via InnerClamp so that the NN branch is constant for any pair in the ZBL-dominant zone.
+Forces and the virial tensor are obtained by automatic differentiation of $E$ with respect to $\{\mathbf{R}_i\}$ and the cell matrix, respectively, so both branches contribute conservatively.
+Figure~\ref{fig:arch} provides an overview of the architecture.
+Section~\ref{sec:so2} describes the SO(2)-equivariant local-frame message-passing layers; Section~\ref{sec:attn} details the attention mechanism; Section~\ref{sec:zbl_method} specifies the native ZBL zone-bridging; and Section~\ref{sec:symmetry} states the symmetry guarantees.
+
+\subsubsection{Local frames and SO(2)-equivariant features}
+\label{sec:so2}
+
+\paragraph{Motivation.}
+Full SO(3) equivariance is typically enforced via Clebsch--Gordan (CG) tensor
+products, whose cost scales as $\mathcal{O}(L^6)$ in the maximum
+spherical-harmonic order $L$~\cite{batatia2022mace,liao2023equiformerv2}. This
+steep scaling forces a trade-off between model expressiveness (high $L$) and
+computational cost. A key observation, exploited by Passaro and
+Zitnick~\cite{passaro2023reducing} in the eSCN network, is that in the local
+frame of a directed edge $(i,j)$ the residual symmetry is not SO(3) but the
+abelian subgroup SO(2): once the $z$-axis is fixed along $\hat{r}_{ij}$, any
+global rotation can be decomposed into a trivial alignment followed by a
+rotation about $z$. Equivariant operations under SO(2) are \emph{diagonal} in
+the angular-order basis, reducing the per-edge cost to $\mathcal{O}(d \cdot
+    m_{\max})$, where $d$ is the feature channel width and $m_{\max}$ is the
+maximum angular order---comparable to purely invariant models. DPA4 adopts this
+local-frame strategy as the foundation of its message-passing layers.
+
+\paragraph{Local frame construction.}
+For each directed edge $(i,j)$, the primary axis is the unit bond vector
+$\mathbf{e}_3 = \hat{r}_{ij} = (\mathbf{R}_j - \mathbf{R}_i)/r_{ij}$. Rather
+than using a fixed reference-vector crossproduct (which is singular at
+collinear configurations), DPA4 derives the full rotation from an edge-aligned
+unit quaternion via two complementary charts: \emph{Chart A} is regular away
+from the $-Z$ pole, \emph{Chart B} is regular away from the $+Z$ pole, and a
+$C^\infty$ normalised-linear blend (nlerp with shortest-arc sign alignment) is
+applied in their overlap region. This two-chart construction is
+singularity-free and smooth in all edge directions. The rotation
+$\mathbf{q}_{ij}$ satisfies
+\begin{equation}
+    R(\mathbf{q}_{ij})\,\hat{r}_{ij} = (0,0,1)^{\top},
+\end{equation}
+mapping the global frame to one in which the bond points along $+Z$.
+A random azimuthal roll $\gamma \sim \mathcal{U}[0,2\pi)$ is left-composed per edge during training ($\mathbf{q} \leftarrow \mathbf{q}_\gamma \cdot \mathbf{q}_{ij}$) to break the correlation between the arbitrary in-plane gauge and the training targets, improving generalisation without affecting equivariance.
+Squared-norm clamping before square-roots and fp32 promotion for half-precision inputs guard against NaN gradients at near-zero displacements.
+
+\paragraph{Feature representation.}
+Node features $\mathbf{h}_i$ are tensors of shape $(D,\,C)$ where $D =
+    (l_{\max}+1)^2$ indexes real spherical-harmonic coefficients $(l,m)$ with
+$l=0,\ldots,l_{\max}$ and $m=-l,\ldots,l$, and $C$ is the channel width. The
+degree-$l$ block transforms under the $(2l+1)$-dimensional real Wigner-D
+representation of SO(3):
+\begin{equation}
+    \mathbf{h}^{(l)} \;\longmapsto\; D^l(R)\,\mathbf{h}^{(l)},
+    \quad l = 0, 1, \ldots, l_{\max}.
+\end{equation}
+The $l=0$ block is SO(3)-invariant; higher-$l$ blocks are equivariant.
+For the SO(2) convolution step a truncated layout retaining only $|m| \leq m_{\max} \leq l_{\max}$ coefficients is used, reducing per-edge cost from $\mathcal{O}(D^2)$ to $\mathcal{O}(D \cdot (2m_{\max}+1))$.
+Inverse-rescale compensation $\sqrt{(2l+1)/(2\min(l,m_{\max})+1)}$ is applied after the rotate-back step to restore expected degree-block norms after the truncated round-trip.
+
+\paragraph{Message-passing equations.}
+At each interaction block $\ell$, edge geometry is computed once and reused
+across all blocks via an edge-feature cache. The SO(2) convolution operates in
+four steps. \emph{(i) Rotate to local.} Source features are projected to the
+truncated $m$-major layout:
+\begin{equation}
+    \mathbf{x}^{\mathrm{loc}}_{ij} =
+    D^{(\leq m_{\max})}(\mathbf{q}_{ij})\,\mathbf{h}_j^{(\ell)},
+\end{equation}
+where $D^{(\leq m_{\max})}$ is the row-subset of the Wigner-D matrix retaining only $|m| \leq m_{\max}$.
+\emph{(ii) Radial modulation.}
+Each coefficient at degree $l$ is multiplied by a degree-specific radial feature $\rho^{(\ell)}_l(r_{ij})$ produced by a RadialMLP (sinusoidal basis with trainable frequencies, followed by a $C^3$-continuous cutoff envelope):
+\begin{equation}
+    \mathbf{x}^{\mathrm{loc}}_{ij,l} \;\leftarrow\;
+    \rho^{(\ell)}_l(r_{ij}) \cdot \mathbf{x}^{\mathrm{loc}}_{ij,l}.
+\end{equation}
+\emph{(iii) SO(2)-equivariant mixing.}
+An SO2Linear layer applies an unconstrained linear map to the $m=0$ block and a 2$\times$2 complex coupling to each $(\text{-}m, +m)$ pair, preserving equivariance diagonally without CG products.
+When $n_{\mathrm{focus}} > 1$, multiple parallel streams (\emph{multi-focus}) process the same edge context; a label-smoothed softmax competition on $l=0$ scalars re-weights the streams before the rotate-back, allowing the model to specialize sub-channels to different geometric motifs.
+\emph{(iv) Rotate back and aggregate.}
+Messages are rotated back to the global frame and scatter-summed to destination nodes:
+\begin{equation}
+    \mathbf{h}_i^{(\ell+1)} = \mathbf{h}_i^{(\ell)}
+    + f_{\mathrm{upd}}^{(\ell)}\!\left(
+    \sum_{j\in\mathcal{N}(i)}
+    D^{(\leq m_{\max})\top}(\mathbf{q}_{ij})\,
+    \sqrt{\tfrac{2l+1}{2\min(l,m_{\max})+1}}\;
+    \mathbf{x}^{\mathrm{loc}}_{ij}
+    \right).
+    \label{eq:mp}
+\end{equation}
+The update $f_{\mathrm{upd}}^{(\ell)}$ is an equivariant FFN with per-degree gates on higher-$l$ channels derived from $l=0$ scalars (Section~\ref{sec:attn}).
+The atom-level energy contribution is read out from the $l=0$, $m=0$ channel of the final node feature through a scalar MLP: $E_i^{\mathrm{NN}} = \mathrm{MLP}(\mathbf{h}_i^{(L_{\mathrm{blk}})}|_{l=0})$.
+DPA4 additionally supports \emph{pyramid schedules} in which $l_{\max}$ and $m_{\max}$ decrease across blocks, trading off early-block expressiveness for late-block efficiency.
+
+\subsubsection{Attention}
+\label{sec:attn}
+
+\paragraph{Motivation.}
+Plain degree-normalized scatter aggregation weights neighbors by learned radial
+functions but cannot modulate relevance dynamically based on the central atom's
+chemical context. This limits many-body expressiveness in heterogeneous
+environments such as catalytic surfaces, disordered alloys, or zeolite
+frameworks.
+
+\paragraph{Design.}
+Attention in DPA4 operates on the $l=0$ (SO(3)-invariant) subspace of the
+aggregated edge messages, so attention weights are rotationally invariant and
+do not break equivariance of higher-$l$ channels. At each block $\ell$, queries
+and keys are projected from the scalar features of the destination and source
+atoms, augmented by a radial logit from the same RadialMLP:
+\begin{align}
+    e_{ij}^{(\ell)} & = \frac{\mathbf{q}_i^{(\ell)\top}
+                            \mathbf{k}_j^{(\ell)}}{\sqrt{d_k}}
+    + b_{\mathrm{rad}}(r_{ij}),
+\end{align}
+where $\mathbf{q}_i = W_Q\,\mathrm{RMSNorm}(\mathbf{h}_i|_{l=0})$, $\mathbf{k}_j = W_K\,\mathrm{RMSNorm}(\mathbf{h}_j|_{l=0})$, and $b_{\mathrm{rad}}$ is a scalar projection of the radial basis.
+
+The attention weight uses an \emph{envelope-gated} softmax that guarantees the
+weight decays smoothly to zero at the cutoff:
+\begin{equation}
+    \alpha_{ij}^{(\ell)} =
+    \frac{s(r_{ij})^2 \cdot \exp\!\left(
+        e_{ij}^{(\ell)} - \max_{k} e_{ik}^{(\ell)}
+        \right)}
+    {\mathrm{softplus}(\zeta)\,
+        e^{-\max_k e_{ik}^{(\ell)}}
+        + \displaystyle\sum_{k\in\mathcal{N}(i)}
+        s(r_{ik})^2\,e^{e_{ik}^{(\ell)} - \max_k e_{ik}^{(\ell)}}},
+    \label{eq:attn_weight}
+\end{equation}
+where $s(r)$ is the $C^3$ cutoff envelope, $\zeta$ is a learnable positive bias (initialized to $\mathrm{softplus}^{-1}(1)$) that prevents division-by-zero when all edges carry negligible envelope weight near the cutoff boundary, and the denominator shift by $\exp(-\max_k)$ is the standard log-sum-exp stabilization.
+Zero-weight padding edges are excluded from the group-max computation by setting their logit to $-\infty$ before the reduction.
+
+After scatter-summing the attention-weighted $l=0$ messages, an output-side
+head gate modulates each attention head based on the destination atom's scalar
+feature:
+\begin{equation}
+    \mathbf{a}_i^{(\ell)} \;\leftarrow\;
+    \mathbf{a}_i^{(\ell)}
+    \odot \sigma\!\left(
+    W_G\,\mathrm{RMSNorm}(\mathbf{h}_i|_{l=0})
+    \right),
+    \label{eq:output_gate}
+\end{equation}
+where $\sigma$ is the sigmoid function.
+This query-dependent gate (analogous to the G1 gate in AlphaFold~\cite{yin2025alphanet}) allows the model to selectively suppress or amplify each head's contribution.
+When attention is active, degree-based normalization ($1/\sqrt{\deg}$) is replaced by the softmax normalization.
+
+\subsubsection{Native ZBL zone bridging}
+\label{sec:zbl_method}
+
+\paragraph{ZBL pair energy.}
+The Ziegler--Biersack--Littmark (ZBL) pair potential~\cite{ziegler1985}
+describes nuclear repulsion via a screened Coulomb form:
+\begin{equation}
+    E_{ij}^{\mathrm{ZBL}}(r_{ij}) =
+    \frac{1}{4\pi\varepsilon_0}
+    \frac{Z_i Z_j e^2}{r_{ij}}\,
+    \Phi\!\left(\frac{r_{ij}}{a_{\mathrm{ZBL}}}\right),
+    \label{eq:zbl_pair}
+\end{equation}
+where $\Phi(x) = \sum_{k=1}^{4} c_k e^{-b_k x}$ is the universal screening function with fixed coefficients $(c_k, b_k)$ from Ref.~\cite{ziegler1985} (specifically $c = (0.18175, 0.50986, 0.28022, 0.02817)$ and $b = (3.1998, 0.94229, 0.4029, 0.20162)$), and
+\begin{equation}
+    a_{\mathrm{ZBL}} =
+    \frac{0.88534\,a_0}{Z_i^{0.23} + Z_j^{0.23}}
+\end{equation}
+is the screening length ($a_0 = 0.529\,\text{\AA}$ is the Bohr radius).
+Each pair $(i,j)$ contributes $E_{ij}^{\mathrm{ZBL}}/2$ to atom $i$ under a symmetric neighbour list.
+
+\paragraph{The invariance requirement and its challenges.}
+A naive implementation adds $E^{\mathrm{ZBL}}$ after the NN output; this is
+insufficient for conservative forces because the NN branch still ``feels'' the
+short-range pair geometry through two leakage channels: (1) the \emph{direction
+    channel}---even if the scalar distance is frozen, the bond direction
+$\hat{r}_{ij}$ still rotates, and equivariant features at $l>0$ pick up angular
+dependence; (2) the \emph{multi-hop channel}---a third atom $\ell$ connected to
+both frozen atoms $j, k$ propagates their geometry back to $j$ after two
+message-passing steps.
+
+\paragraph{InnerClamp: closing the scalar channel.}
+\texttt{InnerClamp} maps the true distance to an effective distance $\tilde{r}_{ij}$ via a $C^3$-continuous septic Hermite interpolant:
+\begin{equation}
+    \tilde{r}(r) =
+    \begin{cases}
+        r_{\mathrm{in}}       & r \leq r_{\mathrm{in}},                 \\
+        r_{\mathrm{in}} + (r_{\mathrm{out}} - r_{\mathrm{in}})\,
+        h_{\mathrm{clamp}}(t) & r_{\mathrm{in}} < r < r_{\mathrm{out}}, \\
+        r                     & r \geq r_{\mathrm{out}},
+    \end{cases}
+    \label{eq:innerclamp}
+\end{equation}
+where $t = (r - r_{\mathrm{in}})/(r_{\mathrm{out}} - r_{\mathrm{in}})$ and
+\begin{equation}
+    h_{\mathrm{clamp}}(t) = 20t^4 - 45t^5 + 36t^6 - 10t^7.
+\end{equation}
+The polynomial satisfies $h_{\mathrm{clamp}}(0)=0$, $h_{\mathrm{clamp}}(1)=1$, and zero first through third derivatives at both endpoints, giving $C^3$ joint continuity.
+Both the scalar distance \emph{and} the displacement vector are clamped (the vector is rescaled to preserve direction while matching the clamped length), so all downstream quantities---radial basis, cutoff envelope, Wigner-D inputs---see constant geometry for any frozen-zone pair.
+
+\paragraph{Source Freeze Propagation Gate (SFPG): closing direction and multi-hop channels.}
+A per-edge switching amplitude is produced by a $C^3$ septic polynomial:
+\begin{equation}
+    w(r) =
+    \begin{cases}
+        0                  & r \leq r_{\mathrm{in}},                 \\
+        h_{\mathrm{sw}}(t) & r_{\mathrm{in}} < r < r_{\mathrm{out}}, \\
+        1                  & r \geq r_{\mathrm{out}},
+    \end{cases}
+    \quad
+    h_{\mathrm{sw}}(t) = 35t^4 - 84t^5 + 70t^6 - 20t^7.
+    \label{eq:sfpg}
+\end{equation}
+The per-node gate is the product of switch values over all outgoing edges:
+\begin{equation}
+    \eta_j = \prod_{e \in \mathcal{E}(j)} w(r_e).
+    \label{eq:sfpg_gate}
+\end{equation}
+Because every factor $w \in [0,1]$ and $w(r_e)=0$ the instant any neighbour of $j$ enters the frozen zone, $\eta_j = 0$ exactly.
+The gate $\eta_j$ is broadcast to all outgoing edges as a multiplicative weight on aggregated messages, applied at every aggregation site: the Geometric Initial Embedding, the Environment Initial Embedding, and the SO(2) convolution (both plain and attention-weighted paths).
+In the attention path, $\eta_j$ enters as a per-source weight in the softmax numerator and denominator, preventing frozen-zone sources from contributing to the normalization.
+By induction on block index, if $\eta_j = 0$ for any atom $j$ that participates in a short-range pair, then no atom at any depth can receive information about the frozen-pair geometry, so $E^{\mathrm{NN}}$ is strictly constant under frozen-zone motions.
+This propagation guarantee holds for both the plain and attention-weighted aggregation paths.
+
+\paragraph{Configuration and default window.}
+The bridging window is $[r_{\mathrm{in}}, r_{\mathrm{out}}] = [0.8,
+        1.2]$\,\AA{} by default. The lower edge $0.8$\,\AA{} is chosen at the shortest
+distances present in the training corpus (OMat24, OMol, MPtraj-class datasets),
+ensuring the sub-0.8\,\AA{} region is handled entirely by the analytical ZBL
+formula without NN extrapolation. Common short bonds (O--H at $0.96$\,\AA{},
+N--H at $1.01$\,\AA{}, C--H at $1.09$\,\AA{}) fall in the transition zone where
+$\mathrm{d}\tilde{r}/\mathrm{d}r$ is close to unity, preserving gradient
+magnitude. The 0.4\,\AA{} window width keeps the maximum second derivative of
+$\tilde{r}$ at $\approx 24$\,\AA$^{-2}$, maintaining numerical stability during
+force-loss training.
+
+\paragraph{Contrast with wrapper-style ZBL.}
+In wrapper-style implementations (e.g.\ DPA3 or MACE-MP-0), the ZBL energy is
+added to the NN prediction as a post-hoc correction. This has two failure
+modes: (i) the NN branch has been trained without short-range data and may
+produce unphysical energies in the ZBL-dominant regime; and (ii) without the
+SFPG gate, the NN output still carries direction and multi-hop information from
+frozen pairs, so the combined potential is not conservative in the rigorous
+sense. In DPA4, InnerClamp and SFPG together close all three leakage channels
+before differentiation. Forces and virials obtained by \texttt{torch.autograd}
+are therefore the true negative gradient and stress of $E = E^{\mathrm{ZBL}} +
+    E^{\mathrm{NN}}(\tilde{r})$ by construction.
+
+\subsubsection{Symmetry guarantees}
+\label{sec:symmetry}
+
+\emph{Translational invariance} follows because all interatomic vectors $\mathbf{R}_j - \mathbf{R}_i$ are translation-invariant, and both $E^{\mathrm{NN}}$ and $E^{\mathrm{ZBL}}$ depend on positions only through such vectors.
+\emph{Permutation equivariance} holds because $f_{\mathrm{msg}}$ and $f_{\mathrm{upd}}$ are identical for all pairs of the same species and the aggregation is a sum.
+\emph{Rotational invariance} follows from two steps: (a) the Wigner-D rotation $D(\mathbf{q}_{ij})$ transforms messages equivariantly under SO(3), so the aggregated node feature transforms as an SO(3) tensor of the same $l$-type; and (b) the energy readout MLP acts only on the $l=0$ (invariant) subspace of the final node feature.
+\emph{Conservativeness} holds for both branches: since $E^{\mathrm{NN}}$ and $E^{\mathrm{ZBL}}$ are summed as scalars before differentiation, forces $\mathbf{F}_i = -\partial E/\partial\mathbf{R}_i$ and the virial are the true negative gradient and stress of the same scalar energy function.
+\emph{PES smoothness.}
+The $C^3$ cutoff envelope ensures that all edge contributions, their forces, and their force derivatives vanish at $r_c$.
+The InnerClamp interpolant is also $C^3$, so the combined PES is at least $C^3$ in atomic coordinates everywhere within the cutoff.
+
+\subsection{Training}
+
+DPA4 is trained end-to-end by minimising a weighted sum of energy MAE, force
+MAE, and virial MAE using a custom hybrid optimiser (\textbf{HybridMuon}). Most
+weight matrices (2-D parameter tensors including \texttt{ChannelLinear},
+\texttt{SO2Linear}, \texttt{FocusLinear}) are updated by the \textbf{Muon}
+optimiser~\cite{jordan2024muon} with \texttt{muon\_mode="slice"}: 3-D
+\texttt{SO3Linear} weights $(l_{\max}+1, C_{\mathrm{in}}, C_{\mathrm{out}})$
+are sliced along the degree axis so each $l$-block receives an independent
+Newton--Schulz update with correct rectangular scaling. Normalisation scales,
+layer scales, radial-basis frequencies, and type embeddings (prefixed
+\texttt{adam\_}) are routed to Adam without weight decay. The Muon learning
+rate is controlled entirely by the global schedule; the \texttt{lr\_adjust}
+multiplier is set to~1 so no additional scaling is introduced.
+
+Optionally, \textbf{Magma-lite damping} is applied to Muon-updated blocks: a
+per-block cosine-alignment score between the Muon momentum $m_t$ and the
+current gradient $g_t$ is EMA-smoothed ($\alpha_{\mathrm{EMA}} = 0.9$) and
+mapped to a scale in $[0.1, 1.0]$ via a temperature sigmoid ($\tau = 2.0$),
+reducing the update magnitude on blocks with noisy or misaligned gradients. No
+stochastic block masking is used (unlike the original Magma paper), keeping
+damping dense and stable for force-field objectives.
+
+% TODO: hyperparameter table per benchmark (analogous to DPA3 Table S-6).
+%   - Learning-rate schedule, batch size, # GPUs, # steps.
+%   - Loss prefactors for energy / force / virial.
+%   - Activation function (SiLU for scalars, gated activation for l>0).
+
+\subsection{Inference and \texttt{torch.compile}}
+
+DPA4 achieves an end-to-end \texttt{torch.compile} training path for the
+conservative-force objective, where the force loss requires second-order
+coordinate derivatives ($\partial^2 E/\partial\mathbf{R}\,\partial\theta$).
+Standard \texttt{torch.compile} cannot handle \texttt{autograd.grad} with
+\texttt{create\_graph=True} because the second backward is opaque to Inductor.
+DPA4 resolves this by first capturing the inner \texttt{autograd.grad} call as
+ordinary FX nodes with \texttt{make\_fx(tracing\_mode="symbolic")}, then
+handing the resulting flat graph to Inductor (\texttt{dynamic=True}). The
+\texttt{make\_fx} pass also strips \emph{detach-chain} nodes that
+\texttt{make\_fx} inserts around saved activations under
+\texttt{create\_graph=True} and that would otherwise sever gradient flow, and
+rebuilds the FX graph from scratch to avoid stale C-level pointers left by
+\texttt{Graph.erase\_node}.
+
+To maintain a stable compiled signature, the model uses a \emph{padded-neighbor
+    representation} (a fixed-size dense neighbor tensor filled with dummy entries
+where the physical neighbor count falls short of the maximum) so that all
+tensor shapes are static at compile time. The compiled callable is stored
+outside the \texttt{nn.Module} tree via \texttt{object.\_\_setattr\_\_} to
+prevent FSDP2/DDP from seeing duplicate parameter views. A multi-slot compile
+cache keyed on \texttt{(training, do\_atomic\_virial, has\_coord\_corr)} allows
+seamless switching between training and validation without evicting the other
+slot's Inductor product.
+
+Together these changes yield a \textbf{2--3$\times$} wall-clock speedup over
+eager training at the same model size, while preserving the full
+conservative-force guarantee. At inference time, a separate Triton kernel suite
+(\texttt{DP\_TRITON=1}) fuses the Wigner-D rotation and radial-basis
+computation into a single pass, providing additional throughput improvement
+over the compiled eager path.
+
+% =============================================================

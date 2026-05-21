@@ -58,19 +58,19 @@ test text
 % \noindent Please note: Abbreviations should be introduced at the first mention in the main text – no abbreviations lists. Suggested structure of main text (not enforced) is provided below.
 
 \section{Introduction}
- 
+
 % ---------- ¶1: motivation ----------
 % TODO: ~3 sentences on DFT-grounded universal PES and MLIPs as
 % near-linear-cost surrogates. Compress aggressively; this is a
 % follow-up paper and readers know the background.
- 
+
 % ---------- ¶2: from DPA3 to DPA4 ----------
 % TODO: 2--3 sentences sketching where DPA3 [cite] left off.
 %   - DPA3 established an invariant multi-layer GNN with smooth /
 %     conservative guarantees and competitive results across
 %     materials and molecular benchmarks.
 %   - One sentence framing what's still missing --> opens ¶3.
- 
+
 % ---------- ¶3: the three tensions DPA4 attacks ----------
 % TODO: state the three problems as a paragraph or bullet list.
 %   (a) Accuracy ceiling. SO(3)-equivariant models (MACE, NequIP,
@@ -86,7 +86,7 @@ test text
 %       short-range repulsion either by data-driven extrapolation
 %       (unreliable) or by post-hoc ZBL wrappers, which break the
 %       smoothness or conservativeness of the underlying NN model.
- 
+
 % ---------- ¶4: contributions ----------
 % TODO: state three contributions matching ¶3.
 %   1. SO(2)-equivariant local-frame architecture with attention.
@@ -102,27 +102,27 @@ test text
 %   3. Native ZBL coupling via a C^2-smooth switch, applied per pair
 %      before any energy summation, preserving conservativeness and
 %      translational/rotational invariance by construction.
- 
+
 % Headline numerical claim (one sentence):
 % "DPA4 [TODO: top rank on Matbench Discovery, SOTA on SPICE-MACE-OFF
 % and TorsionNet-500] while training 5--10x faster than DPA3 at
 % matched accuracy."
- 
+
 % ---------- ¶5: organization ----------
 % TODO: one short paragraph mapping the rest of the paper.
- 
+
 % =============================================================
 \section{Results}
 \label{sec:results}
- 
+
 % Figure ordering: the user-suggested layout puts the efficiency Pareto
 % plot as the headline figure (Fig. 1), since it encapsulates the
 % strongest message in one image. Architecture diagram follows as
-% Fig. 2. 
- 
+% Fig. 2.
+
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
- 
+
 % TODO: Fig. 2 --- main architecture figure (4 panels):
 %   (a) overall block diagram
 %   (b) SO(2)-equivariant local-frame edge update
@@ -163,23 +163,23 @@ test text
 %   branch via a C^2-smooth switch, before total-energy summation.
 %   Forces and virials therefore remain conservative by autograd
 %   construction. Full equations deferred to Methods.
- 
+
 \subsection{Matbench Discovery}
 \label{sec:matbench}
- 
+
 % TODO: Tab. 1 --- Matbench Discovery leaderboard.
 %   - Reuse DPA3 Table 1 layout; place DPA4 in the top row.
 %   - Required metrics: CPS, Acc, F1, DAF, Prec, MAE, R2,
 %     kappa_SRME, RMSD.
 %   - Compliance: trained on MPtrj only, evaluated on WBM.
 %   - Headline: DPA4 achieves the highest CPS among compliant models.
- 
+
 % TODO: 1 short paragraph reporting multi-seed stability of CPS to
 % pre-empt the "leaderboard gaming" reviewer concern.
 
 \subsection{Small-molecule benchmarks}
 \label{sec:small_mol}
- 
+
 % TODO: SPICE-MACE-OFF (Fig. 3 left or top panel).
 %   - Same train/val/test split as Ref. [Kovacs2023] / DPA3.
 %   - Three model sizes: DPA4-{S, M, L} (or whatever sizes mirror
@@ -188,13 +188,13 @@ test text
 %   - Reuse DPA3 Fig. 2(a) layout (per-subset bar chart of energy MAE).
 %   - Headline: DPA4-L surpasses eSEN (previous SOTA) by [X%] on
 %     energy LWAMAE.
- 
+
 % TODO: TorsionNet-500 (Fig. 3 right or bottom panel; zero-shot from
 % the SPICE-trained DPA4).
 %   - Metrics: MAE, RMSE, MAEB, NABH_h.
 %   - Target: NABH_h = 0 for the larger DPA4 sizes; MAEB < [TODO]
 %     kcal/mol.
- 
+
 % TODO (optional, P1): rMD17 / 3BPA / acetylacetone.
 %   - Direct response to DPA3's stated limitation on small-molecule
 %     AIMD tasks.
@@ -204,10 +204,10 @@ test text
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
- 
+
 % This subsection carries the strongest single message. Lead with the
 % Pareto figure.
- 
+
 % TODO: Fig. 1 --- the headline Pareto plot.
 %   - x-axis: cumulative GPU-hours (or wall-clock training time), log scale
 %   - y-axis: WBM energy MAE (Matbench Discovery test), log scale
@@ -217,7 +217,7 @@ test text
 %   - Highlight DPA4 as a new Pareto frontier strictly below and to
 %     the left of all baselines.
 %   - This figure can also serve as the visual abstract.
- 
+
 % TODO: Tab. 2 --- training & inference efficiency details.
 %   Rows: DPA3-L24, DPA4-L24, DPA4-L24 (no compile), MACE(L), eSEN.
 %   Columns:
@@ -226,16 +226,16 @@ test text
 %     - GPU-hours to reach target WBM MAE = [TODO: X] meV/atom
 %     - ASE single-point latency at 80 / 200 / 500 / 1000 / 5000 atoms (ms)
 %     - Peak GPU memory (GB) at fixed batch size
- 
+
 % TODO: write 3 short paragraphs.
- 
+
 % ¶1 --- Algorithmic efficiency.
 %   - SO(2) ops are diagonal in the angular-order basis: O(d * m_max)
 %     per edge, vs SO(3) Clebsch--Gordan products that scale as O(L^6)
 %     in the maximum spherical-harmonic order.
 %   - Report FLOPs ratio of DPA4's edge update vs a comparable
 %     MACE-style SO(3) model.
- 
+
 % ¶2 --- Implementation efficiency (torch.compile).
 %   - Why traditional MLIPs (incl. DPA3) cannot be torch.compile'd
 %     cleanly: dynamic neighbor counts, in-place graph buffers, Python
@@ -247,7 +247,7 @@ test text
 %   - Report compile-time overhead and steady-state speedup from
 %     enabling torch.compile alone (i.e. with/without compile on
 %     identical model + hardware).
- 
+
 % ¶3 --- End-to-end claim and hardware portability.
 %   - Headline: at matched WBM MAE, DPA4 reaches the target in
 %     [TODO: 5--10x] fewer GPU-hours and uses [TODO: X%] of DPA3's
@@ -257,16 +257,15 @@ test text
 %   - Portability: report training throughput on V100 and RTX 4090
 %     (in addition to A800) to demonstrate that DPA4 is usable on
 %     commodity GPUs, not just data-center accelerators.
- 
- 
+
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
- 
+
 % TODO: Fig. 4(a) --- short-range energy curve.
 %   - For one or two atom pairs, plot the combined pair energy vs r,
 %     showing the smooth crossover from NN to ZBL.
 %   - Annotate r_in and r_out, and verify C^2 continuity visually.
- 
+
 % TODO: Fig. 4(b) --- cascade case study.
 %   - Pick the simplest example with a clear DPA4-ZBL vs DPA4-noZBL gap.
 %   - Suggested: PKA cascade in W (well-known irradiation benchmark).
@@ -276,7 +275,7 @@ test text
 %   - Optional: overlay DPA3-with-external-ZBL or MACE-MP-0-with-ZBL
 %     to show that wrapper-style ZBL breaks conservativeness on a
 %     measurable timescale.
- 
+
 % TODO: write 1--2 paragraphs.
 %
 % ¶1 --- Why wrapper-style ZBL is not enough.
@@ -290,12 +289,12 @@ test text
 %   study to illustrate practical impact (high-energy collisions,
 %   compression/melting, rare close-distance configurations on
 %   reaction paths).
- 
+
 \subsection{Architecture ablations (optional)}
 \label{sec:ablation}
- 
+
 % Include only if time permits before submission. Otherwise drop.
- 
+
 % TODO: Tab. 3 --- ablation study.
 %   Suggested rows (refine based on actual DPA4 design):
 %     - Full DPA4
@@ -313,19 +312,19 @@ test text
 %     on accuracy benchmarks.
 %   - ZBL has minor effect on standard benchmarks; its value shows up
 %     in the extreme-condition case studies of Section 2.5.
- 
+
 % =============================================================
 \section{Discussion}
 \label{sec:discussion}
- 
+
 % TODO: structure as 3 paragraphs.
- 
+
 % ¶1 --- summarize the three contributions and how they interlock.
 %   - SO(2) equivariance: accuracy at moderate cost.
 %   - Attention: longer-range correlations within each MP step.
 %   - Native ZBL: extends domain of validity to short interatomic
 %     distances without breaking conservativeness.
- 
+
 % ¶2 --- limitations.
 %   - DPA4 is presented here as a single-task / per-dataset model; we
 %     have not yet integrated DPA3's multi-task dataset-encoding
@@ -337,31 +336,31 @@ test text
 %     gap appears empirically negligible but may resurface in
 %     symmetry-sensitive tasks (e.g. accurate phonons in highly
 %     symmetric crystals).
- 
+
 % ¶3 --- outlook.
 %   - DPA4 as the base architecture for a future foundation potential
 %     trained on OpenLAM-v1 / OMol25 in a multi-task setup.
 %   - Downstream applications enabled by DPA4's efficiency: long-time
 %     MD, irradiation-damage simulation, high-throughput catalysis
 %     screening on commodity GPUs.
- 
+
 % =============================================================
 \section{Methods}
 \label{sec:methods}
- 
+
 \subsection{Datasets}
- 
+
 % TODO: dataset descriptions.
 %   - For datasets reused from DPA3 (SPICE-MACE-OFF, TorsionNet-500,
 %     MPtrj+WBM), write a one-sentence summary and cite DPA3's
 %     Methods section.
 %   - For any newly added dataset, give a full description.
- 
+
 \subsection{DPA4 model architecture}
- 
+
 % Describe DPA4 standalone --- do not frame it as a modification of
 % DPA3's LiGS construction.
- 
+
 % TODO: notation paragraph.
 %   - System with N atoms, atomic numbers Z, positions R.
 %   - Energy decomposition E = sum_i E_i; forces and virials by autograd.
@@ -371,29 +370,29 @@ test text
 %     where E_i^{NN} comes from the SO(2)-equivariant + attention
 %     network and the second term is the smooth-switched ZBL
 %     contribution.
- 
+
 \subsubsection{Local frames and SO(2)-equivariant features}
- 
+
 % TODO: define the local frame F_ij = (e1, e2, e3) for each directed
 % edge (i, j).
 %   - e3 = r_ij / |r_ij|.
 %   - Describe the canonicalization of e1, e2 orthogonal to e3.
 %     **This is your core know-how --- write the actual scheme.**
- 
+
 % TODO: define the angular-order grading on edge / vertex features.
 %   - Channels labeled by m in {-m_max, ..., m_max}.
 %   - Transformation rule under rotation by theta about e3:
 %     phi^{(m)} -> e^{i m theta} phi^{(m)}.
- 
+
 % TODO: write the message and update equations.
 %   - Edge-to-vertex message respecting angular-order grading.
 %   - Frame-aligned aggregation: rotate per-edge frames into a per-vertex
 %     frame F_i before summation, so global SO(3) equivariance is
 %     preserved.
 %   - Vertex update with residual connections and trainable step sizes.
- 
+
 \subsubsection{Attention}
- 
+
 % TODO: write the attention formula.
 %   - Queries q_i, keys k_j, values v_j computed from the
 %     SO(2)-invariant subspace (m = 0 channels) so attention weights
@@ -404,28 +403,28 @@ test text
 %   - Specify exactly where in the layer attention enters:
 %     edge-level / vertex-level / cross-layer (fill in based on the
 %     actual DPA4 design).
- 
+
 \subsubsection{Native ZBL coupling}
- 
+
 % TODO: ZBL pair energy.
 %   - E_ij^ZBL = (Z_i Z_j e^2 / 4 pi eps_0 r_ij) * Phi(r_ij / a_ZBL)
 %   - Phi: universal screening function (cite Ziegler-Biersack-Littmark).
 %   - a_ZBL: standard ZBL screening length.
- 
+
 % TODO: smooth switch w_ZBL(r).
 %   - w_ZBL(r) = 1 for r <= r_in, 0 for r >= r_out, smooth interpolation
 %     in between.
 %   - State the chosen functional form (tanh / cosine / polynomial)
 %     and verify C^2 continuity at r_in and r_out.
 %   - Default values: [TODO: r_in = ?, r_out = ?].
- 
+
 % TODO: state that the ZBL term enters the total energy *before*
 % differentiation, so forces and virials remain conservative by
 % autograd construction. Contrast briefly with the wrapper-style
 % application in DPA3 / MACE-MP-0.
- 
+
 \subsubsection{Symmetry guarantees}
- 
+
 % TODO: brief proof in the style of DPA3 Section 4.2.
 %   - Translational invariance: trivial (relative positions only).
 %   - Permutation equivariance: standard argument from sum-pooling and
@@ -435,33 +434,33 @@ test text
 %     SO(2)-invariant (m = 0) subspace.
 %   - Conservativeness: from autograd-based force/virial definition
 %     applied to the combined NN + smooth-ZBL energy.
- 
+
 \subsection{Training}
- 
+
 % TODO: hyperparameter table per benchmark (analogous to DPA3 Table S-6).
 %   - Optimizer, learning-rate schedule, batch size, # GPUs, # steps.
 %   - Loss function: MAE.
 %   - Energy / force / virial loss prefactors.
 %   - Activation function.
- 
+
 \subsection{Inference and \texttt{torch.compile}}
- 
+
 % TODO: describe the implementation work that enables full torch.compile.
 %   - Padded-neighbor representation to remove dynamic shapes.
 %   - Functional (non-in-place) updates of graph buffers.
 %   - Use of torch.fx / make_fx-style tracing for the hot path.
 %   - CUDA graph compatibility.
 %   - Compile-time overhead and steady-state speedup numbers.
- 
+
 % =============================================================
 \section{Acknowledgments}
- 
+
 % TODO: copy the acknowledgments block from DPA3 and add any new
 % funding sources, collaborators, or computing centers used for DPA4.
- 
+
 % =============================================================
 \section{Data availability}
- 
+
 % TODO: fill in URLs.
 %   - Datasets used: cite original sources if reused.
 %   - DPA4 source code: DeePMD-kit repository, version >= [TODO: X.Y.Z].
