@@ -5,16 +5,248 @@
 \setcounter{table}{0}
 \renewcommand{\thesection}{S-\arabic{section}}
 \setcounter{section}{0}
+\makeatletter
+\@ifundefined{theHfigure}
+{\newcommand{\theHfigure}{S-\arabic{figure}}}
+{\renewcommand{\theHfigure}{S-\arabic{figure}}}
+\@ifundefined{theHtable}
+{\newcommand{\theHtable}{S-\arabic{table}}}
+{\renewcommand{\theHtable}{S-\arabic{table}}}
+\@ifundefined{theHsection}
+{\newcommand{\theHsection}{S-\arabic{section}}}
+{\renewcommand{\theHsection}{S-\arabic{section}}}
+\makeatother
 % \renewcommand{\theequation}{S\arabic{equation}}
 % \setcounter{equation}{0}
 
-
-\FloatBarrier 
+\FloatBarrier
 \begin{center}
-    {\LARGE\bfseries Supplementary Information for 
-    
-    \textit{} \par}
+    {\LARGE\bfseries Supplementary Information for
+
+        \textit{DPA4: A Generalist Foundation Model for the Era of On-Demand
+            Interatomic Potentials} \par}
     \vspace{1em}
 \end{center}
 
 \section{Ablation study}
+
+This section collects ablations that are useful for reproducibility and model
+selection but are not central enough to carry the main text. All values are
+measured on the same WBM-subsampled test set as Section~\ref{sec:ablation}.
+Efficiency metrics are interpreted only within each controlled group and are
+normalized to the corresponding group baseline under matched hardware,
+batch-size, data-loading, and precision settings. Evaluation time denotes the
+wall-clock time of the DeePMD-kit \texttt{dp test} command over the full
+WBM-subsampled test set and is included as a secondary reference because it
+depends on the number of atoms, neighbour-list density, GPU memory capacity and
+bandwidth, streaming-multiprocessor occupancy, kernel scheduling, batch size,
+and precision. Training time remains the primary efficiency metric for model
+selection.
+
+\subsection{Capacity scaling}
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \caption{
+        Interaction-block depth ablation.
+        The model improves rapidly from one to four blocks and continues to improve
+        up to the 8--14 block range; the 15-block run shows the expected
+        diminishing return.
+    }
+    \label{tab:sm_layers}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+        \toprule
+        \textbf{Blocks} &
+        \textbf{E MAE}$\downarrow$ &
+        \textbf{F MAE}$\downarrow$ &
+        \textbf{Train rel.}$\downarrow$ &
+        \textbf{Eval rel.}$\downarrow$ \\
+        \midrule
+        1  & 37.125 & 45.552 & TBD & 1.00 \\
+        2  & 29.816 & 39.968 & TBD & 1.36 \\
+        3  & 28.036 & 37.946 & TBD & 1.71 \\
+        4  & 27.207 & 36.628 & TBD & 2.13 \\
+        8  & 26.549 & 34.628 & TBD & 3.84 \\
+        10 & 26.488 & 33.752 & TBD & 4.89 \\
+        14 & 26.227 & 32.821 & TBD & 6.64 \\
+        15 & 26.868 & 33.224 & TBD & 7.75 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \caption{
+        SO(2)-stack depth inside each interaction block.
+        Deeper edge-local processing improves accuracy but increases evaluation
+        cost, so this search is treated as capacity tuning rather than a main
+        architectural ablation.
+    }
+    \label{tab:sm_so2_stack}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+        \toprule
+        \textbf{SO(2) layers} &
+        \textbf{E MAE}$\downarrow$ &
+        \textbf{F MAE}$\downarrow$ &
+        \textbf{Train rel.}$\downarrow$ &
+        \textbf{Eval rel.}$\downarrow$ \\
+        \midrule
+        2 & 31.780 & 41.432 & TBD & 1.00 \\
+        3 & 30.696 & 41.557 & TBD & 1.18 \\
+        5 & 28.199 & 38.407 & TBD & 1.54 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\subsection{Attention design sweep}
+
+\begin{table}[ht]
+    \centering
+    \tiny
+    \caption{Attention design sweep at 64 hidden channels.}
+    \label{tab:sm_attention_64}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+        \toprule
+        \textbf{Heads} & \textbf{Attn.} & \textbf{V proj.} &
+        \textbf{O proj.} & \textbf{Pre mix} &
+        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ \\
+        \midrule
+        1 & yes & no  & no  & no  & \textbf{27.839} & 38.184 \\
+        2 & yes & no  & yes & no  & 28.634 & 38.035 \\
+        1 & yes & yes & yes & no  & 28.656 & 37.688 \\
+        2 & yes & no  & no  & no  & 28.661 & 37.896 \\
+        1 & yes & yes & no  & no  & 28.773 & 37.775 \\
+        2 & yes & yes & yes & yes & 28.811 & 37.168 \\
+        2 & yes & yes & yes & no  & 28.936 & \textbf{36.939} \\
+        2 & yes & yes & no  & no  & 28.958 & 37.056 \\
+        1 & yes & yes & yes & yes & 28.985 & 37.242 \\
+        1 & yes & no  & yes & no  & 29.214 & 38.250 \\
+        0 & no  & no  & no  & no  & 30.691 & 40.072 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \tiny
+    \caption{Attention design sweep at 96 hidden channels.}
+    \label{tab:sm_attention_96}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+        \toprule
+        \textbf{Heads} & \textbf{Attn.} & \textbf{V proj.} &
+        \textbf{O proj.} & \textbf{Pre mix} &
+        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ \\
+        \midrule
+        1 & yes & no  & no  & no  & \textbf{27.567} & 36.127 \\
+        2 & yes & yes & no  & no  & 27.571 & 36.119 \\
+        3 & yes & yes & no  & no  & 27.593 & 35.639 \\
+        3 & yes & yes & yes & no  & 27.722 & 35.809 \\
+        2 & yes & no  & no  & no  & 27.732 & 36.680 \\
+        2 & yes & yes & yes & no  & 27.968 & \textbf{35.457} \\
+        3 & yes & no  & yes & no  & 28.016 & 36.017 \\
+        2 & yes & no  & yes & no  & 28.074 & 36.288 \\
+        3 & yes & yes & yes & yes & 28.126 & 36.100 \\
+        3 & yes & no  & no  & no  & 28.170 & 36.419 \\
+        1 & yes & no  & yes & no  & 28.301 & 36.065 \\
+        1 & yes & yes & yes & no  & 28.430 & 36.321 \\
+        2 & yes & yes & yes & yes & 28.473 & 35.858 \\
+        1 & yes & yes & no  & no  & 28.578 & 36.350 \\
+        1 & yes & yes & yes & yes & 28.975 & 36.225 \\
+        0 & no  & no  & no  & no  & 30.068 & 38.407 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \tiny
+    \caption{Attention design sweep at 96$\times$2 hidden channels.}
+    \label{tab:sm_attention_96x2}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+        \toprule
+        \textbf{Heads} & \textbf{Attn.} & \textbf{V proj.} &
+        \textbf{O proj.} & \textbf{Pre mix} &
+        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ \\
+        \midrule
+        2 & yes & yes & no  & no  & \textbf{27.814} & \textbf{33.786} \\
+        1 & yes & no  & no  & no  & 28.083 & 34.158 \\
+        1 & yes & yes & yes & no  & 28.212 & 35.045 \\
+        2 & yes & no  & no  & no  & 28.335 & 34.013 \\
+        1 & yes & yes & no  & no  & 28.363 & 34.460 \\
+        6 & yes & yes & yes & no  & 28.397 & 34.541 \\
+        2 & yes & no  & yes & no  & 28.401 & 34.361 \\
+        2 & yes & yes & yes & no  & 28.440 & 34.440 \\
+        1 & yes & no  & yes & no  & 28.449 & 34.508 \\
+        3 & yes & no  & no  & no  & 28.506 & 34.560 \\
+        3 & yes & yes & yes & no  & 28.609 & 34.869 \\
+        4 & yes & yes & yes & yes & 28.736 & 34.603 \\
+        6 & yes & no  & no  & no  & 28.757 & 34.289 \\
+        1 & yes & yes & yes & yes & 28.885 & 35.387 \\
+        3 & yes & yes & no  & no  & 28.907 & 34.412 \\
+        3 & yes & yes & yes & yes & 28.957 & 34.719 \\
+        6 & yes & no  & yes & no  & 28.968 & 34.778 \\
+        2 & yes & yes & yes & yes & 28.968 & 35.507 \\
+        6 & yes & yes & no  & no  & 29.027 & 34.313 \\
+        3 & yes & no  & yes & no  & 29.274 & 34.624 \\
+        6 & yes & yes & yes & yes & 29.483 & 34.889 \\
+        0 & no  & no  & no  & no  & 30.935 & 36.639 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\subsection{Normalization placement}
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \caption{
+        Normalization-placement ablation.
+        The two names in each variant denote the normalization placement around the
+        SO(2) convolution and FFN subblocks, respectively.
+    }
+    \label{tab:sm_stability}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+        \toprule
+        \textbf{Variant} &
+        \textbf{E MAE}$\downarrow$ &
+        \textbf{F MAE}$\downarrow$ &
+        \textbf{Train rel.}$\downarrow$ &
+        \textbf{Eval rel.}$\downarrow$ \\
+        \midrule
+        pre/pre   & 28.493 & 37.683 & TBD & 1.00 \\
+        post/pre  & \textbf{28.013} & 37.624 & TBD & 1.01 \\
+        pre/post  & 30.237 & 38.608 & TBD & 1.01 \\
+        post/post & 29.321 & \textbf{37.466} & TBD & 1.01 \\
+        pre/both  & 29.322 & 38.548 & TBD & 1.00 \\
+        both/pre  & 28.987 & 38.250 & TBD & 1.00 \\
+        post/both & 28.808 & 37.840 & TBD & 1.01 \\
+        both/post & 29.841 & 39.068 & TBD & 1.00 \\
+        both/both & 30.215 & 39.208 & TBD & 1.02 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\subsection{Scheduler comparison}
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \caption{
+        Scheduler comparison between cosine decay and WSD.
+    }
+    \label{tab:sm_training_recipe}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+        \toprule
+        \textbf{Variant} &
+        \textbf{E MAE}$\downarrow$ &
+        \textbf{F MAE}$\downarrow$ &
+        \textbf{Train rel.}$\downarrow$ &
+        \textbf{Eval rel.}$\downarrow$ \\
+        \midrule
+        cosine & 28.638 & 38.607 & TBD & 1.00 \\
+        WSD    & \textbf{27.828} & \textbf{37.022} & TBD & 1.02 \\
+        \bottomrule
+    \end{tabular*}
+\end{table}

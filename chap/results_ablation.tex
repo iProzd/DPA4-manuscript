@@ -1,20 +1,241 @@
 \subsection{Architecture ablations}
 \label{sec:ablation}
 
-% TODO: Tab. 3 --- ablation study.
-%   Suggested rows (refine based on actual DPA4 design):
-%     - Full DPA4
-%     - DPA4 with l = 0 only (kill SO(2) features, keep attention)
-%     - DPA4 without attention
-%     - DPA4 without ZBL
-%   Columns:
-%     - SPICE-MACE-OFF energy LWAMAE
-%     - MPtrj/WBM energy MAE
-%     - Training throughput (samples / s)
-%     - Inference latency at [TODO: X] atoms
-%
-% TODO: 1 paragraph interpreting the ablation results.
-%   - SO(2) features and attention should each be measurably important
-%     on accuracy benchmarks.
-%   - ZBL has minor effect on standard benchmarks; its value shows up
-%     in the extreme-condition case studies of Section 2.5.
+We evaluate the main architectural and implementation choices of DPA4 on the
+same WBM-subsampled test set and report MAE values under a shared evaluation
+protocol. Because the ablations isolate different factors only within their own
+controlled groups, each group is interpreted as evidence for the corresponding
+design choice rather than as part of a global ranking across unrelated runs.
+Efficiency metrics are therefore reported as within-group relative quantities
+under matched hardware, batch-size, data-loading, and precision settings. The
+evaluation-time column measures the wall-clock time of the DeePMD-kit
+\texttt{dp test} command over the full WBM-subsampled test set using eager
+execution and FP32 precision on a single NVIDIA H20 GPU, normalized to the
+baseline in the same group. This end-to-end measurement is retained as a
+secondary reference because it also depends on atom count, neighbour-list
+density, GPU memory capacity and bandwidth, streaming-multiprocessor occupancy,
+kernel scheduling, batch size, and precision. Normalized training time is the
+primary efficiency metric.
+
+\subsubsection{\texttt{torch.compile} training path}
+
+End-to-end graph compilation changes the executable training path while leaving
+the DPA4 architecture fixed. We therefore separate three implementation
+choices: whether the model is executed through \texttt{torch.compile}, whether
+bfloat16 automatic mixed precision (AMP) is enabled, and whether TF32
+tensor-core matmul is allowed. This factorized comparison distinguishes
+numerical effects from systems-level acceleration and tests whether the
+compiled path preserves the WBM accuracy of the underlying model.
+
+\begin{table}[t]
+    \centering
+    \scriptsize
+    \begin{threeparttable}
+        \caption{\texttt{torch.compile} and precision ablations.\tnote{a}}
+        \label{tab:dpa4_compile_ablation}
+        \begin{tabular}{@{}cccccccc@{}}
+            \toprule
+            \textbf{Compile}                                              &
+            \textbf{AMP}                                                  &
+            \textbf{TF32}                                                 &
+            \textbf{E MAE}$\downarrow$                                    &
+            \textbf{F MAE}$\downarrow$                                    &
+            \makecell{\textbf{Train time}\\\textbf{(rel.)}$\downarrow$}   &
+            \makecell{\textbf{DP-test}\\\textbf{time (rel.)}$\downarrow$} &
+            \makecell{\textbf{Peak train}\\\textbf{mem. (rel.)}$\downarrow$}                                                                                            \\
+            \midrule
+            False                                                         & False & $\times$ & TBD             & TBD             & 1.00          & TBD  & 1.00          \\
+            False                                                         & True  & $\times$ & TBD             & TBD             & 0.70          & TBD  & 0.41          \\
+            True                                                          & False & False    & \textbf{28.012} & \textbf{37.458} & 0.62          & 1.02 & 0.77          \\
+            True                                                          & True  & False    & 28.108          & 37.595          & \textbf{0.32} & 1.00 & \textbf{0.40} \\
+            True                                                          & True  & True     & 28.051          & 38.224          & \textbf{0.32} & 1.01 & \textbf{0.40} \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}
+            \item[a] Train time denotes wall-clock seconds per 1k training steps, and peak train
+            memory denotes peak GPU memory during training. These two columns are
+            normalized to the no-compile, no-AMP baseline measured on a single NVIDIA H20
+            GPU. The \texttt{dp test} time is normalized to the compiled AMP/no-TF32 row.
+            The $\times$ symbol indicates that TF32 tensor cores are not applicable for the
+            non-compiled execution path.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsubsection{Attention aggregation}
+
+The attention ablation gives the clearest single-module signal. Across the 64,
+96, and 96$\times$2 feature settings, replacing envelope-weighted scatter
+aggregation with single-head envelope-gated attention consistently reduces both
+energy and force errors. This supports the design choice in which attention is
+computed only from rotationally invariant scalar channels: the model gains
+adaptive neighbour selection while preserving equivariance of the higher-order
+SO(2) features.
+
+\begin{table}[t]
+    \centering
+    \scriptsize
+    \begin{threeparttable}
+        \caption{Attention aggregation ablation.\tnote{a}}
+        \label{tab:dpa4_attention_ablation}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}llcccc@{}}
+            \toprule
+            \textbf{Feature setting} & \textbf{Aggregation} &
+            \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ &
+            \textbf{Train rel.}$\downarrow$ &
+            \textbf{Eval rel.}$\downarrow$ \\
+            \midrule
+            64 & no attention & 30.691 & 40.072 & TBD & 1.00 \\
+            64 & attention, 1 head & \textbf{27.839} & \textbf{38.184} & TBD & 1.01 \\
+            \midrule
+            96 & no attention & 30.068 & 38.407 & TBD & 1.00 \\
+            96 & attention, 1 head & \textbf{27.567} & \textbf{36.127} & TBD & 1.05 \\
+            \midrule
+            96$\times$2 & no attention & 30.935 & 36.639 & TBD & 1.00 \\
+            96$\times$2 & attention, 1 head & \textbf{28.083} & \textbf{34.158} & TBD & 1.02 \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] Within each feature setting, evaluation time is normalized to the
+            corresponding no-attention control.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsubsection{Multi-focus SO(2) convolution}
+
+The multi-focus comparison separates width from focus multiplicity. Moving from
+a single 64-channel focus to the 96$\times$2 multi-focus setting improves
+energy MAE from 29.418 to 26.994~meV/atom and force MAE from 39.529 to
+36.408~meV/\AA{}. The improvement is not merely a consequence of a larger
+hidden dimension: within the broader focus sweep, multi-focus models lie on a
+better accuracy--cost trade-off than equally wide single-focus alternatives.
+This behaviour is consistent with the intended role of focus competition, where
+parallel equivariant sub-channels specialize to different edge-local geometric
+motifs before the rotate-back step.
+
+\begin{table}[t]
+    \centering
+    \tiny
+    \begin{threeparttable}
+        \caption{Complete multi-focus SO(2) convolution sweep.\tnote{a}}
+        \label{tab:dpa4_focus_ablation}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccccccc@{}}
+            \toprule
+            \textbf{Variant} &
+            \textbf{Focuses} &
+            \textbf{Dim} &
+            \textbf{SO2 dim} &
+            \textbf{Params} &
+            \textbf{E MAE}$\downarrow$ &
+            \textbf{F MAE}$\downarrow$ &
+            \textbf{Eval rel.}$\downarrow$ &
+            \textbf{Perf rel.}$\uparrow$ \\
+            \midrule
+            64$\times$1  & 1 & 64  & 64  & 1.887M  & 29.418 & 39.529 & 1.00 & -- \\
+            96$\times$1  & 1 & 96  & 96  & 4.076M  & 28.671 & 38.333 & 1.49 & 5.2\% \\
+            64$\times$2  & 2 & 64  & 128 & 3.174M  & 28.126 & 38.123 & 1.55 & \textbf{8.0\%} \\
+            128$\times$1 & 1 & 128 & 128 & 7.306M  & 28.708 & 37.882 & 1.86 & 2.8\% \\
+            64$\times$3  & 3 & 64  & 192 & 4.452M  & 27.890 & 37.283 & 2.14 & 4.5\% \\
+            96$\times$2  & 2 & 96  & 192 & 6.971M  & \textbf{26.994} & \textbf{36.408} & 2.54 & 5.3\% \\
+            192$\times$1 & 1 & 192 & 192 & 15.976M & 27.286 & 36.477 & 3.86 & 2.5\% \\
+            64$\times$4  & 4 & 64  & 256 & 5.731M  & 27.821 & 37.605 & 2.65 & 3.3\% \\
+            256$\times$1 & 1 & 256 & 256 & 28.431M & 28.409 & 36.670 & 5.17 & 0.8\% \\
+            96$\times$3  & 3 & 96  & 288 & 9.848M  & 27.168 & 36.429 & 3.62 & 2.9\% \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] Focus multiplicity and single-stream widening are compared within the same
+            WBM-subsample validation setting. \texttt{Perf rel.} is the notebook's combined
+            accuracy--cost relative score.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsubsection{Radial degree/channel mixing}
+
+Radial degree/channel mixing provides a second, complementary source of
+expressivity. The no-mixing control treats the radial profile as a diagonal
+per-degree modulator; allowing a low-rank channel-dependent mixing kernel
+improves the energy MAE from 28.493 to 26.556~meV/atom and the force MAE from
+38.349 to 35.675~meV/\AA{}. This result supports the use of edge-conditioned
+cross-degree mixing in the local SO(2) frame: the radial branch does more than
+scale existing angular features, but the operation remains equivariant because
+the same kernel is shared across the signed $\pm m$ pair.
+
+\begin{table}[t]
+    \centering
+    \scriptsize
+    \begin{threeparttable}
+        \caption{Radial degree/channel mixing ablation.\tnote{a}}
+        \label{tab:dpa4_radial_degree_ablation}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+            \toprule
+            \textbf{Variant} & \textbf{E MAE}$\downarrow$ &
+            \textbf{F MAE}$\downarrow$ & \textbf{Train rel.}$\downarrow$ &
+            \textbf{Eval rel.}$\downarrow$ \\
+            \midrule
+            none & 28.493 & 38.349 & TBD & 1.00 \\
+            degree-shared & 28.494 & 37.212 & TBD & 1.06 \\
+            channel-rank 1 & 27.611 & 35.689 & TBD & 1.10 \\
+            channel-rank 2 & 26.983 & 36.127 & TBD & 1.13 \\
+            channel-rank 4 & \textbf{26.556} & 35.675 & TBD & 1.14 \\
+            channel-rank 8 & 27.239 & 36.215 & TBD & 1.19 \\
+            channel-rank 16 & TBD & TBD & TBD & TBD \\
+            channel-full & TBD & TBD & TBD & TBD \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] Larger channel settings are included as placeholders because the
+            corresponding controlled runs are still in progress.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsubsection{S2 quadrature}
+
+The quadrature ablation tests the numerical backend used by the S2 activation
+path. In the representative two-branch setting, replacing the e3nn product grid
+with a Lebedev rule reduces energy MAE from 31.074 to 29.709~meV/atom. More
+importantly, the broader quadrature sweep shows that some product-grid variants
+are less favourable in the two-branch setting, whereas the Lebedev variants
+remain stable. We therefore treat Lebedev quadrature as a numerical-stability
+component rather than only an accuracy tweak.
+
+\begin{table}[t]
+    \centering
+    \tiny
+    \begin{threeparttable}
+        \caption{S2 quadrature ablation.\tnote{a}}
+        \label{tab:dpa4_quadrature_ablation}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccccc@{}}
+            \toprule
+            \textbf{Variant} & \textbf{SO(2) quad.} & \textbf{FFN quad.} &
+            \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ &
+            \textbf{Eval rel.}$\downarrow$ \\
+            \midrule
+            e3nn & e3nn & off & 29.225 & 38.055 & 1.00 \\
+            lebedev & Lebedev & off & \textbf{28.992} & 38.103 & 1.01 \\
+            both-e3nn & e3nn & e3nn & 31.074 & \textbf{39.522} & 2.23 \\
+            both-lebedev & Lebedev & Lebedev & 29.709 & 39.808 & 1.76 \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] The two-branch rows enable S2 quadrature in both the SO(2) and FFN paths.
+            Evaluation time is normalized to the single-branch e3nn row.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\subsubsection{Ablations deferred to the Supplementary Information}
+
+We leave two capacity-search families to the Supplementary Information. First,
+the number of interaction blocks demonstrates that message-passing depth is
+necessary but has diminishing returns beyond the 8--14 block range. Second, the
+number of SO(2) layers inside each block shows the expected accuracy--cost
+trade-off for deeper edge-local processing. These searches justify the chosen
+model scale, but they are not single-module mechanistic ablations and would
+distract from the main architectural claims in the body text. In the
+Supplementary Information we therefore group ablations in the following order:
+interaction-block depth, SO(2)-stack depth, the full attention-design sweep,
+normalization-placement choices, and the cosine-vs-WSD scheduler comparison.

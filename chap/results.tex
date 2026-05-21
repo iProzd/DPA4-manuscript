@@ -50,33 +50,52 @@
 %   Forces and virials therefore remain conservative by autograd
 %   construction. Full equations deferred to Methods.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{fig/fig2_combined.png}
+    \caption{
+        Overview of the DPA4 architecture.
+        (a) The full model combines a shared edge cache, geometry-aware input
+        embedding, stacked equivariant interaction blocks, and an atomic energy
+        head.
+        (b) Geometry and radial features are computed once and reused by the input
+        embedding and all interaction blocks.
+        (c) Each SO(2) multi-focus convolution rotates features to an edge-local
+        frame, applies radial modulation and focus competition, and aggregates
+        messages after rotating them back.
+        (d) Smooth gated attention operates on scalar channels and modulates edge
+        messages without breaking equivariance.
+    }
+    \label{fig:arch}
+\end{figure}
+
 \subsection{Matbench Discovery}
 \label{sec:matbench}
 
 \begin{table}
-  \centering
-  \caption{Results on the Matbench Discovery leaderboard, with all compliant models accessed before May 20, 2026.} 
-  
-  \resizebox{\linewidth}{!}{
-  \begin{tabular}{@{} l *{10}{c} c c @{}}
-    \toprule
-    \textbf{Model} & \textbf{CPS}$\uparrow$ & \textbf{Acc}$\uparrow$ & \textbf{F1}$\uparrow$ & \textbf{DAF}$\uparrow$ & \textbf{Prec}$\uparrow$ & \textbf{MAE}$\downarrow$ & \textbf{RMSE}$\downarrow$ & \textbf{R2}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$ & \textbf{RMSD}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{Targets} \\
-    \midrule
-    DPA4-MAX & 0.833 &  &  &  &  &  &  &  &  &  &  & EFSG \\
-    \midrule
-    eSEN-30M-MP & 0.797 & 0.946 & 0.831 & 5.260 & 0.804 & 0.033 & 0.078 & 0.822 & 0.340 & 0.075 & 30.1M & EFSG \\
-    SevenNet-l3i5 & 0.714 & 0.920 & 0.760 & 4.629 & 0.708 & 0.044 & 0.087 & 0.776 & 0.550 & 0.085 & 1.17M & EFSG \\
-    MatRIS v0.5.0 MPtrj & 0.681 & 0.938 & 0.809 & 5.049 & 0.772 & 0.037 & 0.082 & 0.803 & 0.861 & 0.077 & 5.83M & EFSGM \\
-    GRACE-2L-MPtrj & 0.681 & 0.896 & 0.691 & 4.163 & 0.636 & 0.052 & 0.094 & 0.741 & 0.525 & 0.090 & 15.3M & EFSG \\
-    MACE-MP-0 & 0.644 & 0.878 & 0.669 & 3.777 & 0.577 & 0.057 & 0.101 & 0.697 & 0.647 & 0.091 & 4.69M & EFSG \\
-    AlphaNet-MPTrj & 0.566 & 0.933 & 0.799 & 4.863 & 0.743 & 0.041 & 0.091 & 0.745 & 1.310 & 0.107 & 16.2M & EFSG \\
-    eqV2 S DeNS & 0.522 & 0.941 & 0.815 & 5.042 & 0.771 & 0.036 & 0.085 & 0.788 & 1.676 & 0.076 & 31.2M & EFSD \\
-    ORB v2 MPtrj & 0.470 & 0.922 & 0.765 & 4.702 & 0.719 & 0.045 & 0.091 & 0.756 & 1.725 & 0.101 & 25.2M & EFSD \\
-    M3GNet & 0.428 & 0.813 & 0.569 & 2.882 & 0.441 & 0.075 & 0.118 & 0.585 & 1.412 & 0.112 & 228k & EFSG \\
-    CHGNet & 0.400 & 0.851 & 0.613 & 3.361 & 0.514 & 0.063 & 0.103 & 0.689 & 1.717 & 0.095 & 413k & EFSGM \\
-    \bottomrule
-  \end{tabular}%
-  }
+    \centering
+    \caption{Results on the Matbench Discovery leaderboard, with all compliant models accessed before May 20, 2026.}
+
+    \resizebox{\linewidth}{!}{
+        \begin{tabular}{@{} l *{10}{c} c c @{}}
+            \toprule
+            \textbf{Model}      & \textbf{CPS}$\uparrow$ & \textbf{Acc}$\uparrow$ & \textbf{F1}$\uparrow$ & \textbf{DAF}$\uparrow$ & \textbf{Prec}$\uparrow$ & \textbf{MAE}$\downarrow$ & \textbf{RMSE}$\downarrow$ & \textbf{R2}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$ & \textbf{RMSD}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{Targets} \\
+            \midrule
+            DPA4-MAX            & 0.833                  &                        &                       &                        &                         &                          &                           &                       &                                   &                           &                             & EFSG             \\
+            \midrule
+            eSEN-30M-MP         & 0.797                  & 0.946                  & 0.831                 & 5.260                  & 0.804                   & 0.033                    & 0.078                     & 0.822                 & 0.340                             & 0.075                     & 30.1M                       & EFSG             \\
+            SevenNet-l3i5       & 0.714                  & 0.920                  & 0.760                 & 4.629                  & 0.708                   & 0.044                    & 0.087                     & 0.776                 & 0.550                             & 0.085                     & 1.17M                       & EFSG             \\
+            MatRIS v0.5.0 MPtrj & 0.681                  & 0.938                  & 0.809                 & 5.049                  & 0.772                   & 0.037                    & 0.082                     & 0.803                 & 0.861                             & 0.077                     & 5.83M                       & EFSGM            \\
+            GRACE-2L-MPtrj      & 0.681                  & 0.896                  & 0.691                 & 4.163                  & 0.636                   & 0.052                    & 0.094                     & 0.741                 & 0.525                             & 0.090                     & 15.3M                       & EFSG             \\
+            MACE-MP-0           & 0.644                  & 0.878                  & 0.669                 & 3.777                  & 0.577                   & 0.057                    & 0.101                     & 0.697                 & 0.647                             & 0.091                     & 4.69M                       & EFSG             \\
+            AlphaNet-MPTrj      & 0.566                  & 0.933                  & 0.799                 & 4.863                  & 0.743                   & 0.041                    & 0.091                     & 0.745                 & 1.310                             & 0.107                     & 16.2M                       & EFSG             \\
+            eqV2 S DeNS         & 0.522                  & 0.941                  & 0.815                 & 5.042                  & 0.771                   & 0.036                    & 0.085                     & 0.788                 & 1.676                             & 0.076                     & 31.2M                       & EFSD             \\
+            ORB v2 MPtrj        & 0.470                  & 0.922                  & 0.765                 & 4.702                  & 0.719                   & 0.045                    & 0.091                     & 0.756                 & 1.725                             & 0.101                     & 25.2M                       & EFSD             \\
+            M3GNet              & 0.428                  & 0.813                  & 0.569                 & 2.882                  & 0.441                   & 0.075                    & 0.118                     & 0.585                 & 1.412                             & 0.112                     & 228k                        & EFSG             \\
+            CHGNet              & 0.400                  & 0.851                  & 0.613                 & 3.361                  & 0.514                   & 0.063                    & 0.103                     & 0.689                 & 1.717                             & 0.095                     & 413k                        & EFSGM            \\
+            \bottomrule
+        \end{tabular}%
+    }
 \end{table}
 
 % TODO: Tab. 1 --- Matbench Discovery leaderboard.
@@ -104,7 +123,7 @@
 %     | R{0.55cm}R{0.55cm}  % MACE(L)
 %     | R{0.55cm}R{0.55cm}  % EScAIP
 %     | R{0.55cm}R{0.55cm}  % eSEN
-%     | R{0.55cm}R{0.55cm}  % DPA3-L3 
+%     | R{0.55cm}R{0.55cm}  % DPA3-L3
 %     | R{0.55cm}R{0.55cm}  % DPA3-L6
 %     | R{0.55cm}R{0.55cm}  % DPA3-L12
 %     | R{0.55cm}R{0.55cm}  % DPA3-L24
@@ -209,7 +228,6 @@
 %   - Portability: report training throughput on V100 and RTX 4090
 %     (in addition to A800) to demonstrate that DPA4 is usable on
 %     commodity GPUs, not just data-center accelerators.
-
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
