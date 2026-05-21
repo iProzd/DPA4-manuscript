@@ -30,49 +30,50 @@
 
 \section{Ablation study}
 
-This section collects ablations that are useful for reproducibility and model
-selection but are not central enough to carry the main text. All values are
-measured on the same WBM-subsampled test set as Section~\ref{sec:ablation}.
-Efficiency metrics are interpreted only within each controlled group and are
-normalized to the corresponding group baseline under matched hardware,
-batch-size, data-loading, and precision settings. Evaluation time denotes the
-wall-clock time of the DeePMD-kit \texttt{dp test} command over the full
-WBM-subsampled test set and is included as a secondary reference because it
-depends on the number of atoms, neighbour-list density, GPU memory capacity and
-bandwidth, streaming-multiprocessor occupancy, kernel scheduling, batch size,
-and precision. Training time remains the primary efficiency metric for model
-selection.
+This section reports supplementary ablations for model selection and
+reproducibility under the same WBM-subsampled evaluation protocol and table
+notation as Section~\ref{sec:ablation}. Relative efficiency metrics, when
+reported, are normalized within each controlled group under matched H20
+hardware, batch-size, data-loading, and precision settings. The same
+rank-highlighting convention is used: boldface and underlining denote the best
+and second-best values only for metrics in which ranking is explicitly
+highlighted.
 
-\subsection{Capacity scaling}
+\subsection{Model-depth scaling}
 
 \begin{table}[ht]
     \centering
     \scriptsize
     \caption{
-        Interaction-block depth ablation.
-        The model improves rapidly from one to four blocks and continues to improve
-        up to the 8--14 block range; the 15-block run shows the expected
-        diminishing return.
+        Effect of interaction-block depth on WBM-subsampled test accuracy and
+        efficiency.
     }
     \label{tab:sm_layers}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+    \begin{tabular}{@{}ccccc@{}}
         \toprule
-        \textbf{Blocks} &
-        \textbf{E MAE}$\downarrow$ &
-        \textbf{F MAE}$\downarrow$ &
-        \textbf{Train rel.}$\downarrow$ &
-        \textbf{Eval rel.}$\downarrow$ \\
+        \textbf{Blocks}                   &
+        \textbf{E MAE}$\downarrow$        &
+        \textbf{F MAE}$\downarrow$        &
+        \textbf{Train (rel.)}$\downarrow$ &
+        \textbf{Test time (rel.)}$\downarrow$                             \\
         \midrule
-        1  & 37.125 & 45.552 & TBD & 1.00 \\
-        2  & 29.816 & 39.968 & TBD & 1.36 \\
-        3  & 28.036 & 37.946 & TBD & 1.71 \\
-        4  & 27.207 & 36.628 & TBD & 2.13 \\
-        8  & 26.549 & 34.628 & TBD & 3.84 \\
-        10 & 26.488 & 33.752 & TBD & 4.89 \\
-        14 & 26.227 & 32.821 & TBD & 6.64 \\
-        15 & 26.868 & 33.224 & TBD & 7.75 \\
+        1                                 & 37.125 & 45.552 & 1.00 & 1.00 \\
+        2                                 & 29.816 & 39.968 & 1.23 & 1.36 \\
+        3                                 & 28.036 & 37.946 & 1.70 & 1.71 \\
+        4                                 & 27.207 & 36.628 & 2.18 & 2.13 \\
+        5                                 & 27.419 & 35.853 & 2.55 & 2.66 \\
+        6                                 & 27.087 & 35.603 & 2.89 & 3.02 \\
+        7                                 & 27.019 & 35.281 & 3.43 & 3.47 \\
+        8                                 & 26.549 & 34.628 & 3.80 & 3.84 \\
+        9                                 & 26.818 & 34.523 & 4.14 & 4.41 \\
+        10                                & 26.488 & 33.752 & 4.59 & 4.89 \\
+        11                                & 26.552 & 33.731 & 5.07 & 5.29 \\
+        12                                & 26.491 & 33.851 & 5.50 & 5.35 \\
+        13                                & 26.488 & 34.282 & 5.91 & 6.20 \\
+        14                                & 26.227 & 32.821 & 6.30 & 6.64 \\
+        15                                & 26.868 & 33.224 & 6.66 & 7.75 \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
 \end{table}
 
 \begin{table}[ht]
@@ -85,168 +86,225 @@ selection.
         architectural ablation.
     }
     \label{tab:sm_so2_stack}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+    \begin{tabular}{@{}ccccc@{}}
         \toprule
-        \textbf{SO(2) layers} &
-        \textbf{E MAE}$\downarrow$ &
-        \textbf{F MAE}$\downarrow$ &
-        \textbf{Train rel.}$\downarrow$ &
-        \textbf{Eval rel.}$\downarrow$ \\
+        \textbf{SO(2) layers}             &
+        \textbf{E MAE}$\downarrow$        &
+        \textbf{F MAE}$\downarrow$        &
+        \textbf{Train (rel.)}$\downarrow$ &
+        \textbf{Test time (rel.)}$\downarrow$                             \\
         \midrule
-        2 & 31.780 & 41.432 & TBD & 1.00 \\
-        3 & 30.696 & 41.557 & TBD & 1.18 \\
-        5 & 28.199 & 38.407 & TBD & 1.54 \\
+        2                                 & 31.780 & 41.432 & 1.00 & 1.00 \\
+        3                                 & 30.696 & 41.557 & 1.15 & 1.18 \\
+        5                                 & 28.199 & 38.407 & 1.40 & 1.54 \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
 \end{table}
 
-\subsection{Attention design sweep}
+\FloatBarrier
+\subsection{Attention-aggregation design variants}
 
 \begin{table}[ht]
     \centering
-    \tiny
-    \caption{Attention design sweep at 64 hidden channels.}
+    \scriptsize
+    \caption{Attention-aggregation design variants for the 64-channel, 1-focus configuration.}
     \label{tab:sm_attention_64}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+    \begin{tabular}{@{}ccccccc@{}}
         \toprule
-        \textbf{Heads} & \textbf{Attn.} & \textbf{V proj.} &
-        \textbf{O proj.} & \textbf{Pre mix} &
-        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ \\
+        \textbf{No. heads}         & \textbf{Attention}         & \textbf{Value proj.} &
+        \textbf{Output proj.}      & \textbf{Pre Mixing}        &
+        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        1 & yes & no  & no  & no  & \textbf{27.839} & 38.184 \\
-        2 & yes & no  & yes & no  & 28.634 & 38.035 \\
-        1 & yes & yes & yes & no  & 28.656 & 37.688 \\
-        2 & yes & no  & no  & no  & 28.661 & 37.896 \\
-        1 & yes & yes & no  & no  & 28.773 & 37.775 \\
-        2 & yes & yes & yes & yes & 28.811 & 37.168 \\
-        2 & yes & yes & yes & no  & 28.936 & \textbf{36.939} \\
-        2 & yes & yes & no  & no  & 28.958 & 37.056 \\
-        1 & yes & yes & yes & yes & 28.985 & 37.242 \\
-        1 & yes & no  & yes & no  & 29.214 & 38.250 \\
-        0 & no  & no  & no  & no  & 30.691 & 40.072 \\
+        0                          & False                      & $\times$             & $\times$ & $\times$ & 30.691          & 40.072          \\
+        1                          & True                       & False                & False & False & \textbf{27.839} & 38.184          \\
+        1                          & True                       & False                & True  & False & 29.214          & 38.250          \\
+        1                          & True                       & True                 & False & False & 28.773          & 37.775          \\
+        1                          & True                       & True                 & True  & False & 28.656          & 37.688          \\
+        1                          & True                       & True                 & True  & True  & 28.985          & 37.242          \\
+        2                          & True                       & False                & False & False & 28.661          & 37.896          \\
+        2                          & True                       & False                & True  & False & \underline{28.634} & 38.035          \\
+        2                          & True                       & True                 & False & False & 28.958          & \underline{37.056} \\
+        2                          & True                       & True                 & True  & False & 28.936          & \textbf{36.939} \\
+        2                          & True                       & True                 & True  & True  & 28.811          & 37.168          \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
 \end{table}
 
 \begin{table}[ht]
     \centering
-    \tiny
-    \caption{Attention design sweep at 96 hidden channels.}
+    \scriptsize
+    \caption{Attention-aggregation design variants for the 96-channel, 1-focus configuration.}
     \label{tab:sm_attention_96}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+    \begin{tabular}{@{}ccccccc@{}}
         \toprule
-        \textbf{Heads} & \textbf{Attn.} & \textbf{V proj.} &
-        \textbf{O proj.} & \textbf{Pre mix} &
-        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ \\
+        \textbf{No. heads}         & \textbf{Attention}         & \textbf{Value proj.} &
+        \textbf{Output proj.}      & \textbf{Pre Mixing}        &
+        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        1 & yes & no  & no  & no  & \textbf{27.567} & 36.127 \\
-        2 & yes & yes & no  & no  & 27.571 & 36.119 \\
-        3 & yes & yes & no  & no  & 27.593 & 35.639 \\
-        3 & yes & yes & yes & no  & 27.722 & 35.809 \\
-        2 & yes & no  & no  & no  & 27.732 & 36.680 \\
-        2 & yes & yes & yes & no  & 27.968 & \textbf{35.457} \\
-        3 & yes & no  & yes & no  & 28.016 & 36.017 \\
-        2 & yes & no  & yes & no  & 28.074 & 36.288 \\
-        3 & yes & yes & yes & yes & 28.126 & 36.100 \\
-        3 & yes & no  & no  & no  & 28.170 & 36.419 \\
-        1 & yes & no  & yes & no  & 28.301 & 36.065 \\
-        1 & yes & yes & yes & no  & 28.430 & 36.321 \\
-        2 & yes & yes & yes & yes & 28.473 & 35.858 \\
-        1 & yes & yes & no  & no  & 28.578 & 36.350 \\
-        1 & yes & yes & yes & yes & 28.975 & 36.225 \\
-        0 & no  & no  & no  & no  & 30.068 & 38.407 \\
+        0                          & False                      & $\times$             & $\times$ & $\times$ & 30.068          & 38.407          \\
+        1                          & True                       & False                & False & False & \textbf{27.567} & 36.127          \\
+        1                          & True                       & False                & True  & False & 28.301          & 36.065          \\
+        1                          & True                       & True                 & False & False & 28.578          & 36.350          \\
+        1                          & True                       & True                 & True  & False & 28.430          & 36.321          \\
+        1                          & True                       & True                 & True  & True  & 28.975          & 36.225          \\
+        2                          & True                       & False                & False & False & 27.732          & 36.680          \\
+        2                          & True                       & False                & True  & False & 28.074          & 36.288          \\
+        2                          & True                       & True                 & False & False & \underline{27.571} & 36.119          \\
+        2                          & True                       & True                 & True  & False & 27.968          & \textbf{35.457} \\
+        2                          & True                       & True                 & True  & True  & 28.473          & 35.858          \\
+        3                          & True                       & False                & False & False & 28.170          & 36.419          \\
+        3                          & True                       & False                & True  & False & 28.016          & 36.017          \\
+        3                          & True                       & True                 & False & False & 27.593          & \underline{35.639} \\
+        3                          & True                       & True                 & True  & False & 27.722          & 35.809          \\
+        3                          & True                       & True                 & True  & True  & 28.126          & 36.100          \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
 \end{table}
 
 \begin{table}[ht]
     \centering
-    \tiny
-    \caption{Attention design sweep at 96$\times$2 hidden channels.}
+    \scriptsize
+    \caption{Attention-aggregation design variants for the 96-channel, 2-focus configuration.}
     \label{tab:sm_attention_96x2}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+    \begin{tabular}{@{}ccccccc@{}}
         \toprule
-        \textbf{Heads} & \textbf{Attn.} & \textbf{V proj.} &
-        \textbf{O proj.} & \textbf{Pre mix} &
-        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$ \\
+        \textbf{No. heads}         & \textbf{Attention}         & \textbf{Value proj.} &
+        \textbf{Output proj.}      & \textbf{Pre Mixing}        &
+        \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        2 & yes & yes & no  & no  & \textbf{27.814} & \textbf{33.786} \\
-        1 & yes & no  & no  & no  & 28.083 & 34.158 \\
-        1 & yes & yes & yes & no  & 28.212 & 35.045 \\
-        2 & yes & no  & no  & no  & 28.335 & 34.013 \\
-        1 & yes & yes & no  & no  & 28.363 & 34.460 \\
-        6 & yes & yes & yes & no  & 28.397 & 34.541 \\
-        2 & yes & no  & yes & no  & 28.401 & 34.361 \\
-        2 & yes & yes & yes & no  & 28.440 & 34.440 \\
-        1 & yes & no  & yes & no  & 28.449 & 34.508 \\
-        3 & yes & no  & no  & no  & 28.506 & 34.560 \\
-        3 & yes & yes & yes & no  & 28.609 & 34.869 \\
-        4 & yes & yes & yes & yes & 28.736 & 34.603 \\
-        6 & yes & no  & no  & no  & 28.757 & 34.289 \\
-        1 & yes & yes & yes & yes & 28.885 & 35.387 \\
-        3 & yes & yes & no  & no  & 28.907 & 34.412 \\
-        3 & yes & yes & yes & yes & 28.957 & 34.719 \\
-        6 & yes & no  & yes & no  & 28.968 & 34.778 \\
-        2 & yes & yes & yes & yes & 28.968 & 35.507 \\
-        6 & yes & yes & no  & no  & 29.027 & 34.313 \\
-        3 & yes & no  & yes & no  & 29.274 & 34.624 \\
-        6 & yes & yes & yes & yes & 29.483 & 34.889 \\
-        0 & no  & no  & no  & no  & 30.935 & 36.639 \\
+        0                          & False                      & $\times$             & $\times$ & $\times$ & 30.935          & 36.639          \\
+        1                          & True                       & False                & False & False & \underline{28.083} & 34.158          \\
+        1                          & True                       & False                & True  & False & 28.449          & 34.508          \\
+        1                          & True                       & True                 & False & False & 28.363          & 34.460          \\
+        1                          & True                       & True                 & True  & False & 28.212          & 35.045          \\
+        1                          & True                       & True                 & True  & True  & 28.885          & 35.387          \\
+        2                          & True                       & False                & False & False & 28.335          & \underline{34.013} \\
+        2                          & True                       & False                & True  & False & 28.401          & 34.361          \\
+        2                          & True                       & True                 & False & False & \textbf{27.814} & \textbf{33.786} \\
+        2                          & True                       & True                 & True  & False & 28.440          & 34.440          \\
+        2                          & True                       & True                 & True  & True  & 28.968          & 35.507          \\
+        3                          & True                       & False                & False & False & 28.506          & 34.560          \\
+        3                          & True                       & False                & True  & False & 29.274          & 34.624          \\
+        3                          & True                       & True                 & False & False & 28.907          & 34.412          \\
+        3                          & True                       & True                 & True  & False & 28.609          & 34.869          \\
+        3                          & True                       & True                 & True  & True  & 28.957          & 34.719          \\
+        4                          & True                       & True                 & True  & True  & 28.736          & 34.603          \\
+        6                          & True                       & False                & False & False & 28.757          & 34.289          \\
+        6                          & True                       & False                & True  & False & 28.968          & 34.778          \\
+        6                          & True                       & True                 & False & False & 29.027          & 34.313          \\
+        6                          & True                       & True                 & True  & False & 28.397          & 34.541          \\
+        6                          & True                       & True                 & True  & True  & 29.483          & 34.889          \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
 \end{table}
 
+\FloatBarrier
 \subsection{Normalization placement}
 
 \begin{table}[ht]
     \centering
     \scriptsize
     \caption{
-        Normalization-placement ablation.
-        The two names in each variant denote the normalization placement around the
-        SO(2) convolution and FFN subblocks, respectively.
+        Normalization-placement ablation around the SO(2) convolution and FFN
+        subblocks.
     }
     \label{tab:sm_stability}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+    \begin{tabular}{@{}cccccc@{}}
         \toprule
-        \textbf{Variant} &
-        \textbf{E MAE}$\downarrow$ &
-        \textbf{F MAE}$\downarrow$ &
-        \textbf{Train rel.}$\downarrow$ &
-        \textbf{Eval rel.}$\downarrow$ \\
+        \makecell{\textbf{SO(2)}\\\textbf{pre-norm}}  &
+        \makecell{\textbf{SO(2)}\\\textbf{post-norm}} &
+        \makecell{\textbf{FFN}\\\textbf{pre-norm}}    &
+        \makecell{\textbf{FFN}\\\textbf{post-norm}}   &
+        \textbf{E MAE}$\downarrow$                    &
+        \textbf{F MAE}$\downarrow$                                                                      \\
         \midrule
-        pre/pre   & 28.493 & 37.683 & TBD & 1.00 \\
-        post/pre  & \textbf{28.013} & 37.624 & TBD & 1.01 \\
-        pre/post  & 30.237 & 38.608 & TBD & 1.01 \\
-        post/post & 29.321 & \textbf{37.466} & TBD & 1.01 \\
-        pre/both  & 29.322 & 38.548 & TBD & 1.00 \\
-        both/pre  & 28.987 & 38.250 & TBD & 1.00 \\
-        post/both & 28.808 & 37.840 & TBD & 1.01 \\
-        both/post & 29.841 & 39.068 & TBD & 1.00 \\
-        both/both & 30.215 & 39.208 & TBD & 1.02 \\
+        True                                               & False & True  & False & \underline{28.493} & 37.683          \\
+        False                                              & True  & True  & False & \textbf{28.013} & \underline{37.624} \\
+        True                                               & False & False & True  & 30.237          & 38.608          \\
+        False                                              & True  & False & True  & 29.321          & \textbf{37.466} \\
+        True                                               & False & True  & True  & 29.322          & 38.548          \\
+        True                                               & True  & True  & False & 28.987          & 38.250          \\
+        False                                              & True  & True  & True  & 28.808          & 37.840          \\
+        True                                               & True  & False & True  & 29.841          & 39.068          \\
+        True                                               & True  & True  & True  & 30.215          & 39.208          \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
 \end{table}
 
-\subsection{Scheduler comparison}
+\FloatBarrier
+\subsection{Learning-rate scheduler comparison}
 
 \begin{table}[ht]
     \centering
     \scriptsize
     \caption{
-        Scheduler comparison between cosine decay and WSD.
+        Learning-rate scheduler comparison.
     }
     \label{tab:sm_training_recipe}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+    \begin{tabular}{@{}ccc@{}}
         \toprule
-        \textbf{Variant} &
-        \textbf{E MAE}$\downarrow$ &
-        \textbf{F MAE}$\downarrow$ &
-        \textbf{Train rel.}$\downarrow$ &
-        \textbf{Eval rel.}$\downarrow$ \\
+        \textbf{Scheduler}             &
+        \textbf{E MAE}$\downarrow$     &
+        \textbf{F MAE}$\downarrow$                                                        \\
         \midrule
-        cosine & 28.638 & 38.607 & TBD & 1.00 \\
-        WSD    & \textbf{27.828} & \textbf{37.022} & TBD & 1.02 \\
+        Cosine                          & \underline{28.638} & \underline{38.607} \\
+        WSD                             & \textbf{27.828} & \textbf{37.022} \\
         \bottomrule
-    \end{tabular*}
+    \end{tabular}
+\end{table}
+
+\FloatBarrier
+\section{Model and training configurations}
+
+This section documents the architectural and training settings used to generate
+the supplementary and main-text ablation results. The ablation experiments share
+a common training and evaluation protocol except for the controlled factors
+listed in Table~\ref{tab:sm_ablation_varied_config}. Complete configurations
+for benchmark-scale models will be reported in the same section when those
+experiments are finalized.
+
+\subsection{Ablation model configurations}
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \caption{Shared training and evaluation configuration for the ablation experiments.}
+    \label{tab:sm_ablation_shared_config}
+    \begin{tabular}{@{}cc@{}}
+        \toprule
+        \textbf{Configuration item} & \textbf{Setting} \\
+        \midrule
+        Evaluation dataset          & WBM subsample \\
+        Training data               & TBD \\
+        Model family                & DPA4 \\
+        Cutoff radius               & TBD \\
+        Batch size                  & TBD \\
+        Optimizer                   & TBD \\
+        Base learning rate          & TBD \\
+        Learning-rate schedule      & TBD \\
+        Training precision          & TBD \\
+        Hardware                    & NVIDIA H20 \\
+        Training length             & TBD \\
+        Evaluation checkpoint       & TBD \\
+        Evaluation protocol         & DeePMD-kit \texttt{dp test} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \caption{Controlled configuration fields varied in the ablation experiments.}
+    \label{tab:sm_ablation_varied_config}
+    \begin{tabular}{@{}ccc@{}}
+        \toprule
+        \textbf{Ablation family} & \textbf{Varied configuration field} & \textbf{Reference} \\
+        \midrule
+        Interaction-block depth      & Number of interaction blocks & Table~\ref{tab:sm_layers} \\
+        SO(2)-stack depth            & Number of SO(2) layers per block & Table~\ref{tab:sm_so2_stack} \\
+        Attention-aggregation design & Number of heads, projections, and pre mixing & Tables~\ref{tab:sm_attention_64}--\ref{tab:sm_attention_96x2} \\
+        Normalization placement      & SO(2) and FFN pre-/post-normalization & Table~\ref{tab:sm_stability} \\
+        Learning-rate scheduler      & Scheduler type & Table~\ref{tab:sm_training_recipe} \\
+        \bottomrule
+    \end{tabular}
 \end{table}
