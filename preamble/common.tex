@@ -1,0 +1,31 @@
+% Common packages and macros shared by all manuscript entry points.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[version=4]{mhchem}
+\usepackage[flushleft]{threeparttable}
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{makecell}
+\usepackage{siunitx}
+\usepackage{setspace}
+\usepackage{array}
+\usepackage{bm}
+\usepackage{wrapfig}
+\usepackage{placeins}
+\usepackage{fix-cm}
+
+\newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
+\newcolumntype{C}[1]{>{\PreserveBackslash\centering}p{#1}}
+\newcolumntype{R}[1]{>{\PreserveBackslash\raggedleft}p{#1}}
+\newcolumntype{L}[1]{>{\PreserveBackslash\raggedright}p{#1}}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\WH}[1]{{\color{red}[WH: #1]}}
+\newcommand{\ZD}[1]{{\color{blue}[ZD: #1]}}
+\newcommand{\AP}[1]{{\color{green}[AP: #1]}}
+\newcommand{\recheck}[1]{{\color{black}#1}}
+% \newcommand{\recheck}[1]{{\color{red}#1}}

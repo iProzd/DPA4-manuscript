@@ -1,0 +1,44 @@
+\section{Introduction}
+
+Machine learning interatomic potentials (MLIPs) have established themselves as near-linear-cost surrogates for density functional theory (DFT), enabling atomistic simulations at previously inaccessible time and length scales~\cite{behler2007generalized,bartok2010gaussian,zhang2018deep,batzner2022nequip,batatia2022mace}.
+The recent generation of large atomistic models (LAMs) further demonstrates that a single model, trained on millions of DFT calculations, can transfer across diverse chemistry with competitive accuracy~\cite{batatia2023foundation,zhang2025dpa3}.
+For example, DPA3~\cite{zhang2025dpa3} established an invariant multi-layer graph neural network on line-graph series (LiGS) with smooth and conservative energy guarantees, and showed that the generalization error of this model family follows a scaling law with training data and model size.
+
+Despite this progress, three tensions in the current MLIP design space have become apparent.
+\emph{(a) Accuracy ceiling.}
+SO(3)-equivariant models such as MACE~\cite{batatia2022mace}, NequIP~\cite{batzner2022nequip}, and EquiformerV2~\cite{liao2023equiformerv2} achieve the highest accuracy on small-molecule AIMD benchmarks (rMD17, 3BPA), a gap that DPA3 itself acknowledges in its Discussion section.
+However, their accuracy comes at a steep computational price: the Clebsch--Gordan tensor products required by full SO(3) equivariance scale as $\mathcal{O}(L^6)$ in the maximum spherical-harmonic order $L$, making large models and long simulations expensive.
+Invariant models like DPA3 avoid this cost but leave accuracy on the table for conformationally rich molecular systems.
+\emph{(b) Compute bottleneck.}
+DPA3 saturates the memory of an A800 80\,GB GPU at moderate model size, and the existing implementation is incompatible with \texttt{torch.compile} due to dynamic neighbor counts, in-place graph buffer updates, and Python control flow on the hot path.
+There is therefore no straightforward route to deliver matched accuracy at lower memory and higher throughput within the existing design.
+\emph{(c) Physical robustness at short range.}
+Existing LAMs, including DPA3 and MACE-MP-0~\cite{batatia2023foundation}, handle short-range nuclear repulsion either through data-driven extrapolation (which is unreliable under extreme conditions) or through post-hoc Ziegler--Biersack--Littmark (ZBL) wrappers applied outside the neural network.
+Such wrappers introduce a discontinuity in the coupling and can break $C^2$ smoothness or the conservation property of the underlying model, rendering them unsuitable for high-energy collision and radiation-damage simulations.
+
+Here we present DPA4, an interatomic potential architecture that addresses all three tensions simultaneously.
+Our contributions are as follows.
+\begin{enumerate}
+  \item \textbf{SO(2)-equivariant local-frame architecture with attention.}
+    For each directed edge $(i,j)$, we construct a local coordinate frame whose $z$-axis aligns with the bond direction $\hat{r}_{ij}$; the residual rotation symmetry in this frame is the abelian group SO(2), not SO(3).
+    Equivariant operations under SO(2) are diagonal in the angular-order basis $\{e^{im\theta}\}$ and incur only $\mathcal{O}(d \cdot m_{\max})$ cost per edge---comparable to invariant models---while retaining the expressiveness advantage of equivariant features over multi-body tasks.
+    This approach, inspired by the eSCN framework~\cite{passaro2023reducing}, is combined with multi-head attention over SO(2)-invariant ($m=0$) channels to capture long-range many-body context within each message-passing step.
+    DPA4 thereby achieves accuracy competitive with full SO(3) models (MACE, eSEN~\cite{fu2025esen}) at a cost comparable to invariant models.
+  \item \textbf{End-to-end \texttt{torch.compile} training.}
+    The algorithmic gain from replacing CG tensor products with diagonal SO(2) operations, combined with a padded-neighbor representation that eliminates dynamic shapes, makes DPA4 fully compatible with \texttt{torch.compile}.
+    The conservative-force training path requires second-order coordinate derivatives; DPA4 solves the resulting \texttt{autograd}/Inductor incompatibility by capturing the inner \texttt{autograd.grad} as ordinary FX nodes via \texttt{make\_fx} symbolic tracing before compilation.
+    Together, these changes yield \textbf{2--3$\times$} wall-clock training speedup over eager execution at matched accuracy, with the model running without modification on commodity hardware (RTX 4090, V100) in addition to data-centre accelerators.
+  \item \textbf{Native ZBL zone bridging.}
+    DPA4 introduces a two-component \emph{Zone Bridging} framework: (i) \textbf{InnerClamp}, a $C^3$ septic Hermite distance saturation that closes the scalar-distance leakage channel, and (ii) \textbf{SFPG} (Source Freeze Propagation Gate), a per-node multiplicative gate that is zero whenever any neighbour enters the bridging window, closing both the direction channel and the multi-hop propagation channel.
+    Together they guarantee that $E^{\mathrm{NN}}$ is strictly constant under motions of short-range pairs, so differentiating the total energy $E^{\mathrm{ZBL}} + E^{\mathrm{NN}}(\tilde{r})$ recovers pure ZBL forces in the bridging zone.
+    The combined PES is $C^3$ in atomic coordinates everywhere.
+    This design extends DPA4's domain of validity to high-energy collisions, radiation-damage cascades, and compression/melting without any post-hoc modification.
+\end{enumerate}
+DPA4 achieves the highest composite performance score (CPS) on Matbench Discovery~\cite{riebesell2025matbench} among compliant models, state-of-the-art energy accuracy on SPICE-MACE-OFF and TorsionNet-500, and surpasses DPA3 and MACE on small-molecule AIMD benchmarks (rMD17, 3BPA), while requiring [TODO: X$\times$] fewer GPU-hours to reach matched WBM energy MAE.
+We note that DPA4 is presented here as a single-task, per-dataset model; multi-task dataset encoding and foundation-model pre-training are left to follow-up work.
+
+The remainder of the paper is organized as follows.
+Section~\ref{sec:results} presents all benchmark results, beginning with the efficiency--accuracy Pareto analysis (Fig.~1), followed by Matbench Discovery and small-molecule benchmarks, training and inference efficiency, and the ZBL coupling case study.
+Section~\ref{sec:methods} describes the DPA4 architecture in full mathematical detail and specifies datasets and training protocols.
+
+% =============================================================
