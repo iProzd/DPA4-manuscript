@@ -22,27 +22,36 @@ highlighted best value or when multiple rows are tied for the best value.
 
 \subsubsection{Compilation and training precision}
 
-This ablation tests the effect of enabling \texttt{torch.compile} together with
-the training-precision choices used by DPA4. We separate three factors: graph
-compilation, bfloat16 automatic mixed precision (AMP), and TF32 tensor-core
-matmul. As a graph-level execution transformation, \texttt{torch.compile} does
-not change the model equations; correspondingly, the reported compiled
-configurations do not show a visible accuracy loss attributable to compilation.
-Table~\ref{tab:dpa4_compile_ablation} shows that bf16 AMP reduces the training
-time by approximately 30\% and peak training memory by approximately 59\%
-relative to the non-compiled FP32 baseline. In the compiled setting, bf16 AMP
-preserves the WBM MAE of the FP32 run while reducing training time by
-approximately 48\% and peak training memory by approximately 48\%. This
-stability is consistent with the implementation: numerically sensitive
-operations, including geometric preprocessing and normalization operations such
-as RMSNorm, are kept in FP32 while large autocast-eligible matrix operations
-use bf16. Combining \texttt{torch.compile} with bf16 AMP gives the largest
-overall efficiency gain, with approximately 68\% lower training time and
-approximately 60\% lower peak training memory than the baseline. Enabling TF32
-on top of bf16 AMP provides no measurable efficiency benefit because most
-matrix operations already execute in bf16 under AMP; the small MAE differences
-between the TF32 and non-TF32 rows are within the expected run-to-run variation
-and are not interpreted as a systematic accuracy effect.
+This ablation quantifies the efficiency contribution of graph compilation and
+reduced-precision tensor-core execution. Relative to the non-compiled FP32
+baseline, bf16 AMP alone reduces training time by approximately 30\% and peak
+training memory by approximately 59\%, reflecting the lower arithmetic and
+activation-storage cost of bf16 execution. \texttt{torch.compile} provides an
+orthogonal systems-level acceleration: in the FP32 setting without AMP or TF32,
+compilation reduces training time by approximately 38\% and peak training
+memory by approximately 23\%. When TF32 is enabled in this compiled FP32 path,
+training time is further reduced from 0.62 to 0.55, an additional speedup of
+approximately 11\%, consistent with tensor-core acceleration of FP32 matmul
+operations. This TF32 setting does not reduce memory because TF32 changes the
+matmul execution format rather than the stored tensor precision. The strongest
+overall efficiency is obtained by combining \texttt{torch.compile} with bf16
+AMP, which reduces training time by approximately 68\% and peak training memory
+by approximately 60\% relative to the FP32 baseline. Enabling TF32 on top of
+bf16 AMP gives no further measurable gain, as the dominant matrix operations
+already execute in bf16 under autocast.
+
+The same comparison shows that these execution choices do not produce a visible
+loss in predictive accuracy. Although \texttt{torch.compile} preserves the
+mathematical computation graph, it may change the numerical execution path
+through kernel fusion, hardware-specific kernel selection, reduction ordering,
+and tensor-core dispatch. AMP and TF32 similarly alter the effective arithmetic
+used by eligible matrix operations. Small floating-point differences are
+therefore expected because finite-precision arithmetic is not strictly
+associative. DPA4 controls this numerical sensitivity by keeping geometric
+preprocessing and normalization operations such as RMSNorm in FP32, while
+allowing large matrix operations to use bf16 or TF32 where appropriate. The
+observed MAE differences remain small relative to run-to-run variation and are
+therefore not interpreted as systematic accuracy degradation.
 
 \begin{table}[t]
     \centering
@@ -50,30 +59,56 @@ and are not interpreted as a systematic accuracy effect.
     \begin{threeparttable}
         \caption{\texttt{torch.compile} and training-precision ablations.\tnote{a}}
         \label{tab:dpa4_compile_ablation}
-        \begin{tabular}{@{}cccccccc@{}}
+        \begin{tabular}{@{}ccccccc@{}}
             \toprule
-            \textbf{Compile}                      &
-            \textbf{AMP}                          &
-            \textbf{TF32}                         &
-            \textbf{E MAE}$\downarrow$            &
-            \textbf{F MAE}$\downarrow$            &
-            \textbf{Train (rel.)}$\downarrow$     &
-            \textbf{Test time (rel.)}$\downarrow$ &
-            \makecell{\textbf{Peak train}\\\textbf{mem. (rel.)}$\downarrow$}                                                                    \\
+            \textbf{Compile}                  &
+            \textbf{AMP}                      &
+            \textbf{TF32}                     &
+            \textbf{E MAE}$\downarrow$        &
+            \textbf{F MAE}$\downarrow$        &
+            \textbf{Train (rel.)}$\downarrow$ &
+            \makecell{\textbf{Peak train}\\\textbf{mem. (rel.)}$\downarrow$}                                       \\
             \midrule
-            False                                 & False & $\times$ & TBD             & TBD             & 1.00          & TBD  & 1.00          \\
-            False                                 & True  & $\times$ & TBD             & TBD             & 0.70          & TBD  & 0.41          \\
-            True                                  & False & False    & \textbf{28.012} & \textbf{37.458} & 0.62          & 1.02 & 0.77          \\
-            True                                  & True  & False    & 28.108          & \underline{37.595} & \textbf{0.32} & 1.00 & \textbf{0.40} \\
-            True                                  & True  & True     & \underline{28.051} & 38.224          & \textbf{0.32} & 1.01 & \textbf{0.40} \\
+            False                             & False & $\times$ & TBD    & TBD    & 1.00          & 1.00          \\
+            False                             & True  & $\times$ & TBD    & TBD    & 0.70          & 0.41          \\
+            True                              & False & False    & 28.012 & 37.458 & 0.62          & 0.77          \\
+            True                              & False & True     & TBD    & TBD    & 0.55          & 1.00          \\
+            True                              & True  & False    & 28.108 & 37.595 & \textbf{0.32} & \textbf{0.40} \\
+            True                              & True  & True     & 28.051 & 38.224 & \textbf{0.32} & \textbf{0.40} \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}
             \item[a] Train time and peak train memory are normalized to the no-compile, no-AMP
             baseline measured on NVIDIA H20 hardware. Peak train memory denotes peak GPU
-            memory during training. Test time is normalized to the compiled AMP/no-TF32
-            row. The $\times$ symbol indicates that TF32 tensor cores are not applicable
-            for the non-compiled execution path.
+            memory during training. The $\times$ symbol indicates that TF32 tensor cores
+            are not applicable for the non-compiled execution path.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \scriptsize
+    \begin{threeparttable}
+        \caption{Practical training-cost comparison, with FP32 training as 100\%.\tnote{a}}
+        \label{tab:dpa4_compile_ablation_public}
+        {\renewcommand{\arraystretch}{1.12}
+            \begin{tabular}{@{}lcccc@{}}
+                \toprule
+                \textbf{Training mode}                                  &
+                \makecell{\textbf{Compile}\\\textbf{acceleration}}      &
+                \makecell{\textbf{BF16 AMP}\\\textbf{mixed precision}}  &
+                \makecell{\textbf{Training}\\\textbf{time}$\downarrow$} &
+                \makecell{\textbf{Peak GPU}\\\textbf{memory}$\downarrow$}                                           \\
+                \midrule
+                FP32 baseline                                           & Off & Off & 100\%         & 100\%         \\
+                BF16 autocast                                           & Off & On  & 70\%          & 41\%          \\
+                Compile                                                 & On  & Off & 62\%          & 77\%          \\
+                Compile + BF16 autocast                                 & On  & On  & \textbf{32\%} & \textbf{40\%} \\
+                \bottomrule
+            \end{tabular}}
+        \begin{tablenotes}
+            \item[a] Measured on NVIDIA H20 hardware.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -105,16 +140,16 @@ equivariance of the higher-order SO(2) features.
             \textbf{E MAE}$\downarrow$        &
             \textbf{F MAE}$\downarrow$        &
             \textbf{Train (rel.)}$\downarrow$ &
-            \textbf{Test time (rel.)}$\downarrow$                                                                            \\
+            \textbf{Test time (rel.)}$\downarrow$                                                                                  \\
             \midrule
             64                                & 1 & Scatter Sum            & \underline{30.691} & \underline{40.072} & 1.00 & 1.00 \\
-            64                                & 1 & Attention Weighted Sum & \textbf{27.839} & \textbf{38.184} & 1.05 & 1.01 \\
+            64                                & 1 & Attention Weighted Sum & \textbf{27.839}    & \textbf{38.184}    & 1.05 & 1.01 \\
             \midrule
             96                                & 1 & Scatter Sum            & \underline{30.068} & \underline{38.407} & 1.00 & 1.00 \\
-            96                                & 1 & Attention Weighted Sum & \textbf{27.567} & \textbf{36.127} & 1.05 & 1.05 \\
+            96                                & 1 & Attention Weighted Sum & \textbf{27.567}    & \textbf{36.127}    & 1.05 & 1.05 \\
             \midrule
             96                                & 2 & Scatter Sum            & \underline{30.935} & \underline{36.639} & 1.00 & 1.00 \\
-            96                                & 2 & Attention Weighted Sum & \textbf{28.083} & \textbf{34.158} & 1.06 & 1.02 \\
+            96                                & 2 & Attention Weighted Sum & \textbf{28.083}    & \textbf{34.158}    & 1.06 & 1.02 \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}
@@ -161,17 +196,17 @@ before the rotate-back step.
             \textbf{F MAE}$\downarrow$            &
             \textbf{Train (rel.)}$\downarrow$     &
             \textbf{Test time (rel.)}$\downarrow$ &
-            \textbf{Params}                                                                                           \\
+            \textbf{Params}                                                                                                 \\
             \midrule
-            64                                    & 1 & 64  & 29.418          & 39.529          & 1.00 & 1.00 & 1.9M  \\
-            96                                    & 1 & 96  & 28.671          & 38.333          & 1.37 & 1.49 & 4.1M  \\
-            64                                    & 2 & 128 & 28.126          & 38.123          & 1.55 & 1.55 & 3.2M  \\
-            128                                   & 1 & 128 & 28.708          & 37.882          & 1.80 & 1.86 & 7.3M  \\
-            64                                    & 3 & 192 & 27.890          & 37.283          & 1.95 & 2.14 & 4.5M  \\
-            96                                    & 2 & 192 & \textbf{26.994} & \textbf{36.408} & 2.28 & 2.54 & 7.0M  \\
-            192                                   & 1 & 192 & 27.286          & 36.477          & 2.98 & 3.86 & 16.0M \\
-            64                                    & 4 & 256 & 27.821          & 37.605          & 2.43 & 2.65 & 5.7M  \\
-            256                                   & 1 & 256 & 28.409          & 36.670          & 4.50 & 5.17 & 28.4M \\
+            64                                    & 1 & 64  & 29.418             & 39.529             & 1.00 & 1.00 & 1.9M  \\
+            96                                    & 1 & 96  & 28.671             & 38.333             & 1.37 & 1.49 & 4.1M  \\
+            64                                    & 2 & 128 & 28.126             & 38.123             & 1.55 & 1.55 & 3.2M  \\
+            128                                   & 1 & 128 & 28.708             & 37.882             & 1.80 & 1.86 & 7.3M  \\
+            64                                    & 3 & 192 & 27.890             & 37.283             & 1.95 & 2.14 & 4.5M  \\
+            96                                    & 2 & 192 & \textbf{26.994}    & \textbf{36.408}    & 2.28 & 2.54 & 7.0M  \\
+            192                                   & 1 & 192 & 27.286             & 36.477             & 2.98 & 3.86 & 16.0M \\
+            64                                    & 4 & 256 & 27.821             & 37.605             & 2.43 & 2.65 & 5.7M  \\
+            256                                   & 1 & 256 & 28.409             & 36.670             & 4.50 & 5.17 & 28.4M \\
             96                                    & 3 & 288 & \underline{27.168} & \underline{36.429} & 3.25 & 3.62 & 9.8M  \\
             \bottomrule
         \end{tabular}
@@ -183,55 +218,53 @@ before the rotate-back step.
     \end{threeparttable}
 \end{table}
 
-\subsubsection{Edge-conditioned radial degree mixing}
+\subsubsection{Radial edge modulation}
 
-Edge-conditioned radial degree mixing tests whether radial features should only
-scale each angular degree independently or should also mix neighbouring degrees
-in the local SO(2) frame. The diagonal modulation baseline multiplies each
-coefficient by its degree-specific radial feature. The channel-shared dynamic
-kernel instead mixes input degrees into output degrees with weights predicted
-from the edge radial embedding and shared across channels. Sharing the kernel
-across channels leaves the energy MAE essentially unchanged but reduces force
-MAE from 38.349 to 37.212~meV/\AA{}. Introducing a low-rank channel-specific
-kernel further improves the completed runs: rank 1 reduces force MAE to
-35.689~meV/\AA{}, whereas rank 4 gives the best observed energy MAE of
-26.556~meV/atom. The cost, however, increases with rank: rank 4 requires
-1.86$\times$ the training time of the diagonal baseline. These results indicate
-that dynamic radial degree mixing improves the force-sensitive angular
-response, and that low-rank channel specificity provides additional accuracy at
-a controllable but non-negligible training cost. Higher-rank and full kernels
-require completed accuracy measurements before their accuracy--cost trade-offs
-can be interpreted.
+Radial edge modulation tests how edge-dependent radial information should act
+on the local SO(2) coefficients. The baseline without degree modulation applies
+an independent radial scaling to each angular degree. Degree modulation instead
+uses the edge radial embedding to couple input and output degrees in the local
+SO(2) frame. The shared degree-modulated kernel leaves the energy MAE
+essentially unchanged but reduces force MAE from 38.349 to 37.212~meV/\AA{}.
+Adding per-channel modulation with a low-rank kernel further improves the
+completed runs: rank 1 reduces force MAE to 35.689~meV/\AA{}, whereas rank 4
+gives the best observed energy MAE of 26.556~meV/atom. The cost, however,
+increases with rank: rank 4 requires 1.86$\times$ the training time of the
+baseline. These results indicate that degree-wise radial edge modulation
+improves the force-sensitive angular response, and that per-channel modulation
+provides additional accuracy at a controllable but non-negligible training
+cost. Higher-rank and full kernels require completed accuracy measurements
+before their accuracy--cost trade-offs can be interpreted.
 
 \begin{table}[t]
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of edge-conditioned radial degree mixing.\tnote{a}}
+        \caption{Ablation of radial edge modulation.\tnote{a}}
         \label{tab:dpa4_radial_degree_ablation}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
-            \textbf{Radial Operation} &
-            \textbf{Channel Specific} &
+            \textbf{Radial edge mod.} &
+            \textbf{Per-channel mod.} &
             \textbf{Rank} &
             \textbf{E MAE}$\downarrow$ &
             \textbf{F MAE}$\downarrow$ &
             \textbf{Train (rel.)}$\downarrow$ &
             \textbf{Test time (rel.)}$\downarrow$ \\
             \midrule
-            Diagonal Modulation & None & -- & 28.493 & 38.349 & 1.00 & 1.00 \\
-            Dynamic Degree Mixing & Shared & -- & 28.494 & 37.212 & 1.09 & 1.06 \\
-            Dynamic Degree Mixing & Per Channel & 1 & 27.611 & \underline{35.689} & 1.12 & 1.10 \\
-            Dynamic Degree Mixing & Per Channel & 2 & \underline{26.983} & 36.127 & 1.66 & 1.13 \\
-            Dynamic Degree Mixing & Per Channel & 4 & \textbf{26.556} & \textbf{35.675} & 1.86 & 1.14 \\
-            Dynamic Degree Mixing & Per Channel & 8 & TBD & TBD & 2.27 & 1.19 \\
-            Dynamic Degree Mixing & Per Channel & 16 & TBD & TBD & 3.09 & TBD \\
-            Dynamic Degree Mixing & Per Channel & Full & TBD & TBD & 3.36 & TBD \\
+            None & False & -- & 28.493 & 38.349 & 1.00 & 1.00 \\
+            Degree & False & -- & 28.494 & 37.212 & 1.09 & 1.06 \\
+            Degree & True & 1 & 27.611 & \underline{35.689} & 1.12 & 1.10 \\
+            Degree & True & 2 & \underline{26.983} & 36.127 & 1.66 & 1.13 \\
+            Degree & True & 4 & \textbf{26.556} & \textbf{35.675} & 1.86 & 1.14 \\
+            Degree & True & 8 & TBD & TBD & 2.27 & 1.19 \\
+            Degree & True & 16 & TBD & TBD & 3.09 & TBD \\
+            Degree & True & Full & TBD & TBD & 3.36 & TBD \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
             \item[a] Train time and test time are normalized to the diagonal-modulation baseline.
-            Rank 8 and larger Per Channel rows are timing-only placeholders and are not
+            Rank 8 and larger per-channel rows are timing-only placeholders and are not
             used for accuracy conclusions.
         \end{tablenotes}
     \end{threeparttable}
@@ -243,18 +276,18 @@ This ablation separates two coupled design choices in the spherical-grid
 nonlinearity: the model component to which S2 activation is applied and the
 quadrature rule used to project grid features back to equivariant coefficients.
 When S2 activation is restricted to the FFN component, replacing the e3nn
-product grid with the Lebedev rule slightly reduces the energy MAE while leaving
-the force MAE and computational cost essentially unchanged. Applying S2
+product grid with the Lebedev rule slightly reduces the energy MAE while
+leaving the force MAE and computational cost essentially unchanged. Applying S2
 activation additionally inside the SO(2) convolution component does not improve
 the overall accuracy--cost trade-off under this setting; with the e3nn product
-grid, both MAEs increase and the relative training and inference costs more than
-double. In this expanded activation configuration, Lebedev quadrature reduces
-the energy error and lowers the relative training and inference costs compared
-with the e3nn product grid, although the force MAE remains higher than in the
-FFN-only configuration. These results indicate that the main benefit comes from
-retaining S2 activation in the FFN component, while Lebedev quadrature provides
-a more favorable projection rule when spherical-grid nonlinearities are used in
-equivariant branches.
+grid, both MAEs increase and the relative training and inference costs more
+than double. In this expanded activation configuration, Lebedev quadrature
+reduces the energy error and lowers the relative training and inference costs
+compared with the e3nn product grid, although the force MAE remains higher than
+in the FFN-only configuration. These results indicate that the main benefit
+comes from retaining S2 activation in the FFN component, while Lebedev
+quadrature provides a more favorable projection rule when spherical-grid
+nonlinearities are used in equivariant branches.
 
 \begin{table}[t]
     \centering
@@ -270,12 +303,12 @@ equivariant branches.
             \textbf{E MAE}$\downarrow$        &
             \textbf{F MAE}$\downarrow$        &
             \textbf{Train (rel.)}$\downarrow$ &
-            \textbf{Test time (rel.)}$\downarrow$                                                                \\
+            \textbf{Test time (rel.)}$\downarrow$                                                                      \\
             \midrule
-            False                             & True & e3nn    & \underline{29.225} & \textbf{38.055} & 1.00 & 1.00 \\
-            False                             & True & lebedev & \textbf{28.992} & \underline{38.103} & 0.98 & 1.01 \\
-            True                              & True & e3nn    & 31.074          & 39.522          & 2.41 & 2.23 \\
-            True                              & True & lebedev & 29.709          & 39.808          & 1.98 & 1.76 \\
+            False                             & True & e3nn    & \underline{29.225} & \textbf{38.055}    & 1.00 & 1.00 \\
+            False                             & True & lebedev & \textbf{28.992}    & \underline{38.103} & 0.98 & 1.01 \\
+            True                              & True & e3nn    & 31.074             & 39.522             & 2.41 & 2.23 \\
+            True                              & True & lebedev & 29.709             & 39.808             & 1.98 & 1.76 \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}
