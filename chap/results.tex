@@ -9,11 +9,10 @@
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
 
-% TODO: Fig. 2 --- main architecture figure (4 panels):
+% TODO: Fig. 2 --- main architecture figure:
 %   (a) overall block diagram
 %   (b) SO(2)-equivariant local-frame edge update
-%   (c) attention block
-%   (d) ZBL coupling branch
+%   (c) SO(2) multi-focus convolution
 %
 % TODO: write 3 short paragraphs.
 %
@@ -52,7 +51,7 @@
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{fig/fig2_combined.png}
+    \includegraphics[width=\textwidth]{fig/fig2_simplified.pdf}
     \caption{
         Overview of the DPA4 architecture.
         (a) The full model combines a shared edge cache, geometry-aware input
@@ -63,8 +62,6 @@
         (c) Each SO(2) multi-focus convolution rotates features to an edge-local
         frame, applies radial modulation and focus competition, and aggregates
         messages after rotating them back.
-        (d) Smooth gated attention operates on scalar channels and modulates edge
-        messages without breaking equivariance.
     }
     \label{fig:arch}
 \end{figure}
