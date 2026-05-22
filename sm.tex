@@ -37,7 +37,8 @@ reported, are normalized within each controlled group under matched H20
 hardware, batch-size, data-loading, and precision settings. The same
 rank-highlighting convention is used: boldface and underlining denote the best
 and second-best values only for metrics in which ranking is explicitly
-highlighted.
+highlighted. N/A denotes a parameter or option that is not applicable to the
+corresponding setting.
 
 \subsection{Layers}
 
@@ -80,7 +81,7 @@ highlighted.
     \centering
     \scriptsize
     \caption{
-        SO(2)-stack depth inside each interaction block.
+        SO(2) layers per interaction block.
         Deeper edge-local processing improves accuracy but increases evaluation
         cost, so this search is treated as capacity tuning rather than a main
         architectural ablation.
@@ -111,11 +112,11 @@ highlighted.
     \label{tab:sm_attention_64}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
         \toprule
-        \textbf{No. heads}         & \textbf{Attention}         & \textbf{Value proj.} &
-        \textbf{Output proj.}      & \textbf{Pre Mixing}        &
+        \textbf{Attn. heads}       & \textbf{Attention}         & \textbf{Value proj.} &
+        \textbf{Output proj.}      & \textbf{Pre mixing}        &
         \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        0                          & False                      & $\times$             & $\times$ & $\times$ & 30.691          & 40.072          \\
+        0                          & False                      & N/A                  & N/A   & N/A   & 30.691          & 40.072          \\
         1                          & True                       & False                & False & False & \textbf{27.839} & 38.184          \\
         1                          & True                       & False                & True  & False & 29.214          & 38.250          \\
         1                          & True                       & True                 & False & False & 28.773          & 37.775          \\
@@ -137,11 +138,11 @@ highlighted.
     \label{tab:sm_attention_96}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
         \toprule
-        \textbf{No. heads}         & \textbf{Attention}         & \textbf{Value proj.} &
-        \textbf{Output proj.}      & \textbf{Pre Mixing}        &
+        \textbf{Attn. heads}       & \textbf{Attention}         & \textbf{Value proj.} &
+        \textbf{Output proj.}      & \textbf{Pre mixing}        &
         \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        0                          & False                      & $\times$             & $\times$ & $\times$ & 30.068          & 38.407          \\
+        0                          & False                      & N/A                  & N/A   & N/A   & 30.068          & 38.407          \\
         1                          & True                       & False                & False & False & \textbf{27.567} & 36.127          \\
         1                          & True                       & False                & True  & False & 28.301          & 36.065          \\
         1                          & True                       & True                 & False & False & 28.578          & 36.350          \\
@@ -168,11 +169,11 @@ highlighted.
     \label{tab:sm_attention_96x2}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
         \toprule
-        \textbf{No. heads}         & \textbf{Attention}         & \textbf{Value proj.} &
-        \textbf{Output proj.}      & \textbf{Pre Mixing}        &
+        \textbf{Attn. heads}       & \textbf{Attention}         & \textbf{Value proj.} &
+        \textbf{Output proj.}      & \textbf{Pre mixing}        &
         \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        0                          & False                      & $\times$             & $\times$ & $\times$ & 30.935          & 36.639          \\
+        0                          & False                      & N/A                  & N/A   & N/A   & 30.935          & 36.639          \\
         1                          & True                       & False                & False & False & \underline{28.083} & 34.158          \\
         1                          & True                       & False                & True  & False & 28.449          & 34.508          \\
         1                          & True                       & True                 & False & False & 28.363          & 34.460          \\
@@ -205,8 +206,7 @@ highlighted.
     \centering
     \scriptsize
     \caption{
-        Normalization-placement ablation around the SO(2) convolution and FFN
-        subblocks.
+        SO(2) and FFN normalization-placement ablation.
     }
     \label{tab:sm_stability}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccc@{}}
@@ -243,11 +243,11 @@ highlighted.
     \label{tab:sm_training_recipe}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccc@{}}
         \toprule
-        \textbf{Scheduler}             &
+        \textbf{LR scheduler}          &
         \textbf{E MAE}$\downarrow$     &
         \textbf{F MAE}$\downarrow$                                                        \\
         \midrule
-        Cosine                          & \underline{28.638} & \underline{38.607} \\
+        Cosine                          & 28.638          & 38.607          \\
         WSD                             & \textbf{27.828} & \textbf{37.022} \\
         \bottomrule
     \end{tabular*}
@@ -269,16 +269,16 @@ adding category labels to the table body.
     \centering
     \scriptsize
     \setlength{\tabcolsep}{3pt}
-    \caption{Hyperparameters for the main-text ablation experiments.}
+    \caption{Main-text ablation hyperparameters.}
     \label{tab:sm_main_ablation_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.9cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}@{}}
             \toprule
             \textbf{Hyperparameter} &
-            \makecell{\textbf{Compile/}\\\textbf{prec.}} &
+            \makecell{\textbf{Compile/}\\\textbf{precision}} &
             \textbf{Attention} &
             \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} &
-            \makecell{\textbf{Radial}\\\textbf{mod.}} &
+            \makecell{\textbf{Radial}\\\textbf{coupling}} &
             \makecell{\textbf{S2/}\\\textbf{quadrature}} \\
             \midrule
             Feature dim. & 64 & 64/96/96 & -- & 64 & 64 \\
@@ -287,11 +287,11 @@ adding category labels to the table body.
             SO(2) layers & 4 & 4 & 4 & 4 & 4 \\
             \midrule
             Radial basis & Bessel & Bessel & Bessel & Bessel & Bessel \\
-            Radial bases & 16 & 16 & 16 & 16 & 16 \\
+            No. radial bases & 16 & 16 & 16 & 16 & 16 \\
             $L_{\max}$ & 3 & 3 & 3 & 3 & 3 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Radial edge mod. & Degree & None & None & -- & Degree \\
+            Radial coupling & Degree mixing & Scalar scaling & Scalar scaling & -- & Degree mixing \\
             Per-channel mod. & True & N/A & N/A & -- & True \\
             Rank & 1 & N/A & N/A & -- & 1 \\
             Attn. heads & 1 & -- & 1 & 1 & 1 \\
@@ -301,21 +301,21 @@ adding category labels to the table body.
             FFN hidden dim. & Auto & Auto & Auto & Auto & Auto \\
             S2 act. & FFN only & FFN only & FFN only & FFN only & -- \\
             Quadrature & Lebedev & Lebedev & e3nn & Lebedev & -- \\
-            Norm. placement & Post/Pre & Post/Pre & Pre/Pre & Post/Pre & Pre/Pre \\
-            Act. & SiLU & SiLU & SiLU & SiLU & SiLU \\
+            Norm. placement & Post \& Pre & Post \& Pre & Pre \& Pre & Post \& Pre & Pre \& Pre \\
+            Activation func. & SiLU & SiLU & SiLU & SiLU & SiLU \\
             GLU & True & True & True & True & True \\
-            Output fit dim. & Auto & Auto & Auto & Auto & Auto \\
-            Output fit layers & 1 & 1 & 1 & 1 & 1 \\
+            Output fitting dim. & Auto & Auto & Auto & Auto & Auto \\
+            Output fitting layers & 1 & 1 & 1 & 1 & 1 \\
             \midrule
             Compile & -- & True & True & True & True \\
-            AMP & -- & True & True & True & True \\
+            bf16 AMP & -- & True & True & True & True \\
             TF32 matmul & -- & True & True & True & True \\
-            LR schedule & Cosine & Cosine & WSD & Cosine & Cosine \\
+            LR scheduler & Cosine & Cosine & WSD & Cosine & Cosine \\
             Max. LR & $4.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
             Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
             Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 \\
             Decay ratio & N/A & N/A & 0.65 & N/A & N/A \\
-            Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\
+            Decay type & N/A & N/A & Cosine & N/A & N/A \\
             Batch size (per GPU) & $\lceil 1000/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$ & $\lceil 1000/N\rceil$ & $\lceil 700/N\rceil$ \\
             Training steps & $1\times10^6$ & $1\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ \\
             No. GPUs & 1 & 1 & 1 & 1 & 1 \\
@@ -339,12 +339,13 @@ adding category labels to the table body.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
             \item[d] N/A denotes a parameter not used by the corresponding setting.
-            \item[e] Post/Pre denotes post-normalization in the SO(2) subblock and
-            pre-normalization in the FFN subblock.
+            \item[e] In the normalization-placement entry, the first term refers to the SO(2)
+            subblock and the second term to the FFN subblock.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
-            \item[g] TBD denotes values to be reported with the final training records.
+            \item[g] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
+            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -353,7 +354,7 @@ adding category labels to the table body.
     \centering
     \scriptsize
     \setlength{\tabcolsep}{3pt}
-    \caption{Hyperparameters for the supplementary ablation experiments.}
+    \caption{Supplementary ablation hyperparameters.}
     \label{tab:sm_supplementary_ablation_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.9cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}@{}}
@@ -371,11 +372,11 @@ adding category labels to the table body.
             SO(2) layers & 4 & -- & 4 & 4 & 4 \\
             \midrule
             Radial basis & Bessel & Bessel & Bessel & Bessel & Bessel \\
-            Radial bases & 16 & 16 & 16 & 16 & 16 \\
+            No. radial bases & 16 & 16 & 16 & 16 & 16 \\
             $L_{\max}$ & 3 & 3 & 3 & 3 & 3 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Radial edge mod. & None & Degree & None & None & Degree \\
+            Radial coupling & Scalar scaling & Degree mixing & Scalar scaling & Scalar scaling & Degree mixing \\
             Per-channel mod. & N/A & True & N/A & N/A & True \\
             Rank & N/A & 1 & N/A & N/A & 1 \\
             Attn. heads & 1 & 1 & -- & 1 & 1 \\
@@ -385,21 +386,21 @@ adding category labels to the table body.
             FFN hidden dim. & Auto & Auto & Auto & Auto & Auto \\
             S2 act. & FFN only & FFN only & FFN only & FFN only & FFN only \\
             Quadrature & e3nn & Lebedev & Lebedev & e3nn & Lebedev \\
-            Norm. placement & Pre/Pre & Post/Pre & Post/Pre & -- & Post/Pre \\
-            Act. & SiLU & SiLU & SiLU & SiLU & SiLU \\
+            Norm. placement & Pre \& Pre & Post \& Pre & Post \& Pre & -- & Post \& Pre \\
+            Activation func. & SiLU & SiLU & SiLU & SiLU & SiLU \\
             GLU & True & True & True & True & True \\
-            Output fit dim. & Auto & Auto & Auto & Auto & Auto \\
-            Output fit layers & 1 & 1 & 1 & 1 & 1 \\
+            Output fitting dim. & Auto & Auto & Auto & Auto & Auto \\
+            Output fitting layers & 1 & 1 & 1 & 1 & 1 \\
             \midrule
             Compile & True & True & True & True & True \\
-            AMP & True & True & True & True & True \\
+            bf16 AMP & True & True & True & True & True \\
             TF32 matmul & True & True & True & True & True \\
-            LR schedule & Cosine & WSD & Cosine & WSD & -- \\
+            LR scheduler & Cosine & WSD & Cosine & WSD & -- \\
             Max. LR & $5\times10^{-4}$ & $6.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ \\
             Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
             Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 \\
-            Decay ratio & N/A & 0.65 & N/A & 0.65 & 0.65 \\
-            Decay type & Cosine & Cosine & Cosine & Cosine & -- \\
+            Decay ratio & N/A & 0.65 & N/A & 0.65 & -- \\
+            Decay type & N/A & Cosine & N/A & Cosine & -- \\
             Batch size (per GPU) & $\lceil 512/N\rceil$ & $\lceil 2100/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 1000/N\rceil$ & $\lceil 1000/N\rceil$ \\
             Training steps & $2\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ \\
             No. GPUs & 1 & 1 & 1 & 1 & 1 \\
@@ -423,11 +424,13 @@ adding category labels to the table body.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
             \item[d] N/A denotes a parameter not used by the corresponding setting.
-            \item[e] Post/Pre denotes post-normalization in the SO(2) subblock and
-            pre-normalization in the FFN subblock.
+            \item[e] In the normalization-placement entry, the first term refers to the SO(2)
+            subblock and the second term to the FFN subblock.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
+            \item[g] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
+            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -437,63 +440,79 @@ adding category labels to the table body.
 \begin{table}[p]
     \centering
     \scriptsize
-    \caption{Hyperparameters for the Matbench Discovery experiments.}
+    \setlength{\tabcolsep}{3pt}
+    \caption{Matbench Discovery model hyperparameters.}
     \label{tab:sm_matbench_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}@{}}
             \toprule
-            \textbf{Hyperparameter} & \textbf{Air} & \textbf{Plus} & \textbf{Pro} & \textbf{Max} \\
+            \textbf{Hyperparameter} &
+            \makecell{\textbf{DPA4-}\\\textbf{Air}} &
+            \textbf{DPA4} &
+            \makecell{\textbf{DPA4-}\\\textbf{Plus}} &
+            \makecell{\textbf{DPA4-}\\\textbf{Pro}} &
+            \makecell{\textbf{DPA4-}\\\textbf{Max}} \\
             \midrule
-            Feature dim. & 64 & 64 & 96 & 96 \\
-            No. focuses & 1 & 2 & 1 & 2 \\
-            No. layers & 3 & 4 & 8 & 10 \\
-            SO(2) layers & 4 & 4 & 4 & 4 \\
+            Feature dim. & 64 & 64 & 64 & 96 & 96 \\
+            No. focuses & 1 & 1 & 2 & 1 & 2 \\
+            No. layers & 3 & 4 & 4 & 8 & 10 \\
+            SO(2) layers & 4 & 4 & 4 & 4 & 4 \\
             \midrule
-            Radial basis & Bessel & Bessel & Bessel & Bessel \\
-            Radial bases & 16 & 16 & 16 & 16 \\
-            $L_{\max}$ & 3 & 4 & 5 & 5 \\
-            $M_{\max}$ & 1 & 1 & 1 & 1 \\
+            Radial basis & Bessel & Bessel & Bessel & Bessel & Bessel \\
+            No. radial bases & 16 & 16 & 16 & 16 & 16 \\
+            $L_{\max}$ & 3 & 4 & 4 & 5 & 5 \\
+            $M_{\max}$ & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Radial edge mod. & Degree & Degree & Degree & Degree \\
-            Per-channel mod. & True & True & True & True \\
-            Rank & 1 & 2 & 4 & 4 \\
-            Attn. heads & 1 & 1 & 1 & 1 \\
-            S2 act. & FFN only & FFN only & FFN only & FFN only \\
-            Quadrature & Lebedev & Lebedev & Lebedev & Lebedev \\
-            Norm. placement & Post/Pre & Post/Pre & Post/Pre & Post/Pre \\
-            Act. & SiLU & SiLU & SiLU & SiLU \\
-            GLU & True & True & True & True \\
-            FFN hidden dim. & Auto & Auto & Auto & Auto \\
-            Output fit dim. & Auto & Auto & Auto & Auto \\
-            Output fit layers & 1 & 1 & 1 & 1 \\
+            Radial coupling & Degree mixing & Degree mixing & Degree mixing & Degree mixing & Degree mixing \\
+            Per-channel mod. & True & True & True & True & True \\
+            Rank & 1 & 1 & 2 & 4 & 4 \\
+            Attn. heads & 1 & 1 & 1 & 1 & 2 \\
+            Value proj. & False & False & False & False & True \\
+            Output proj. & False & False & False & False & False \\
+            Pre mixing & False & False & False & False & False \\
+            S2 act. & FFN only & FFN only & FFN only & FFN only & FFN only \\
+            Quadrature & Lebedev & Lebedev & Lebedev & Lebedev & Lebedev \\
+            Norm. placement & Post \& Pre & Post \& Pre & Post \& Pre & Post \& Pre & Post \& Pre \\
+            Activation func. & SiLU & SiLU & SiLU & SiLU & SiLU \\
+            GLU & True & True & True & True & True \\
+            FFN hidden dim. & Auto & Auto & Auto & Auto & Auto \\
+            Output fitting dim. & Auto & Auto & Auto & Auto & Auto \\
+            Output fitting layers & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Compile & True & True & True & True \\
-            AMP & True & True & True & True \\
-            TF32 matmul & True & True & True & True \\
-            LR schedule & WSD & WSD & WSD & WSD \\
-            Max. LR & $6\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup steps & 5000 & 5000 & 5000 & 5000 \\
-            Decay type & Cosine & Cosine & Cosine & Cosine \\
-            Batch size (per GPU) & $\lceil 1500/N\rceil$ & $\lceil 600/N\rceil$ & $\lceil 150/N\rceil$ & $\lceil 150/N\rceil$ \\
-            Training length & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\
-            No. GPUs & 1 & 4 & 16 & 16 \\
+            Compile & True & True & True & True & True \\
+            bf16 AMP & True & True & True & True & True \\
+            TF32 matmul & True & True & True & True & True \\
+            LR scheduler & WSD & WSD & WSD & WSD & WSD \\
+            Max. LR & $6\times10^{-4}$ & $5.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
+            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
+            Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 \\
+            Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\
+            Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\
+            Batch size (per GPU) & $\lceil 1500/N\rceil$ & $\lceil 1200/N\rceil$ & $\lceil 600/N\rceil$ & $\lceil 150/N\rceil$ & $\lceil 150/N\rceil$ \\
+            Training steps & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\
+            No. GPUs & 1 & 2 & 4 & 16 & 16 \\
             \midrule
-            Loss & MAE & MAE & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
-            Optimizer & HybridMuon & HybridMuon & HybridMuon & HybridMuon \\
-            Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ \\
+            Loss & MAE & MAE & MAE & MAE & MAE \\
+            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
+            Optimizer & HybridMuon & HybridMuon & HybridMuon & HybridMuon & HybridMuon \\
+            Muon mode & Slice & Slice & Slice & Slice & Slice \\
+            Magma Lite & True & True & True & True & True \\
+            Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ \\
             \midrule
-            Cutoff (\AA) & 6 & 6 & 6 & 6 \\
-            Max. neighbors & 384 & 384 & 384 & 384 \\
+            Cutoff (\AA) & 6 & 6 & 6 & 6 & 6 \\
+            Max. neighbors & 384 & 384 & 384 & 384 & 384 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
-            \item[a] Post/Pre denotes post-normalization in the SO(2) subblock and
-            pre-normalization in the FFN subblock.
+            \item[a] In the normalization-placement entry, the first term refers to the SO(2)
+            subblock and the second term to the FFN subblock.
             \item[b] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
+            \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
+            up to the nearest integer.
+            \item[d] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
+            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -501,13 +520,13 @@ adding category labels to the table body.
 \begin{table}[p]
     \centering
     \scriptsize
-    \setlength{\tabcolsep}{5pt}
-    \caption{Hyperparameters for the SPICE-MACE-OFF experiments.}
+    \setlength{\tabcolsep}{3pt}
+    \caption{SPICE-MACE-OFF model hyperparameters.}
     \label{tab:sm_spice_mace_off_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.9cm}C{2.4cm}C{2.4cm}@{}}
             \toprule
-            \textbf{Hyperparameter} & \textbf{Air} & \textbf{Plus} \\
+            \textbf{Hyperparameter} & \textbf{DPA4-Air} & \textbf{DPA4} \\
             \midrule
             Feature dim. & 64 & 64 \\
             No. focuses & 1 & 1 \\
@@ -515,38 +534,44 @@ adding category labels to the table body.
             SO(2) layers & 4 & 4 \\
             \midrule
             Radial basis & Bessel & Bessel \\
-            Radial bases & 16 & 16 \\
+            No. radial bases & 16 & 16 \\
             $L_{\max}$ & 3 & 4 \\
             $M_{\max}$ & 1 & 1 \\
             \midrule
-            Radial edge mod. & Degree & Degree \\
+            Radial coupling & Degree mixing & Degree mixing \\
             Per-channel mod. & True & True \\
             Rank & 1 & 2 \\
             Attn. heads & 1 & 1 \\
+            Value proj. & False & False \\
+            Output proj. & False & False \\
+            Pre mixing & False & False \\
             S2 act. & FFN only & FFN only \\
             Quadrature & Lebedev & Lebedev \\
-            Norm. placement & Post/Pre & Post/Pre \\
-            Act. & SiLU & SiLU \\
+            Norm. placement & Post \& Pre & Post \& Pre \\
+            Activation func. & SiLU & SiLU \\
             GLU & True & True \\
             FFN hidden dim. & Auto & Auto \\
-            Output fit dim. & Auto & Auto \\
-            Output fit layers & 1 & 1 \\
+            Output fitting dim. & Auto & Auto \\
+            Output fitting layers & 1 & 1 \\
             \midrule
             Compile & True & True \\
-            AMP & True & True \\
+            bf16 AMP & True & True \\
             TF32 matmul & True & True \\
-            LR schedule & WSD & WSD \\
+            LR scheduler & WSD & WSD \\
             Max. LR & $5\times10^{-4}$ & $5\times10^{-4}$ \\
             Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ \\
             Warmup steps & 5000 & 5000 \\
+            Decay ratio & 0.65 & 0.65 \\
             Decay type & Cosine & Cosine \\
             Batch size (per GPU) & $\lceil 2000/N\rceil$ & $\lceil 2000/N\rceil$ \\
-            Training length & $2\times10^6$ & $2\times10^6$ \\
+            Training steps & $2\times10^6$ & $2\times10^6$ \\
             No. GPUs & 1 & 1 \\
             \midrule
             Loss & MAE & MAE \\
             Loss weights $(E,F,V)$ & 15, 20, 0 & 15, 20, 0 \\
             Optimizer & HybridMuon & HybridMuon \\
+            Muon mode & Slice & Slice \\
+            Magma Lite & True & True \\
             Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ \\
             \midrule
             Cutoff (\AA) & 6 & 6 \\
@@ -554,11 +579,15 @@ adding category labels to the table body.
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
-            \item[a] Post/Pre denotes post-normalization in the SO(2) subblock and
-            pre-normalization in the FFN subblock.
+            \item[a] In the normalization-placement entry, the first term refers to the SO(2)
+            subblock and the second term to the FFN subblock.
             \item[b] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
+            \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
+            up to the nearest integer.
+            \item[d] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
+            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
