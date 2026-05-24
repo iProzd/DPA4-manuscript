@@ -55,7 +55,7 @@ corresponding setting.
         \textbf{No. layers}               &
         \textbf{E MAE}$\downarrow$        &
         \textbf{F MAE}$\downarrow$        &
-        \textbf{Train (rel.)}$\downarrow$ &
+        \textbf{Train time (rel.)}$\downarrow$ &
         \textbf{Test time (rel.)}$\downarrow$                             \\
         \midrule
         1                                 & 37.125 & 45.552 & 1.00 & 1.00 \\
@@ -92,7 +92,7 @@ corresponding setting.
         \textbf{SO(2) layers}             &
         \textbf{E MAE}$\downarrow$        &
         \textbf{F MAE}$\downarrow$        &
-        \textbf{Train (rel.)}$\downarrow$ &
+        \textbf{Train time (rel.)}$\downarrow$ &
         \textbf{Test time (rel.)}$\downarrow$                             \\
         \midrule
         2                                 & 31.780 & 41.432 & 1.00 & 1.00 \\
@@ -345,7 +345,8 @@ adding category labels to the table body.
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
             \item[g] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
+            uses higher-order radial features to mix angular degrees in the local SO(2)
+            frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -430,7 +431,8 @@ adding category labels to the table body.
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
             \item[g] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
+            uses higher-order radial features to mix angular degrees in the local SO(2)
+            frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -447,27 +449,27 @@ adding category labels to the table body.
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}@{}}
             \toprule
             \textbf{Hyperparameter} &
-            \makecell{\textbf{DPA4-}\\\textbf{Air}} &
+            \textbf{DPA4-Neo} &
+            \textbf{DPA4-Air} &
             \textbf{DPA4} &
-            \makecell{\textbf{DPA4-}\\\textbf{Plus}} &
-            \makecell{\textbf{DPA4-}\\\textbf{Pro}} &
-            \makecell{\textbf{DPA4-}\\\textbf{Max}} \\
+            \textbf{DPA4-Plus} &
+            \textbf{DPA4-Pro} \\
             \midrule
-            Feature dim. & 64 & 64 & 64 & 96 & 96 \\
-            No. focuses & 1 & 1 & 2 & 1 & 2 \\
-            No. layers & 3 & 4 & 4 & 8 & 10 \\
-            SO(2) layers & 4 & 4 & 4 & 4 & 4 \\
+            Feature dim. & 64 & 64 & 64 & 64 & 96 \\
+            No. focuses & 1 & 1 & 1 & 2 & 1 \\
+            No. layers & 2 & 3 & 4 & 4 & 8 \\
+            SO(2) layers & 3 & 4 & 4 & 4 & 4 \\
             \midrule
             Radial basis & Bessel & Bessel & Bessel & Bessel & Bessel \\
             No. radial bases & 16 & 16 & 16 & 16 & 16 \\
-            $L_{\max}$ & 3 & 4 & 4 & 5 & 5 \\
+            $L_{\max}$ & 3 & 3 & 4 & 4 & 5 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 & 1 \\
             \midrule
             Radial coupling & Degree mixing & Degree mixing & Degree mixing & Degree mixing & Degree mixing \\
             Per-channel mod. & True & True & True & True & True \\
-            Rank & 1 & 1 & 2 & 4 & 4 \\
-            Attn. heads & 1 & 1 & 1 & 1 & 2 \\
-            Value proj. & False & False & False & False & True \\
+            Rank & 1 & 1 & 1 & 2 & 4 \\
+            Attn. heads & 1 & 1 & 1 & 1 & 1 \\
+            Value proj. & False & False & False & False & False \\
             Output proj. & False & False & False & False & False \\
             Pre mixing & False & False & False & False & False \\
             S2 act. & FFN only & FFN only & FFN only & FFN only & FFN only \\
@@ -483,14 +485,14 @@ adding category labels to the table body.
             bf16 AMP & True & True & True & True & True \\
             TF32 matmul & True & True & True & True & True \\
             LR scheduler & WSD & WSD & WSD & WSD & WSD \\
-            Max. LR & $6\times10^{-4}$ & $5.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
+            Max. LR & $6.5\times10^{-4}$ & $6\times10^{-4}$ & $5.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
             Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
             Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 \\
             Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\
             Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\
-            Batch size (per GPU) & $\lceil 1500/N\rceil$ & $\lceil 1200/N\rceil$ & $\lceil 600/N\rceil$ & $\lceil 150/N\rceil$ & $\lceil 150/N\rceil$ \\
+            Batch size (per GPU) & $\lceil 2100/N\rceil$ & $\lceil 1500/N\rceil$ & $\lceil 1200/N\rceil$ & $\lceil 600/N\rceil$ & $\lceil 150/N\rceil$ \\
             Training steps & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\
-            No. GPUs & 1 & 2 & 4 & 16 & 16 \\
+            No. GPUs & 1 & 1 & 2 & 4 & 16 \\
             \midrule
             Loss & MAE & MAE & MAE & MAE & MAE \\
             Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
@@ -501,6 +503,8 @@ adding category labels to the table body.
             \midrule
             Cutoff (\AA) & 6 & 6 & 6 & 6 & 6 \\
             Max. neighbors & 384 & 384 & 384 & 384 & 384 \\
+            \midrule
+            Params & 1.60M & 2.76M & & & \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
@@ -512,7 +516,8 @@ adding category labels to the table body.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
             \item[d] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
+            uses higher-order radial features to mix angular degrees in the local SO(2)
+            frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -538,16 +543,16 @@ adding category labels to the table body.
             $L_{\max}$ & 3 & 4 \\
             $M_{\max}$ & 1 & 1 \\
             \midrule
-            Radial coupling & Degree mixing & Degree mixing \\
-            Per-channel mod. & True & True \\
-            Rank & 1 & 2 \\
+            Radial coupling & Scalar scaling & Scalar scaling \\
+            Per-channel mod. & N/A & N/A \\
+            Rank & N/A & N/A \\
             Attn. heads & 1 & 1 \\
             Value proj. & False & False \\
             Output proj. & False & False \\
             Pre mixing & False & False \\
             S2 act. & FFN only & FFN only \\
-            Quadrature & Lebedev & Lebedev \\
-            Norm. placement & Post \& Pre & Post \& Pre \\
+            Quadrature & e3nn & e3nn \\
+            Norm. placement & Pre \& Pre & Pre \& Pre \\
             Activation func. & SiLU & SiLU \\
             GLU & True & True \\
             FFN hidden dim. & Auto & Auto \\
@@ -576,6 +581,8 @@ adding category labels to the table body.
             \midrule
             Cutoff (\AA) & 6 & 6 \\
             Max. neighbors & 100 & 100 \\
+            \midrule
+            Params & 2.7M & 5.3M \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
@@ -587,7 +594,8 @@ adding category labels to the table body.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
             \item[d] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2) frame.
+            uses higher-order radial features to mix angular degrees in the local SO(2)
+            frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
