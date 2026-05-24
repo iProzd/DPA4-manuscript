@@ -215,13 +215,13 @@ channel-specific degree couplings. In contrast, high-rank and full kernels
 introduce many weakly constrained angular-channel interactions, which can
 amplify high-order radial components and make the force derivatives more
 sensitive under the same training recipe. We therefore use compact low-rank
-radial coupling rather than the most expressive full coupling.
+radial degree coupling rather than the most expressive full coupling.
 
 \begin{table}[t]
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of radial coupling for edge-feature modulation.\tnote{a}}
+        \caption{Ablation of radial degree coupling for edge-feature modulation.\tnote{a}}
         \label{tab:dpa4_radial_degree_ablation}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
@@ -252,12 +252,12 @@ radial coupling rather than the most expressive full coupling.
     \end{threeparttable}
 \end{table}
 
-\subsubsection{S2 activation and quadrature}
+\subsubsection{\texorpdfstring{$S^2$}{S2} activation and quadrature}
 
 This ablation separates two coupled design choices in the spherical-grid
-nonlinearity: the model component to which S2 activation is applied and the
+nonlinearity: the model component to which $S^2$ activation is applied and the
 quadrature rule used to project grid features back to equivariant coefficients.
-When S2 activation is restricted to the FFN component, replacing the e3nn
+When $S^2$ activation is restricted to the FFN component, replacing the e3nn
 product grid with the Lebedev rule slightly reduces the energy MAE while
 leaving the force MAE and computational cost essentially unchanged. Applying S2
 activation additionally inside the SO(2) convolution component does not improve
@@ -267,7 +267,7 @@ than double. In this expanded activation configuration, Lebedev quadrature
 reduces the energy error and lowers the relative training and inference costs
 compared with the e3nn product grid, although the force MAE remains higher than
 in the FFN-only configuration. These results indicate that the main benefit
-comes from retaining S2 activation in the FFN component, while Lebedev
+comes from retaining $S^2$ activation in the FFN component, while Lebedev
 quadrature provides a more favorable projection rule when spherical-grid
 nonlinearities are used in equivariant branches.
 
@@ -275,7 +275,7 @@ nonlinearities are used in equivariant branches.
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of S2 activation placement and quadrature rule.\tnote{a}}
+        \caption{Ablation of $S^2$ activation placement and quadrature rule.\tnote{a}}
         \label{tab:dpa4_quadrature_ablation}
         \begin{tabular}{@{}ccccccc@{}}
             \toprule

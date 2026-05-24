@@ -9,45 +9,57 @@
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
 
-% TODO: Fig. 2 --- main architecture figure:
-%   (a) overall block diagram
-%   (b) SO(2)-equivariant local-frame edge update
-%   (c) SO(2) multi-focus convolution
-%
-% TODO: write 3 short paragraphs.
-%
-% ¶1 --- Local-frame SO(2) equivariance.
-%   Why SO(2) instead of SO(3): for each edge (i, j), set the local
-%   z-axis along the bond direction; the residual rotation symmetry
-%   becomes the abelian group SO(2). Equivariant operations under
-%   SO(2) are diagonal in the angular-order basis (e^{i m theta})
-%   and avoid the cubic cost of SO(3) Clebsch--Gordan tensor products.
-%   Headline: accuracy close to SO(3) models, cost close to invariant
-%   models.
-%   One-sentence differentiation from MACE / EquiformerV2 / eSEN /
-%   EScAIP --- emphasize what makes DPA4 distinct (e.g. specific
-%   choice of frame canonicalization / order of attention / fully
-%   compile-friendly).
-%
-% ¶2 --- Edge-conditioned attention.
-%   Why attention: pure local message passing struggles to capture
-%   long-range many-body correlations within a single layer.
-%   Motivating example: cite or describe behavior on a long-range +
-%   many-body system (e.g. zeolite frameworks or OC20 catalysis
-%   surfaces) where attention quantitatively closes the gap.
-%   Where attention is applied: edge-level / vertex-level / cross-layer
-%   --- one sentence here, full math deferred to Methods.
-%   Smoothness: attention weights are masked by a smooth cutoff so the
-%   resulting energy remains C^2 in atomic positions.
-%
-% ¶3 --- Native ZBL branch.
-%   Existing approach (DPA3, MACE-MP-0): ZBL is wrapped externally,
-%   adding a piecewise term that can break C^2 smoothness or
-%   conservativeness of the combined potential.
-%   DPA4 design: ZBL is a built-in pair branch combined with the NN
-%   branch via a C^2-smooth switch, before total-energy summation.
-%   Forces and virials therefore remain conservative by autograd
-%   construction. Full equations deferred to Methods.
+DPA4 was designed as a conservative equivariant potential in which the main
+geometric work is shared across all interaction blocks
+(Fig.~\ref{fig:arch}a,b). For each neighbour graph, the model constructs a
+single edge cache containing smooth cutoff envelopes, radial-species features,
+local gauges and short-range bridging gates. The same cache feeds the input
+embedding, the SO(2) interaction blocks and the analytical ZBL branch. This
+organization avoids repeated geometry construction while ensuring that
+energies, forces and virials are all derived from one scalar potential.
+
+The central architectural choice is to perform equivariant message passing in
+an edge-local SO(2) representation rather than through full SO(3)
+Clebsch--Gordan tensor products (Fig.~\ref{fig:arch}c). Aligning each bond with
+a local reference axis reduces the residual symmetry of the edge update to
+SO(2), so coefficients can be processed in fixed $|m|$ strata. Within these
+strata, DPA4 uses edge-conditioned radial degree coupling and multi-focus SO(2)
+convolutions to mix angular degrees without introducing a separate equivariant
+edge feature. The construction retains the directional representation needed
+for equivariant molecular and materials modelling while reducing the algebraic
+cost of each message update.
+
+Two additional components make this local-frame architecture effective in the
+benchmarks below. First, the Environment Initial Embedding supplies the scalar
+backbone with a rotation-invariant local-environment prior at layer 0, while
+the higher-degree initial features carry directional information from spherical
+harmonics. Second, envelope-gated softmax attention aggregates edge messages
+with invariant weights that vanish smoothly at the cutoff. The attention
+mechanism therefore increases the flexibility of neighbourhood aggregation
+without breaking equivariance or introducing a discontinuity in the
+conservative energy.
+
+DPA4 also treats short-range nuclear repulsion as part of the model rather than
+as an external correction. The analytical ZBL energy is summed with the neural
+branch before differentiation, and Native ZBL Zone Bridging removes the direct
+learned short-range pair channel in the inner frozen zone. Thus the model keeps
+the differentiable scalar-energy formulation used for force training while
+assigning the singular short-range pair interaction to a physically motivated
+analytical branch.
+
+The architecture is co-designed with the training system. Conservative MLIP
+training is difficult to compile because the force loss differentiates through
+$\mathbf{F}=-\partial E/\partial R$ and therefore requires mixed
+coordinate--parameter second derivatives. DPA4 removes this barrier by tracing
+the energy-to-force derivative into an ordinary tensor graph and lowering the
+resulting conservative-force path with \texttt{torch.compile}. This makes the
+same scalar-energy model trainable in compiled mode rather than switching to a
+direct-force surrogate, and is the main source of the 2--3$\times$ wall-clock
+training speedup quantified below. The optimiser is matched to this structure:
+HybridMuon applies matrix-aware Muon updates to hidden transformations, keeps
+scalar and normalisation parameters on Adam-family updates, and updates
+degree-indexed equivariant tensors in slice mode so that distinct SO(2)
+representation blocks are not flattened into one unrelated matrix.
 
 \begin{figure}[t]
     \centering
@@ -155,21 +167,11 @@
 %     DPA3-L{6,12,24}).
 %   - Baselines: MACE(M/L), eSEN, EScAIP.
 %   - Reuse DPA3 Fig. 2(a) layout (per-subset bar chart of energy MAE).
-%   - Headline: DPA4-L surpasses eSEN (previous SOTA) by [X%] on
-%     energy LWAMAE.
+%   - Headline: report the final SPICE-MACE-OFF energy and force errors against
+%     the selected baselines.
 
-% TODO: TorsionNet-500 (Fig. 3 right or bottom panel; zero-shot from
-% the SPICE-trained DPA4).
-%   - Metrics: MAE, RMSE, MAEB, NABH_h.
-%   - Target: NABH_h = 0 for the larger DPA4 sizes; MAEB < [TODO]
-%     kcal/mol.
-
-% TODO (optional, P1): rMD17 / 3BPA / acetylacetone.
-%   - Direct response to DPA3's stated limitation on small-molecule
-%     AIMD tasks.
-%   - One small table comparing DPA4 against MACE on these AIMD
-%     datasets.
-%   - Drop to Supplementary if results are not strongly favorable.
+% TODO: complete the SPICE-MACE-OFF analysis once the final evaluation table is
+% exported from the benchmark scripts.
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}

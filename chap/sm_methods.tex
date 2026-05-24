@@ -1,0 +1,1886 @@
+\section{Model formulation and geometric ingredients}
+\label{sec:sm-model-formulation}
+\label{sec:sm-methods}
+
+This section gives the notation, symmetry requirements and geometric
+ingredients used by DPA4. The subsequent sections present the final
+architecture, the theoretical guarantees and the training systems methods. In
+particular, the SO(2) edge convolution is written with edge-conditioned radial
+degree coupling; diagonal radial scaling is treated as a limiting case of the
+reported radial degree coupling configurations.
+
+\subsection{Architecture overview}
+\label{sec:sm-arch-overview}
+
+DPA4 is a parametric family of smooth scalar potentials
+\begin{equation}
+    E_{\Theta}:(Z,R)\longmapsto E_{\Theta}(Z,R)\in\mathbb{R},
+    \label{eq:sm-overall}
+\end{equation}
+where $Z=(Z_1,\ldots,Z_N)$ denotes atomic species and
+$R=(\mathbf{R}_1,\ldots,\mathbf{R}_N)\in\mathbb{R}^{3N}$ denotes Cartesian
+positions. The potential is invariant to translations, species-preserving
+permutations and global rotations; forces and stress are exact derivatives of
+the same scalar energy.
+
+\paragraph{Two additive branches.}
+The total energy decomposes into a learned neural-network branch and an
+analytical ZBL branch,
+\begin{equation}
+    E_{\Theta}(Z,R)
+    =
+    E^{\mathrm{NN}}_{\Theta}(Z,R;\{\widetilde{\mathbf{r}}_{ij}\})
+    +
+    E^{\mathrm{ZBL}}(Z,R;\{r_{ij}\}).
+    \label{eq:sm-energy-decomp}
+\end{equation}
+The two branches consume different geometric inputs inside a designated
+short-range bridging window $[r_{\mathrm{in}},r_{\mathrm{out}}]$. The learned
+branch reads clamped displacements
+$\widetilde{\mathbf{r}}_{ij}=\widetilde{r}(r_{ij})\widehat{\mathbf{r}}_{ij}$,
+whereas the ZBL branch always reads the true distance $r_{ij}$. A source-freeze
+gate $\eta_j\in[0,1]$ further enforces that any atom with a neighbour in the
+frozen zone contributes no source information to the learned branch.
+
+\paragraph{State space.}
+The learned branch operates on per-atom states
+\begin{equation}
+    X=(\mathbf{h}_1,\ldots,\mathbf{h}_N),\qquad
+    \mathbf{h}_i\in V_{\le L}\otimes\mathbb{R}^{C},\qquad
+    V_{\le L}=\bigoplus_{l=0}^{L}V_l,
+    \label{eq:sm-state-space}
+\end{equation}
+where $V_l$ is the real $(2l+1)$-dimensional irreducible representation of
+SO(3). The group action is carried only by the $V_{\le L}$ factor; channels
+are multiplicities. Energies are read out from the trivial $l=0$ subspace.
+
+\paragraph{From global SO(3) to per-edge SO(2).}
+For each directed edge $(i,j)$, DPA4 chooses an edge-local gauge that aligns
+the bond direction with a fixed reference axis. Different in-plane roll choices
+are related by the residual abelian subgroup SO(2), not by the full non-abelian
+SO(3). The basis labelled by $(l,m)$ decomposes into a trivial $m=0$ line and
+two-dimensional real representations indexed by $|m|>0$. The edge-local
+convolution can therefore use an SO(2)-equivariant operator that is diagonal in
+the angular order stratum and may still mix angular degrees within the same
+stratum. This is the central computational simplification: angular dependence
+is carried by the local-frame rotations, while learnable mixing is performed in
+the much cheaper SO(2) representation.
+
+\paragraph{Computational pipeline.}
+For one configuration, DPA4 applies the composition
+\begin{equation}
+    (Z,R)
+    \xrightarrow{\mathrm{edge\ construction}}
+    \{(i,j,\widetilde{\mathbf{r}}_{ij},R_{ij},\eta_j,\ldots)\}
+    \xrightarrow{\mathrm{initial\ embedding}}
+    X^{(0)}
+    \xrightarrow{\mathcal{B}_1}\cdots
+    \xrightarrow{\mathcal{B}_B}
+    X^{(B)}
+    \xrightarrow{\mathcal{O}}
+    \sum_i E_i^{\mathrm{NN}}.
+    \label{eq:sm-pipeline}
+\end{equation}
+Each interaction block $\mathcal{B}_b$ consists of an edge-local SO(2)
+convolution $\mathcal{C}_b$ and one or more equivariant feed-forward updates
+$\mathcal{F}_b$,
+\begin{equation}
+    \mathbf{h}'_i
+    =
+    \mathbf{h}_i+\mathcal{C}_b(X)_i,\qquad
+    \mathbf{h}''_i
+    =
+    \mathbf{h}'_i+\mathcal{F}_b(\mathbf{h}'_i).
+    \label{eq:sm-block-overview}
+\end{equation}
+The output projections of both residual branches are initialized at zero, so
+each block starts as a near-identity map.
+
+\paragraph{Guarantees.}
+The construction is designed so that every residual block preserves SO(3)
+equivariance of the state, the final readout is SO(3)-invariant, and all
+neighbour aggregations are permutation-equivariant. Each elementary geometric
+ingredient used by the learned branch is at least $C^3$ away from coincident
+atoms. In the Native ZBL Zone Bridging window, the clamped distance map removes
+the direct neural radial singularity, and the source-freeze gate silences
+learned information sourced from atoms involved in inner-zone contacts. The
+analytical ZBL branch supplies the corresponding short-range pair interaction.
+
+\subsection{Configuration space and symmetry requirements}
+\label{sec:sm-configuration}
+
+For ordered pairs $(i,j)$ with $i\ne j$, define
+\begin{equation}
+    \mathbf{r}_{ij}=\mathbf{R}_j-\mathbf{R}_i,\qquad
+    r_{ij}=\|\mathbf{r}_{ij}\|,\qquad
+    \widehat{\mathbf{r}}_{ij}=\mathbf{r}_{ij}/r_{ij}.
+    \label{eq:sm-edge-geometry}
+\end{equation}
+Periodic boundary conditions are handled by interpreting $j$ as ranging over
+periodic images of the unit cell. A valid DPA4 potential must satisfy three
+invariances:
+\begin{align}
+    E(Z,R+\mathbf{a}) & =E(Z,R), \qquad \mathbf{a}\in\mathbb{R}^3, \\
+    E(\pi Z,\pi R)    & =E(Z,R), \qquad \pi\in S_N
+    \ \text{preserving species},                                   \\
+    E(Z,QR)           & =E(Z,R), \qquad Q\in \mathrm{SO}(3).
+\end{align}
+The energy is required to be $C^3$ away from coincident atoms so that forces and
+force derivatives are well defined. Conservativeness follows by differentiating
+the scalar energy:
+\begin{equation}
+    \mathbf{F}_i=-\frac{\partial E}{\partial\mathbf{R}_i}.
+    \label{eq:sm-force}
+\end{equation}
+
+\subsection{SO(3) representation and equivariant node features}
+\label{sec:sm-representation}
+
+For each $l\ge 0$, let $V_l$ carry the real spin-$l$ irreducible representation
+$D^l:\mathrm{SO}(3)\to\mathrm{O}(2l+1)$, indexed by $m=-l,\ldots,l$. For a
+degree cutoff $L$, define
+\begin{equation}
+    V_{\le L}=\bigoplus_{l=0}^{L}V_l,\qquad
+    D(Q)=\bigoplus_{l=0}^{L}D^l(Q).
+    \label{eq:sm-direct-sum}
+\end{equation}
+We pack basis coefficients by
+\begin{equation}
+    \iota(l,m)=l^2+l+m.
+    \label{eq:sm-pack-index}
+\end{equation}
+A node feature is an element
+$\mathbf{h}_i\in V_{\le L}\otimes\mathbb{R}^{C}$. A map is SO(3)-equivariant if
+it commutes with $D(Q)$, and SO(3)-invariant if its output lies in the $l=0$
+subspace. The $l=0$ slice is therefore the only slice used by the scalar
+readout.
+
+\subsection{Edge-local gauge charts}
+\label{sec:sm-local-frame}
+
+\paragraph{Goal.}
+For each directed edge $(i,j)$, DPA4 chooses a rotation $R_{ij}$ satisfying
+\begin{equation}
+    R_{ij}\widehat{\mathbf{r}}_{ij}=\mathbf{e}_z=(0,0,1)^{\top}.
+    \label{eq:sm-local-frame-goal}
+\end{equation}
+This converts an SO(3) problem into an SO(2) problem in the edge-local frame:
+after the bond direction is aligned with $\mathbf{e}_z$, the residual symmetry
+is the subgroup of rotations about $\mathbf{e}_z$. The in-plane basis is a
+gauge choice. The equivariant message does not depend on this choice because the
+local operator commutes with the residual SO(2) action; the proof is given in
+Supplementary Section~\ref{sec:sm-proofs}.
+
+\paragraph{Two quaternion charts.}
+Let $\widehat{\mathbf{r}}=(x,y,z)\in S^2$. DPA4 uses two smooth unit-quaternion
+charts,
+\begin{equation}
+    \mathbf{q}^{+}(\widehat{\mathbf{r}})
+    =
+    \frac{(1+z,\;y,\;-x,\;0)}{\sqrt{2(1+z)}},
+    \qquad
+    \mathbf{q}^{-}(\widehat{\mathbf{r}})
+    =
+    \frac{(-x,\;0,\;1-z,\;y)}{\sqrt{2(1-z)}}.
+    \label{eq:sm-quaternion-charts}
+\end{equation}
+The first chart is regular away from the south pole and the second is regular
+away from the north pole. In the overlap, the sign of $\mathbf{q}^{-}$ is chosen
+so that $\langle\mathbf{q}^{+},\mathbf{q}^{-}\rangle\ge 0$, and the blended
+quaternion is
+\begin{equation}
+    \mathbf{q}_{ij}
+    =
+    \frac{\lambda\mathbf{q}^{+}(\widehat{\mathbf{r}}_{ij})
+        +(1-\lambda)\mathbf{q}^{-}(\widehat{\mathbf{r}}_{ij})}
+    {\left\|\lambda\mathbf{q}^{+}(\widehat{\mathbf{r}}_{ij})
+        +(1-\lambda)\mathbf{q}^{-}(\widehat{\mathbf{r}}_{ij})\right\|},
+    \qquad
+    \lambda=\frac{1+z}{2}.
+    \label{eq:sm-quaternion-blend}
+\end{equation}
+The denominator is bounded away from zero after shortest-arc sign alignment in
+the chosen chart overlap, so the resulting gauge is smooth on the chart used by
+the implementation. The Wigner-D matrix in the edge-local gauge is denoted
+$D_{ij}=D(R(\mathbf{q}_{ij}))$.
+The underlying unit-quaternion rotation matrix is
+\begin{equation}
+    R(\mathbf{q})=
+    \begin{pmatrix}
+        1-2(q_y^2+q_z^2) & 2(q_xq_y-q_wq_z) & 2(q_xq_z+q_wq_y) \\
+        2(q_xq_y+q_wq_z) & 1-2(q_x^2+q_z^2) & 2(q_yq_z-q_wq_x) \\
+        2(q_xq_z-q_wq_y) & 2(q_yq_z+q_wq_x) & 1-2(q_x^2+q_y^2)
+    \end{pmatrix}.
+    \label{eq:sm-quaternion-rotation}
+\end{equation}
+During training, an additional random roll about the local $z$ axis may be
+composed with $R_{ij}$. This roll is a gauge augmentation: it changes the
+in-plane basis of the local gauge but leaves the bond direction fixed. Because
+the SO(2) stack is gauge equivariant, the lifted global message is unchanged by
+this roll apart from the prescribed SO(3) transformation law.
+
+\paragraph{SO(2) decomposition.}
+Restricting $V_l$ to rotations about the local $z$ axis gives
+\begin{equation}
+    V_l|_{\mathrm{SO}(2)}
+    =
+    \mathbb{R}\mathbf{e}^{(l)}_0
+    \oplus
+    \bigoplus_{m=1}^{l}
+    \left(\mathbb{R}\mathbf{e}^{(l)}_{-m}
+    \oplus
+    \mathbb{R}\mathbf{e}^{(l)}_{+m}\right).
+    \label{eq:sm-so2-decomposition}
+\end{equation}
+The $m=0$ line is trivial; each $(-m,+m)$ pair is a two-dimensional real
+representation equivalent to multiplication by the complex phase $e^{im\theta}$.
+This is the algebraic reason DPA4 can use SO(2)-equivariant local operators
+instead of Clebsch--Gordan tensor products.
+
+\paragraph{Why Clebsch--Gordan tensor products are not required.}
+Clebsch--Gordan coefficients appear when two non-trivial equivariant features
+are multiplied bilinearly, for example $V_{l_1}\otimes V_{l_2}\to V_{l_3}$.
+DPA4 avoids such products in its main message-passing path. The edge-side
+functions that multiply node features are rotation-invariant scalars: radial
+profiles, cutoff envelopes, source-freeze gates and attention weights. The
+angular information in the edge direction is not treated as a second
+equivariant feature to be tensor-multiplied with the source node state.
+Instead, it is encoded in the frame change $D_{ij}\mathbf{h}_j$ and in the
+inverse frame change that returns the message to the global frame. Consequently
+each multiplicative interaction is of the trivial form ``scalar times
+equivariant tensor'', and the non-trivial angular mixing occurs through
+SO(2)-equivariant linear maps in the local frame.
+
+\subsection{Smooth cutoffs, radial basis and zone-bridging maps}
+\label{sec:sm-radial}
+
+For an integer exponent $p$, define the cutoff envelope
+\begin{equation}
+    s_p(r)=
+    \begin{cases}
+        1+x^p(a_p+b_px+c_px^2+d_px^3), & x=r/r_{\mathrm{c}}\in[0,1), \\
+        0,                             & x\ge 1,
+    \end{cases}
+    \label{eq:sm-cutoff}
+\end{equation}
+where
+\begin{align}
+    a_p & =-\frac{(p+1)(p+2)(p+3)}{6}, &
+    b_p & =\frac{p(p+2)(p+3)}{2},        \\
+    c_p & =-\frac{p(p+1)(p+3)}{2},     &
+    d_p & =\frac{p(p+1)(p+2)}{6}.
+\end{align}
+These coefficients enforce
+$s_p(r_{\mathrm{c}})=s'_p(r_{\mathrm{c}})=s''_p(r_{\mathrm{c}})
+    =s'''_p(r_{\mathrm{c}})=0$. DPA4 uses $s=s_5$ for edge weighting and $s_7$ in
+the radial basis:
+\begin{align}
+    s_5(r) & =1-56x^5+140x^6-120x^7+35x^8,       \\
+    s_7(r) & =1-120x^7+540x^8-1080x^9+840x^{10}.
+\end{align}
+The sinusoidal radial basis is
+\begin{equation}
+    \phi_n(r)=\frac{\sin(\omega_n r)}{r}s_7(r),\qquad
+    \phi_n(0)=\omega_n s_7(0),
+    \label{eq:sm-radial-basis}
+\end{equation}
+with learnable frequencies initialized at $\omega_n=n\pi/r_{\mathrm{c}}$.
+
+\begin{lemma}[Cutoff regularity]
+    The envelope $s_p$ belongs to $C^3(\mathbb{R})$, equals one at the origin,
+    vanishes for $r\ge r_{\mathrm{c}}$, and has value and first three derivatives
+    equal to zero at $r=r_{\mathrm{c}}$.
+\end{lemma}
+\begin{proof}
+    For $0\le x<1$, $s_p$ is a polynomial in $x=r/r_{\mathrm{c}}$; for $x\ge1$ it
+    is identically zero. The four coefficients are the unique solution of the four
+    linear boundary constraints at $x=1$. Thus the left and right limits of
+    $s_p,s_p',s_p''$ and $s_p'''$ agree at $r_{\mathrm{c}}$. The stated values at
+    the origin and outside the cutoff are immediate from the definition.
+\end{proof}
+
+\paragraph{Bridging maps.}
+For $0<r_{\mathrm{in}}<r_{\mathrm{out}}$, set
+$t=(r-r_{\mathrm{in}})/(r_{\mathrm{out}}-r_{\mathrm{in}})$ and define
+\begin{align}
+    h_{\mathrm{c}}(t) & =20t^4-45t^5+36t^6-10t^7, \\
+    h_{\mathrm{w}}(t) & =35t^4-84t^5+70t^6-20t^7.
+\end{align}
+The clamp polynomial matches a constant function on the left to the identity on
+the right:
+\begin{equation}
+    h_{\mathrm{c}}(0)=0,\quad h_{\mathrm{c}}(1)=1,\quad
+    h'_{\mathrm{c}}(0)=0,\quad h'_{\mathrm{c}}(1)=1,\quad
+    h''_{\mathrm{c}}(0)=h''_{\mathrm{c}}(1)=
+    h'''_{\mathrm{c}}(0)=h'''_{\mathrm{c}}(1)=0.
+    \label{eq:sm-clamp-boundary}
+\end{equation}
+The switch polynomial joins two constants:
+\begin{equation}
+    h_{\mathrm{w}}(0)=0,\quad h_{\mathrm{w}}(1)=1,\quad
+    h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0,\quad k=1,2,3.
+    \label{eq:sm-switch-boundary}
+\end{equation}
+The clamped distance and switching amplitude are
+\begin{equation}
+    \widetilde{r}(r)=
+    \begin{cases}
+        r_{\mathrm{in}}, & r\le r_{\mathrm{in}},               \\
+        r_{\mathrm{in}}+(r_{\mathrm{out}}-r_{\mathrm{in}})h_{\mathrm{c}}(t),
+                         & r_{\mathrm{in}}<r<r_{\mathrm{out}}, \\
+        r,               & r\ge r_{\mathrm{out}},
+    \end{cases}
+    \quad
+    w(r)=
+    \begin{cases}
+        0,                 & r\le r_{\mathrm{in}},               \\
+        h_{\mathrm{w}}(t), & r_{\mathrm{in}}<r<r_{\mathrm{out}}, \\
+        1,                 & r\ge r_{\mathrm{out}}.
+    \end{cases}
+    \label{eq:sm-clamp-switch}
+\end{equation}
+Both are $C^3$ on $\mathbb{R}_{>0}$. The displacement used by the learned branch
+is
+\begin{equation}
+    \widetilde{\mathbf{r}}_{ij}
+    =
+    \widetilde{r}(r_{ij})\widehat{\mathbf{r}}_{ij}.
+    \label{eq:sm-clamped-displacement}
+\end{equation}
+
+\subsection{Source-freeze propagation gate}
+\label{sec:sm-source-freeze}
+
+For each atom $j$, define the source-freeze gate
+\begin{equation}
+    \eta_j
+    =
+    \prod_{i:r_{ji}<r_{\mathrm{c}}}w(r_{ji})
+    \in[0,1].
+    \label{eq:sm-source-freeze}
+\end{equation}
+If any neighbour of $j$ lies in the frozen zone, then one factor in the product
+vanishes and $\eta_j=0$. This gate multiplies all information sourced from
+$j$: geometric initial embedding, Environment Initial Embedding, plain
+SO(2) aggregation and attention aggregation. DPA4 also uses the smooth degree
+\begin{equation}
+    d_i=\sum_{j:r_{ij}<r_{\mathrm{c}}}s(r_{ij})^2,\qquad
+    n_i=(d_i+\varepsilon)^{-1/2}.
+    \label{eq:sm-smooth-degree}
+\end{equation}
+
+\begin{lemma}
+    The gate $\eta_j$ is $C^3$ away from coincident atoms and satisfies
+    \[
+        \exists i\ \text{with}\ r_{ji}\le r_{\mathrm{in}}
+        \quad\Longrightarrow\quad
+        \eta_j=0.
+    \]
+\end{lemma}
+\begin{proof}
+    The gate is a finite product of $C^3$ functions $w(r_{ji})$. The implication
+    follows immediately from $w(r)=0$ for $r\le r_{\mathrm{in}}$.
+\end{proof}
+
+\subsection{Truncated local layout and rescaled lift}
+\label{sec:sm-truncation}
+
+Inside the edge-local frame, DPA4 retains only
+\begin{equation}
+    \mathcal{I}_M=
+    \{(l,m):0\le l\le L,\ |m|\le \min(l,M)\},
+    \qquad
+    D_M=|\mathcal{I}_M|.
+    \label{eq:sm-trunc-index}
+\end{equation}
+Let $P_M:\mathbb{R}^{(L+1)^2}\to\mathbb{R}^{D_M}$ be the orthogonal projection
+onto this reduced layout. The truncated edge rotation is
+\begin{equation}
+    D_{ij}^{\le M}=P_M D_{ij}.
+    \label{eq:sm-truncated-rotation}
+\end{equation}
+Because $P_M^{\top}P_M$ is not the identity when $M<L$, the round trip loses
+degree-block norm. DPA4 applies the diagonal lift compensation
+\begin{equation}
+    (\Xi_M)_{\iota(l,m),\iota(l,m)}
+    =
+    \kappa_l
+    =
+    \sqrt{\frac{2l+1}{2\min(l,M)+1}}.
+    \label{eq:sm-rescale}
+\end{equation}
+Thus
+$\Xi_M= \operatorname{diag}(\kappa_0 I_1,\kappa_1 I_3,\ldots,\kappa_L I_{2L+1})$.
+
+\subsection{Equivariant operator algebra}
+\label{sec:sm-operators}
+
+\paragraph{Classification by Schur's lemma.}
+The linear operators used by DPA4 are not ad hoc. They follow from the
+classification of equivariant maps on the relevant representation spaces. In
+the global SO(3) frame, Schur's lemma forbids mixing distinct degrees:
+\begin{equation}
+    \mathrm{Hom}_{\mathrm{SO}(3)}
+    (V_{\le L}\otimes\mathbb{R}^{C},V_{\le L}\otimes\mathbb{R}^{C'})
+    \cong
+    \bigoplus_{l=0}^{L}\mathbb{R}^{C\times C'}.
+    \label{eq:sm-schur-so3}
+\end{equation}
+In the edge-local SO(2) frame, the $m=0$ lines are trivial representations and
+each $|m|>0$ pair is complex type, giving
+\begin{equation}
+    \mathrm{Hom}_{\mathrm{SO}(2)}
+    (V_{\le L}\otimes\mathbb{R}^{C},V_{\le L}\otimes\mathbb{R}^{C'})
+    \cong
+    \bigoplus_{l,l'}\mathbb{R}^{C\times C'}
+    \oplus
+    \bigoplus_{m=1}^{M}\bigoplus_{l,l'\ge m}\mathbb{C}^{C\times C'}.
+    \label{eq:sm-schur-so2}
+\end{equation}
+Equation~\eqref{eq:sm-schur-so2} is the formal reason the local-frame operator
+may mix degrees $l,l'$ while preserving each $|m|$ stratum.
+
+\paragraph{Global SO(3) linear maps.}
+By Schur's lemma, SO(3)-equivariant linear maps on $V_{\le
+            L}\otimes\mathbb{R}^{C}$ are degree-wise:
+\begin{equation}
+    \mathrm{Hom}_{\mathrm{SO}(3)}
+    (V_{\le L}\otimes\mathbb{R}^{C},V_{\le L}\otimes\mathbb{R}^{C'})
+    \cong
+    \bigoplus_{l=0}^{L}\mathbb{R}^{C\times C'}.
+    \label{eq:sm-hom-so3}
+\end{equation}
+Thus an SO(3)-equivariant degree-wise map has the form
+\begin{equation}
+    (L^{\mathrm{deg}}_{\Theta}\mathbf{h})_{\iota(l,m),c'}
+    =
+    \sum_{c=1}^{C}W^{(l)}_{c,c'}\mathbf{h}_{\iota(l,m),c}.
+    \label{eq:sm-degree-linear}
+\end{equation}
+
+\begin{proposition}[Global degree-wise linear equivariance]
+    The map in Eq.~\eqref{eq:sm-degree-linear} commutes with $D(Q)$ for every
+    $Q\in\mathrm{SO}(3)$.
+\end{proposition}
+\begin{proof}
+    For each degree $l$, the matrix $W^{(l)}$ acts only on the channel
+    multiplicity, while $D^l(Q)$ acts only on the representation index $m$. These
+    two actions commute within each $l$ block; the direct sum over $l$ therefore
+    commutes with $D(Q)$.
+\end{proof}
+
+\paragraph{Edge-local SO(2) linear maps.}
+In the edge-local frame, the $m=0$ lines are trivial SO(2) representations,
+whereas each $|m|>0$ pair is complex type. The most general SO(2)-equivariant
+linear map on the reduced layout is therefore
+\begin{align}
+    (L_{\Theta}^{\mathrm{SO2}}\mathbf{x})_{(l,0),c'}
+     & =
+    \sum_{l'=0}^{L}\sum_{c=1}^{C}
+    A_{c,c'}^{(l,l',0)}\mathbf{x}_{(l',0),c}
+    +b_{0,c'}\delta_{l,0},
+    \label{eq:sm-so2-m0} \\
+    \begin{pmatrix}
+        (L_{\Theta}^{\mathrm{SO2}}\mathbf{x})_{(l,-m),c'}\\
+        (L_{\Theta}^{\mathrm{SO2}}\mathbf{x})_{(l,+m),c'}
+    \end{pmatrix}
+     & =
+    \sum_{l'\ge m}\sum_{c=1}^{C}
+    \begin{pmatrix}
+        U_{c,c'}^{(l,l',m)} & -V_{c,c'}^{(l,l',m)} \\
+        V_{c,c'}^{(l,l',m)} & U_{c,c'}^{(l,l',m)}
+    \end{pmatrix}
+    \begin{pmatrix}
+        \mathbf{x}_{(l',-m),c} \\
+        \mathbf{x}_{(l',+m),c}
+    \end{pmatrix}.
+    \label{eq:sm-so2-mn}
+\end{align}
+
+\begin{theorem}[SO(2)-equivariance]
+    For every rotation $Q_{\theta}$ about the local $z$ axis,
+    $L_{\Theta}^{\mathrm{SO2}}D(Q_{\theta})=D(Q_{\theta})L_{\Theta}^{\mathrm{SO2}}$.
+\end{theorem}
+\begin{proof}
+    The $m=0$ subspace is fixed by $D(Q_{\theta})$, so arbitrary mixing among
+    $m=0$ coefficients commutes with the action. For $m>0$, the block in
+    Eq.~\eqref{eq:sm-so2-mn} is the real form of multiplication by a complex matrix
+    $U+iV$. The SO(2) action is multiplication by $e^{im\theta}$, and complex
+    multiplication commutes.
+\end{proof}
+
+\paragraph{Equivariant RMS normalisation.}
+For $\mathbf{h}\in V_{\le L}\otimes\mathbb{R}^{C}$, define
+\begin{equation}
+    \sigma^2(\mathbf{h})
+    =
+    \sum_{l=0}^{L}\sum_{m=-l}^{l}\sum_{c=1}^{C}
+    \frac{(\mathbf{h}_{\iota(l,m),c}-\delta_{l,0}\bar{h})^2}
+    {(2l+1)(L+1)C},
+    \qquad
+    \bar{h}=C^{-1}\sum_c \mathbf{h}_{\iota(0,0),c}.
+    \label{eq:sm-rms-stat}
+\end{equation}
+The normalisation
+\begin{equation}
+    (N_{\gamma,\beta}\mathbf{h})_{\iota(l,m),c}
+    =
+    \gamma_l
+    \frac{\mathbf{h}_{\iota(l,m),c}-\delta_{l,0}\bar{h}}
+    {\sqrt{\sigma^2(\mathbf{h})+\varepsilon}}
+    +\delta_{l,0}\beta_c
+    \label{eq:sm-rmsnorm}
+\end{equation}
+commutes with SO(3), because the numerator is equivariant, the denominator is
+invariant under the orthogonal representation $D^l$, and $\gamma_l$ is constant
+within each degree block.
+
+\paragraph{Scalar-gated nonlinearity.}
+For a smooth scalar nonlinearity $\psi$ and degree-wise gate matrices
+$G^{(l)}$, define
+\begin{equation}
+    (\Gamma_{\psi,G}\mathbf{h})_{\iota(l,m),c}
+    =
+    \begin{cases}
+        \psi(\mathbf{h}_{\iota(0,0),c}),   & l=0,    \\[2pt]
+        \mathbf{h}_{\iota(l,m),c}
+        \sigma\!\left(\sum_{c'}G^{(l)}_{c',c}
+        \mathbf{h}_{\iota(0,0),c'}\right), & l\ge 1.
+    \end{cases}
+    \label{eq:sm-gated}
+\end{equation}
+The gate is a scalar function of the invariant $l=0$ slice, so the operation is
+SO(3)-equivariant.
+
+\begin{proposition}[Scalar-gated equivariance]
+    The nonlinearity in Eq.~\eqref{eq:sm-gated} is SO(3)-equivariant.
+\end{proposition}
+\begin{proof}
+    The $l=0$ slice is the trivial representation, so applying $\psi$ to it is
+    invariant. For $l\ge1$, the multiplicative gate depends only on the invariant
+    $l=0$ slice and is therefore a scalar under SO(3). Multiplication of a
+    degree-$l$ vector by an invariant scalar commutes with $D^l(Q)$.
+\end{proof}
+
+\paragraph{Scalar-keyed mixtures.}
+If $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(S)}$ are equivariant tensors of the
+same type and $\pi$ is an invariant scalar projection, then
+\begin{equation}
+    \mathcal{A}(\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(S)};\mathbf{q})
+    =
+    \sum_{s=1}^{S}\alpha_s\mathbf{x}^{(s)},\qquad
+    \alpha_s=
+    \frac{\exp\langle\mathbf{q},\pi(\mathbf{x}^{(s)})\rangle}
+    {\sum_{s'}\exp\langle\mathbf{q},\pi(\mathbf{x}^{(s')})\rangle}
+    \label{eq:sm-scalar-keyed-mixture}
+\end{equation}
+is equivariant, because the weights are invariant scalars.
+
+\begin{proposition}[Scalar-keyed mixtures preserve equivariance]
+    If $\pi$ is SO(3)-invariant, then the mixture in
+    Eq.~\eqref{eq:sm-scalar-keyed-mixture} is SO(3)-equivariant.
+\end{proposition}
+\begin{proof}
+    The scores $\langle\mathbf{q},\pi(\mathbf{x}^{(s)})\rangle$ are invariant under
+    rotation, hence so are the softmax weights $\alpha_s$. The weighted sum of
+    equivariant tensors with invariant scalar weights transforms equivariantly.
+\end{proof}
+
+\section{DPA4 architecture}
+\label{sec:sm-dpa4-architecture}
+
+\subsection{Initial embeddings}
+\label{sec:sm-initial-embeddings}
+
+\paragraph{Type embedding.}
+The scalar initial state is a learnable element table:
+\begin{equation}
+    \mathbf{h}_{i,\iota(0,0),c}^{(0)}=T_{Z_i,c},
+    \qquad
+    \mathbf{h}_{i,l\ge1}^{(0)}=0.
+    \label{eq:sm-type-embedding}
+\end{equation}
+
+\paragraph{Geometric initial embedding.}
+The real spherical harmonic can be written through the inverse edge rotation:
+\begin{equation}
+    Y_l^{m}(\widehat{\mathbf{r}}_{ij})
+    =
+    [D_{ij}^{\top}]_{\iota(l,m),\iota(l,0)}.
+    \label{eq:sm-sph-from-rotation}
+\end{equation}
+Let the radial-species profile be
+\begin{equation}
+    \boldsymbol{\rho}_{ij}
+    =
+    \Pi^{\mathrm{rad}}\!\left(\boldsymbol{\phi}(\widetilde{r}_{ij})\right)
+    +
+    T_{\mathrm{edge}}(Z_i,Z_j)
+    \in\mathbb{R}^{(L+1)\times C}.
+    \label{eq:sm-rho-edge}
+\end{equation}
+The geometric initial embedding adds
+\begin{equation}
+    \mathbf{h}_{i,\iota(l,m),c}^{(0)}
+    \mathrel{+}=
+    n_i\sum_{j:r_{ij}<r_{\mathrm{c}}}
+    \eta_j\,Y_l^m(\widehat{\mathbf{r}}_{ij})\,\rho_{ij,l,c},
+    \qquad l\ge 1.
+    \label{eq:sm-gie}
+\end{equation}
+
+\begin{proposition}
+    The map in Eqs.~\eqref{eq:sm-type-embedding}--\eqref{eq:sm-gie} is SO(3)
+    equivariant.
+\end{proposition}
+\begin{proof}
+    The $l=0$ slice is position independent. For $l\ge1$, each summand is the
+    product of an invariant scalar $n_i\eta_j\rho_{ij,l,c}$ and a degree-$l$
+    spherical harmonic vector, which transforms by $D^l(Q)$ under a global rotation
+    $Q$.
+\end{proof}
+
+\paragraph{Environment Initial Embedding.}
+The Environment Initial Embedding is a FiLM conditioner on the scalar initial
+state. Define
+\begin{equation}
+    \mathbf{u}_{ij,0}=\frac{s(\widetilde{r}_{ij})}{\widetilde{r}_{ij}},
+    \qquad
+    \mathbf{u}_{ij,k}=\mathbf{u}_{ij,0}\widehat{\mathbf{r}}_{ij,k},\quad k=1,2,3.
+    \label{eq:sm-env-vector}
+\end{equation}
+For a separate radial-species map $\mathbf{g}$,
+\begin{equation}
+    A_i
+    =
+    n_i\sum_{j:r_{ij}<r_{\mathrm{c}}}
+    \eta_j\,\mathbf{u}_{ij}\otimes
+    \mathbf{g}(\widetilde{r}_{ij};Z_i,Z_j)
+    \in\mathbb{R}^{4\times C_{\mathrm{env}}}.
+    \label{eq:sm-env-matrix}
+\end{equation}
+The compact invariant descriptor is
+\begin{equation}
+    \mathcal{D}_i=A_i^{\top}A_i^{(:,1:K_{\mathrm{env}})}
+    \in\mathbb{R}^{C_{\mathrm{env}}\times K_{\mathrm{env}}}.
+    \label{eq:sm-env-descriptor}
+\end{equation}
+With scalar normalisation $N_0$, the FiLM update is
+\begin{equation}
+    \mathbf{h}^{(0)}_{i,l=0}
+    \leftarrow
+    \left[
+        1+\exp(\lambda_{\alpha})
+        \tanh N_0(W_{\alpha}\operatorname{vec}\mathcal{D}_i)
+        \right]\odot \mathbf{h}^{(0)}_{i,l=0}
+    +
+    \exp(\lambda_{\beta})
+    \tanh N_0(W_{\beta}\operatorname{vec}\mathcal{D}_i).
+    \label{eq:sm-film}
+\end{equation}
+The strengths are initialised with $\lambda_{\alpha}=\lambda_{\beta}=\log(0.01)$,
+so the conditioning begins close to the identity.
+
+\subsection{Edge convolution in the local frame}
+\label{sec:sm-so2conv}
+
+The edge convolution
+\begin{equation}
+    \mathcal{C}_{\Theta}:
+    (V_{\le L}\otimes\mathbb{R}^{C})^N
+    \to
+    (V_{\le L}\otimes\mathbb{R}^{C})^N
+    \label{eq:sm-edge-conv-map}
+\end{equation}
+is a nine-stage equivariant operator.
+
+\paragraph{Stage 1: pre-mixing.}
+A degree-wise linear map lifts channels from $C$ to a hidden width $H=F C_f$:
+\begin{equation}
+    \mathbf{h}'_i=L_{\mathrm{pre}}^{\mathrm{deg}}\mathbf{h}_i.
+    \label{eq:sm-pre-mixing}
+\end{equation}
+
+\paragraph{Stage 2: local-frame transport.}
+For each edge,
+\begin{equation}
+    \mathbf{x}_{ij}=D_{ij}^{\le M}\mathbf{h}'_j\in\mathbb{R}^{D_M\times H}.
+    \label{eq:sm-xloc}
+\end{equation}
+
+\paragraph{Stage 3: edge-conditioned radial degree coupling.}
+DPA4 configurations with radial degree coupling use an edge-conditioned kernel
+across degrees at fixed $|m|$:
+\begin{equation}
+    \mathbf{z}_{ij,l_{\mathrm{out}},m,c}
+    =
+    \sum_{l_{\mathrm{in}}\ge |m|}
+    \mathcal{K}_{ij,l_{\mathrm{out}},l_{\mathrm{in}},|m|,c}
+    \mathbf{x}_{ij,l_{\mathrm{in}},m,c}.
+    \label{eq:sm-radial-degree-coupling}
+\end{equation}
+For the reduced $m$-major layout, let
+\begin{equation}
+    D_M=(L+1)+2\sum_{m=1}^{M}(L-m+1),\qquad
+    K_{\mathrm{deg}}=\sum_{m=0}^{M}(L-m+1)^2 ,
+    \label{eq:sm-reduced-kernel-sizes}
+\end{equation}
+where $D_M$ is the number of retained local coefficients and
+$K_{\mathrm{deg}}$ is the number of compact degree-pair entries before signed
+$m$ expansion. The dynamic radial degree mixer receives local features
+$\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times H}$ and radial-species features
+$\boldsymbol{\rho}_{ij}\in\mathbb{R}^{D_M\times H}$. The kernel generator uses
+the $m=0$ radial degree slice,
+\begin{equation}
+    \boldsymbol{\rho}_{ij}^{(0)}
+    =
+    \operatorname{vec}\left(
+    \boldsymbol{\rho}_{ij,l,0,c'}:
+    l=0,\ldots,L,\; c'=1,\ldots,H
+    \right),
+    \label{eq:sm-radial-m0-profile}
+\end{equation}
+which already contains the nonlinear radial basis and species-pair information
+produced by the shared radial network.
+
+For the low-rank per-channel form, the compact degree kernel is generated by a
+linear projection of this invariant profile,
+\begin{equation}
+    \mathcal{A}^{\mathrm{rad}}_{ij,\kappa,q}
+    =
+    \sum_{l=0}^{L}\sum_{c'=1}^{H}
+    \rho_{ij,l,0,c'}\,
+    \mathcal{W}^{\mathrm{rad}}_{l,c',\kappa,q},
+    \qquad
+    \kappa=1,\ldots,K_{\mathrm{deg}},
+    \label{eq:sm-radial-kernel-generator}
+\end{equation}
+and then scattered into the dense degree-pair entries
+$(l_{\mathrm{out}},l_{\mathrm{in}},|m|)$. The resulting per-channel kernel is
+\begin{equation}
+    \mathcal{K}_{ij,l_{\mathrm{out}},l_{\mathrm{in}},|m|,c}
+    =
+    \sum_{q=1}^{R_{\mathrm{rad}}}
+    \mathcal{A}^{\mathrm{rad}}_{ij,l_{\mathrm{out}},l_{\mathrm{in}},|m|,q}
+    \mathcal{B}^{\mathrm{ch}}_{q,c}.
+    \label{eq:sm-radial-low-rank}
+\end{equation}
+Here $\mathcal{B}^{\mathrm{ch}}\in\mathbb{R}^{R_{\mathrm{rad}}\times H}$ is a
+learned channel basis shared across edges, degree pairs and $|m|$ strata. The
+same $|m|$ kernel is applied to the $-m$ and $+m$ signed blocks, and the mixer
+does not mix channels: output channel $c$ receives only input channel $c$.
+Channel mixing is performed by the subsequent SO(2)-equivariant linear stack.
+Setting $R_{\mathrm{rad}}>0$ gives the low-rank degree-channel form used by the
+reported radial degree coupling configurations; $R_{\mathrm{rad}}=0$ in the implementation
+denotes the full per-channel dynamic degree kernel rather than a disabled
+kernel. The ranks used by each benchmark model are listed in
+Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}; models
+marked as scalar scaling in the configuration tables use the diagonal special
+case below.
+The older diagonal modulation is recovered as the special case
+\begin{equation}
+    \mathcal{K}_{ij,l_{\mathrm{out}},l_{\mathrm{in}},|m|,c}
+    =
+    \widetilde{\rho}_{ij,l_{\mathrm{in}},c}
+    \delta_{l_{\mathrm{out}},l_{\mathrm{in}}}.
+    \label{eq:sm-diagonal-radial-special}
+\end{equation}
+Thus DPA4 retains the SO(2) selection rule while allowing radial information to
+couple angular degrees within each $|m|$ stratum.
+
+\paragraph{Stages 4--6: focus streams and SO(2) stack.}
+The hidden width is reshaped as $\mathbb{R}^{H}=\mathbb{R}^{F}\otimes
+    \mathbb{R}^{C_f}$. A finite stack of SO(2)-equivariant maps, normalisations and
+gated nonlinearities acts by residual updates
+\begin{equation}
+    \mathbf{z}_{ij}
+    \leftarrow
+    \mathbf{z}_{ij}
+    +
+    \Lambda_s\odot
+    \Gamma_s\!\left(
+    L_s^{\mathrm{SO2}}N_s(\mathbf{z}_{ij})
+    \right),
+    \qquad s=1,\ldots,S.
+    \label{eq:sm-so2-stack}
+\end{equation}
+For multiple focus streams, scalar logits from the local $l=0$ slice define
+\begin{equation}
+    a_{ij,f}
+    =
+    (1-\epsilon)
+    \frac{\exp(q_{ij,f}/\tau)}
+    {\sum_{f'}\exp(q_{ij,f'}/\tau)}
+    +
+    \frac{\epsilon}{F},
+    \label{eq:sm-focus-competition}
+\end{equation}
+which is broadcast over all $(l,m)$ coefficients of focus $f$.
+
+\paragraph{Bias consistency at the smooth cutoff.}
+If the first SO(2) linear map includes an additive $l=0$ bias, that bias must
+vanish with the same smooth envelope as the rest of the edge message. Otherwise
+an edge whose radial contribution has gone to zero could still carry a constant
+scalar offset. DPA4 therefore treats the first-layer scalar bias as part of the
+edge-conditioned response. If $b_{0,f,c}$ is the scalar bias for focus $f$ and
+channel $c$, the net contribution to the local $(l,m)=(0,0)$ slot is adjusted
+to
+\begin{equation}
+    b_{0,f,c}\,\widetilde{\rho}_{ij,0,c}\,s(r_{ij}),
+    \label{eq:sm-bias-consistency}
+\end{equation}
+which is $C^3$ and vanishes at the cutoff. This correction is only needed at
+the first SO(2) layer because subsequent layers operate on already modulated
+local features.
+
+\paragraph{Optional intra-stack memory.}
+The SO(2) stack can be augmented by scalar-keyed mixtures of previous local
+states. Let $\mathcal{H}_{s-1}$ denote the set containing the input to the
+SO(2) stack and the increments produced by earlier local layers. Before layer
+$s$, the layer input may be replaced by
+\begin{equation}
+    \mathbf{z}_{ij}^{(s,\mathrm{in})}
+    =
+    \mathcal{A}(\mathcal{H}_{s-1};\mathbf{q}^{(s)}),
+    \label{eq:sm-so2-memory}
+\end{equation}
+where $\mathcal{A}$ is the scalar-keyed equivariant mixture in
+Eq.~\eqref{eq:sm-scalar-keyed-mixture}. The query $\mathbf{q}^{(s)}$ is either
+learned or computed from the local $l=0$ slice. Since all mixture weights are
+local SO(2)-invariant scalars, the memory mechanism preserves SO(2)
+equivariance.
+
+\paragraph{Stage 7: lift back to the global frame.}
+The edge message is
+\begin{equation}
+    \mathbf{m}_{ij}
+    =
+    \Xi_M(D_{ij}^{\le M})^{\top}\mathbf{z}_{ij}
+    \in V_{\le L}\otimes\mathbb{R}^{H}.
+    \label{eq:sm-edge-message}
+\end{equation}
+
+\paragraph{Stage 8A: envelope-weighted aggregation.}
+Without attention,
+\begin{equation}
+    (\Delta\mathbf{h}')_i
+    =
+    n_i\sum_{j:r_{ij}<r_{\mathrm{c}}}
+    s(r_{ij})\eta_j\mathbf{m}_{ij}.
+    \label{eq:sm-plain-aggregation}
+\end{equation}
+
+\paragraph{Stage 8B: envelope-gated attention.}
+With attention, scalar queries and keys are computed from the invariant $l=0$
+slice. For focus $f$ and head $a$, define the logit $\ell_{ij}^{(f,a)}$ and
+stabiliser $\mu_i^{(f,a)}=\max_k\ell_{ik}^{(f,a)}$. The weight is
+\begin{equation}
+    \alpha_{ij}^{(f,a)}
+    =
+    \frac{s(r_{ij})^2\eta_j
+        \exp(\ell_{ij}^{(f,a)}-\mu_i^{(f,a)})}
+    {\softplus(\zeta_{f,a})\exp(-\mu_i^{(f,a)})
+        +
+        \sum_{k:r_{ik}<r_{\mathrm{c}}}
+        s(r_{ik})^2\eta_k
+        \exp(\ell_{ik}^{(f,a)}-\mu_i^{(f,a)})}.
+    \label{eq:sm-attention}
+\end{equation}
+The denominator is strictly positive even when all incident edges are silenced.
+The attended value is additionally modulated by a destination-side scalar gate
+$G_i^{(f,a)}$:
+\begin{equation}
+    (\Delta\mathbf{h}')_i^{(f,a)}
+    =
+    G_i^{(f,a)}
+    \sum_j \alpha_{ij}^{(f,a)}\mathbf{m}_{ij}^{(f,a)}.
+    \label{eq:sm-attended-message}
+\end{equation}
+
+The attention construction can be decomposed into seven algebraic substeps:
+\begin{enumerate}[leftmargin=2em,label=(\roman*)]
+    \item compute destination queries and source keys from the invariant scalar slices;
+    \item add a smooth radial scalar bias to the dot-product logit;
+    \item compute the envelope- and source-gated softmax in Eq.~\eqref{eq:sm-attention};
+    \item split the full edge message into focus and head value slices;
+    \item sum values into each destination using the scalar attention weights;
+    \item multiply the aggregated value by the destination-side scalar gate;
+    \item merge focus, head and head-channel axes before post-mixing.
+\end{enumerate}
+Every object in the attention weight and output gate is invariant. Therefore
+attention changes only the scalar weighting of equivariant messages and cannot
+break the transformation law of higher-degree features.
+
+\paragraph{Stage 9: post-mixing.}
+A final degree-wise map returns the hidden width to $C$:
+\begin{equation}
+    \mathcal{C}_{\Theta}(X)_i
+    =
+    L_{\mathrm{post}}^{\mathrm{deg}}(\Delta\mathbf{h}')_i.
+    \label{eq:sm-post-mixing}
+\end{equation}
+
+The edge convolution is gauge independent and SO(3)-equivariant because the
+local operator commutes with the residual SO(2) action on each retained $|m|$
+stratum. The formal gauge-covariance argument is given in Supplementary
+Section~\ref{sec:sm-proofs}.
+
+\subsection{Equivariant feed-forward network and Lebedev \texorpdfstring{$S^2$}{S2} activation}
+\label{sec:sm-s2}
+
+The feed-forward block $\mathcal{F}_{\Theta}:V_{\le L}\otimes\mathbb{R}^{C}\to
+    V_{\le L}\otimes\mathbb{R}^{C}$ uses degree-wise linear maps and an equivariant
+nonlinearity. The standard gated form is
+\begin{equation}
+    \mathcal{F}_{\Theta}^{\mathrm{std}}\mathbf{h}
+    =
+    L_{\Theta_2}^{\mathrm{deg}}
+    \Gamma_{\psi,G}
+    L_{\Theta_1}^{\mathrm{deg}}\mathbf{h}.
+    \label{eq:sm-ffn-standard}
+\end{equation}
+
+\paragraph{Standard gated and GLU variants.}
+The standard form first applies a degree-wise up-projection, then the
+scalar-gated nonlinearity in Eq.~\eqref{eq:sm-gated}, and finally a
+zero-initialised down-projection. When a GLU split is used, the up-projection
+produces value and gate channels $(\mathbf{v},\mathbf{g})$ and applies
+$\mathbf{v}\odot\psi(\mathbf{g})$ on each coefficient before the scalar gate on
+higher-degree blocks. The zero-initialised down-projection makes the residual
+feed-forward branch vanish at initialisation.
+
+\paragraph{Spherical-grid activation.}
+The DPA4 variants in this work use the spherical-grid SwiGLU activation in the
+feed-forward branch. Let quadrature points and weights on $S^2$ define
+\begin{equation}
+    (\mathsf{P}\mathbf{x})_a
+    =
+    \sum_{l,m}Y_l^m(\theta_a,\phi_a)\mathbf{x}_{(l,m)},\qquad
+    (\mathsf{P}^{\dagger}\mathbf{f})_{(l,m)}
+    =
+    \sum_a w_aY_l^m(\theta_a,\phi_a)\mathbf{f}_a.
+    \label{eq:sm-s2-projectors}
+\end{equation}
+For a hidden tensor split into value and gate blocks
+$\mathbf{y}=(\mathbf{v},\mathbf{g})$, the spherical-grid SwiGLU activation is
+\begin{enumerate}[leftmargin=2em,label=(\alph*)]
+    \item apply scalar SwiGLU $\mathbf{v}_{l=0}\odot\psi(\mathbf{g}_{l=0})$ on the
+          invariant slice;
+    \item project $l\ge1$ value and gate coefficients to the sphere;
+    \item multiply pointwise on the grid, $(\mathsf{P}\mathbf{v}_{l\ge1})\odot
+              \psi(\mathsf{P}\mathbf{g}_{l\ge1})$;
+    \item project back with $\mathsf{P}^{\dagger}$ and apply the scalar gate from
+          Eq.~\eqref{eq:sm-gated}.
+\end{enumerate}
+The quadrature backend is Lebedev rather than a tensor-product grid. The
+Lebedev rules select rotationally balanced points with sufficient algebraic
+precision for the low-degree bilinear products in the activation. We evaluated
+the numerical equivariance of this activation in two settings: the full
+coefficient layout, which tests SO(3) equivariance under random rotations, and
+the $m$-truncated local layout, which tests equivariance under random rotations
+about the local $z$ axis. The reported errors are the maximum absolute
+deviations between the two equivariance paths, ``rotate then activate'' and
+``activate then rotate'', evaluated in controlled numerical validation.
+
+\begin{proposition}[Equivariance of the spherical-grid activation]
+    If the quadrature projector and its adjoint realise the projection
+    $\mathsf{P}^{\dagger}\mathsf{P}$ on $V_{\le L}$ to the chosen quadrature
+    accuracy, the spherical-grid activation is SO(3)-equivariant up to that
+    quadrature error.
+\end{proposition}
+\begin{proof}
+    The scalar branch acts only on the $l=0$ trivial representation. For the
+    higher-degree branch, $\mathsf{P}$ maps coefficients to samples of the
+    corresponding spherical function, pointwise multiplication is performed on that
+    function, and $\mathsf{P}^{\dagger}$ maps the result back to coefficients. The
+    composition $\mathsf{P}^{\dagger}(\cdot)\mathsf{P}$ intertwines the coefficient
+    representation with rotations of the sphere when the quadrature is exact for
+    the polynomial degrees involved. The final scalar gate depends only on the
+    invariant slice, so it also preserves equivariance.
+\end{proof}
+
+\begin{table}[p]
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \caption{
+        Full-coefficient $S^2$ activation equivariance under random SO(3)
+        rotations. Product-grid rules are reported as
+        $(R_{\phi},R_{\theta})$ after the square-grid lift; Lebedev rules are
+        reported as (algebraic precision, number of points). Errors are maximum
+        absolute deviations between the two equivariance paths.
+    }
+    \label{tab:sm_s2_full_equivariance}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+        \toprule
+        \textbf{$L$} &
+        \multicolumn{3}{c}{\textbf{Product grid}} &
+        \multicolumn{3}{c}{\textbf{Lebedev quadrature}} \\
+        \cmidrule(lr){2-4}\cmidrule(lr){5-7}
+        & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error}
+        & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error} \\
+        \midrule
+        2 & $8\times8$   & $3.62\times10^{-7}$ & $4.77\times10^{-7}$ & $(7,26)$   & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
+        3 & $12\times12$ & $7.04\times10^{-7}$ & $6.86\times10^{-7}$ & $(9,38)$   & $3.58\times10^{-14}$ & $3.58\times10^{-7}$ \\
+        4 & $14\times14$ & $7.97\times10^{-7}$ & $1.55\times10^{-6}$ & $(13,74)$  & $5.82\times10^{-14}$ & $6.56\times10^{-7}$ \\
+        5 & $18\times18$ & $1.48\times10^{-6}$ & $1.49\times10^{-6}$ & $(15,86)$  & $3.22\times10^{-14}$ & $6.56\times10^{-7}$ \\
+        6 & $20\times20$ & $4.14\times10^{-6}$ & $2.27\times10^{-6}$ & $(19,146)$ & $7.99\times10^{-14}$ & $8.35\times10^{-7}$ \\
+        7 & $24\times24$ & $3.19\times10^{-6}$ & $2.03\times10^{-6}$ & $(21,170)$ & $6.86\times10^{-14}$ & $8.79\times10^{-7}$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\begin{table}[p]
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \caption{
+        $m$-truncated $S^2$ activation equivariance under random local
+        $z$-axis rotations. These cases test the reduced local layout used in
+        SO(2) convolution. Product-grid rules are $(R_{\phi},R_{\theta})$;
+        Lebedev rules are (algebraic precision, number of points). Errors are
+        maximum absolute deviations between the two equivariance paths.
+    }
+    \label{tab:sm_s2_truncated_equivariance}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccc@{}}
+        \toprule
+        \textbf{$M$} &
+        \textbf{$L$} &
+        \multicolumn{3}{c}{\textbf{Product grid}} &
+        \multicolumn{3}{c}{\textbf{Lebedev quadrature}} \\
+        \cmidrule(lr){3-5}\cmidrule(lr){6-8}
+        & & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error}
+        & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error} \\
+        \midrule
+        1 & 2 & $6\times8$   & $2.36\times10^{-7}$ & $3.58\times10^{-7}$ & $(7,26)$   & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
+        1 & 3 & $6\times12$  & $1.22\times10^{-7}$ & $5.96\times10^{-7}$ & $(9,38)$   & $3.55\times10^{-14}$ & $2.98\times10^{-7}$ \\
+        1 & 4 & $6\times14$  & $1.12\times10^{-6}$ & $9.54\times10^{-7}$ & $(13,74)$  & $1.04\times10^{-13}$ & $9.54\times10^{-7}$ \\
+        1 & 5 & $6\times18$  & $1.10\times10^{-7}$ & $1.43\times10^{-6}$ & $(15,86)$  & $9.34\times10^{-14}$ & $7.15\times10^{-7}$ \\
+        1 & 6 & $6\times20$  & $7.64\times10^{-7}$ & $1.91\times10^{-6}$ & $(19,146)$ & $8.56\times10^{-14}$ & $2.15\times10^{-6}$ \\
+        1 & 7 & $6\times24$  & $2.17\times10^{-7}$ & $1.91\times10^{-6}$ & $(21,170)$ & $2.08\times10^{-13}$ & $3.34\times10^{-6}$ \\
+        \midrule
+        2 & 2 & $8\times8$   & $4.01\times10^{-7}$ & $8.34\times10^{-7}$ & $(7,26)$   & $1.50\times10^{-14}$ & $2.38\times10^{-7}$ \\
+        2 & 3 & $8\times12$  & $5.99\times10^{-7}$ & $8.34\times10^{-7}$ & $(9,38)$   & $5.71\times10^{-14}$ & $3.58\times10^{-7}$ \\
+        2 & 4 & $8\times14$  & $6.02\times10^{-7}$ & $1.67\times10^{-6}$ & $(13,74)$  & $9.15\times10^{-14}$ & $5.96\times10^{-7}$ \\
+        2 & 5 & $8\times18$  & $1.19\times10^{-6}$ & $1.55\times10^{-6}$ & $(15,86)$  & $7.83\times10^{-14}$ & $4.77\times10^{-7}$ \\
+        2 & 6 & $8\times20$  & $1.33\times10^{-6}$ & $2.15\times10^{-6}$ & $(19,146)$ & $1.29\times10^{-13}$ & $9.54\times10^{-7}$ \\
+        2 & 7 & $8\times24$  & $1.41\times10^{-6}$ & $2.62\times10^{-6}$ & $(21,170)$ & $1.56\times10^{-13}$ & $1.43\times10^{-6}$ \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
+
+\subsection{Interaction block and energy readout}
+\label{sec:sm-block-energy}
+
+An interaction block with optional pre- and post-normalisations acts as
+\begin{align}
+    \mathbf{h}^{(1)}_i
+     & =
+    \mathbf{h}_i
+    +
+    N_{\mathrm{c,post}}
+    \left[
+        \mathcal{C}_{\Theta}
+        (N_{\mathrm{c,pre}}X)_i
+        \right], \\
+    \mathbf{h}^{(u+1)}_i
+     & =
+    \mathbf{h}^{(u)}_i
+    +
+    \lambda_u\odot
+    N_{\mathrm{f,post},u}
+    \left[
+        \mathcal{F}_{\Theta_u}
+        (N_{\mathrm{f,pre},u}\mathbf{h}^{(u)}_i)
+        \right].
+    \label{eq:sm-interaction-block}
+\end{align}
+The scales $\lambda_u$ are initialised small and the down-projections are
+zero-initialised, giving a near-identity start.
+
+The normalisation switches in Eq.~\eqref{eq:sm-interaction-block} cover the
+common residual designs used in equivariant Transformer-style blocks: pre-norm
+only, post-norm only, sandwich norm and no-norm. Since each normalisation is
+equivariant and each residual branch is equivariant, all four variants preserve
+the SO(3) type of the state. The benchmark DPA4 configurations use the
+normalisation placement reported in Supplementary Tables
+\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
+
+After $B$ blocks,
+\begin{equation}
+    X^{(B)}
+    =
+    \mathcal{B}_B\circ\cdots\circ\mathcal{B}_1 X^{(0)}.
+    \label{eq:sm-final-state}
+\end{equation}
+The learned per-atom energy is read from the invariant slice:
+\begin{equation}
+    E_i^{\mathrm{NN}}
+    =
+    \mathcal{O}(\mathbf{h}^{(B)}_{i,l=0}),
+    \qquad
+    E^{\mathrm{NN}}=\sum_i E_i^{\mathrm{NN}}.
+    \label{eq:sm-energy-readout}
+\end{equation}
+
+For multi-task settings, an additional case-wise FiLM may be applied to the
+readout input. Given a case index encoded by $\mathbf{c}_t$, the readout scalar
+feature can be modulated as
+\begin{equation}
+    \mathbf{h}^{(B)}_{i,l=0}
+    \mapsto
+    \gamma_t\odot\mathbf{h}^{(B)}_{i,l=0}+\beta_t,
+    \qquad
+    \gamma_t=1+W_{\alpha}^{\mathrm{case}}\mathbf{c}_t,\quad
+    \beta_t=W_{\beta}^{\mathrm{case}}\mathbf{c}_t.
+    \label{eq:sm-case-film}
+\end{equation}
+This readout-only conditioning does not affect the equivariance, smoothness or
+freezing properties of the descriptor. It reduces to the identity in the
+single-task setting.
+
+\subsection{Native ZBL Zone Bridging}
+\label{sec:sm-zone-bridging}
+
+The analytical ZBL pair potential is
+\begin{equation}
+    E_{ij}^{\mathrm{ZBL}}(r)
+    =
+    \frac{k_eZ_iZ_j}{r}
+    \Phi\!\left(\frac{r}{a_{ij}}\right),
+    \qquad
+    a_{ij}=
+    \frac{0.88534a_0}{Z_i^{0.23}+Z_j^{0.23}},
+    \label{eq:sm-zbl}
+\end{equation}
+where
+\begin{equation}
+    \Phi(x)=
+    0.18175e^{-3.1998x}
+    +0.50986e^{-0.94229x}
+    +0.28022e^{-0.4029x}
+    +0.028171e^{-0.20162x}.
+    \label{eq:sm-zbl-screen}
+\end{equation}
+The analytical branch is
+\begin{equation}
+    E^{\mathrm{ZBL}}=\frac{1}{2}\sum_{i\ne j}E_{ij}^{\mathrm{ZBL}}(r_{ij}).
+    \label{eq:sm-zbl-total}
+\end{equation}
+The learned branch consumes $\widetilde{\mathbf{r}}_{ij}$, whereas the ZBL
+branch consumes $r_{ij}$:
+\begin{equation}
+    E(Z,R)=
+    E^{\mathrm{NN}}(Z,R;\{\widetilde{\mathbf{r}}_{ij}\})
+    +
+    E^{\mathrm{ZBL}}(Z,R;\{r_{ij}\}).
+    \label{eq:sm-bridged-energy}
+\end{equation}
+
+\section{Theoretical guarantees and local-frame parameterisation}
+\label{sec:sm-theoretical-guarantees}
+
+\subsection{Symmetry, smoothness and freezing guarantees}
+\label{sec:sm-proofs}
+
+\begin{lemma}[Residual gauge covariance]
+    \label{lem:sm-residual-gauge}
+    Let $U\subset S^2$ be a chart on which a smooth gauge choice
+    $R:U\to \mathrm{SO}(3)$ satisfies
+    $R(\widehat{\mathbf{r}})\widehat{\mathbf{r}}=\mathbf{e}_z$. For any global
+    rotation $Q$ such that $\widehat{\mathbf{r}}$ and
+    $Q\widehat{\mathbf{r}}$ lie in $U$, define
+    \begin{equation}
+        G(Q,\widehat{\mathbf{r}})
+        =
+        R(Q\widehat{\mathbf{r}})\,Q\,R(\widehat{\mathbf{r}})^{-1}.
+        \label{eq:sm-residual-gauge}
+    \end{equation}
+    Then $G(Q,\widehat{\mathbf{r}})\in\mathrm{SO}(2)$, and the local coordinates of
+    an SO(3) feature transform as
+    \begin{equation}
+        D(R(Q\widehat{\mathbf{r}}))D(Q)\mathbf{h}
+        =
+        D(G(Q,\widehat{\mathbf{r}}))D(R(\widehat{\mathbf{r}}))\mathbf{h}.
+        \label{eq:sm-local-gauge-covariance}
+    \end{equation}
+\end{lemma}
+\begin{proof}
+    Both $R(Q\widehat{\mathbf{r}})Q$ and $R(\widehat{\mathbf{r}})$ map
+    $\widehat{\mathbf{r}}$ to $\mathbf{e}_z$. Their ratio therefore fixes
+    $\mathbf{e}_z$ and is a rotation about the local $z$ axis. This subgroup is
+    SO(2). Applying the representation $D$ gives
+    Eq.~\eqref{eq:sm-local-gauge-covariance}.
+\end{proof}
+
+\begin{theorem}[Gauge-independent equivariance of the edge convolution]
+    Assume that the edge-local operator
+    $\mathcal{A}_{\Theta}$ commutes with the residual SO(2) action on the retained
+    complete real $(-m,+m)$ pairs. Then the lifted edge message
+    \begin{equation}
+        \mathbf{m}_{ij}
+        =
+        \Xi_M(D_{ij}^{\le M})^{\top}
+        \mathcal{A}_{\Theta}
+        \left(P_M D_{ij}\mathbf{h}_j;\boldsymbol{\rho}_{ij}\right)
+        \label{eq:sm-gauge-independent-message}
+    \end{equation}
+    is independent of the in-plane gauge choice and transforms equivariantly under
+    global SO(3) rotations.
+\end{theorem}
+\begin{proof}
+    Changing the in-plane gauge from $R_{ij}$ to $H R_{ij}$ with
+    $H\in\mathrm{SO}(2)$ multiplies the local input by $D(H)$. Since
+    $\mathcal{A}_{\Theta}$ commutes with $D(H)$, the local output is multiplied by
+    the same $D(H)$. The lift cancels this factor:
+    $D(HR_{ij})^{\top}D(H)=D(R_{ij})^{\top}$. Under a global rotation, Lemma
+    \ref{lem:sm-residual-gauge} shows that the only additional local transformation
+    is again a residual SO(2) gauge rotation, which cancels in the same way. The
+    remaining action is the prescribed global SO(3) action on the lifted message.
+\end{proof}
+
+\begin{theorem}[Symmetry]
+    The DPA4 energy in Eq.~\eqref{eq:sm-bridged-energy} is invariant under
+    translations, species-preserving permutations and global SO(3) rotations.
+\end{theorem}
+\begin{proof}
+    Translation invariance follows because all geometric quantities are functions
+    of relative displacements. Permutation invariance follows because all edge and
+    node maps are shared and aggregation is by unordered summation or by scalar
+    softmax weights over neighbours. Rotational invariance follows from the
+    equivariance of the initial embedding, edge convolution, normalisation and
+    feed-forward blocks; the readout uses only the $l=0$ invariant slice. The ZBL
+    branch depends only on scalar distances.
+\end{proof}
+
+\begin{theorem}[Smoothness]
+    The DPA4 energy is $C^3$ on the open set of configurations with no coincident
+    atoms.
+\end{theorem}
+\begin{proof}
+    The cutoff envelope, clamped distance and source-freeze switch are $C^3$ by
+    construction. The radial basis is smooth away from coincidence and has a
+    continuous extension at zero. The edge-local gauge is smooth on each chart used
+    by the two-quaternion construction, and the lifted message is independent of the
+    residual SO(2) gauge by Lemma~\ref{lem:sm-residual-gauge} and
+    Eq.~\eqref{eq:sm-gauge-independent-message}. All linear maps, normalisations and
+    scalar nonlinearities are smooth on their domains; the attention denominator is
+    bounded below by the strictly positive softplus term. The ZBL branch is smooth
+    away from $r_{ij}=0$. A finite composition and sum of these functions is $C^3$.
+\end{proof}
+
+\begin{theorem}[Conservativeness]
+    The forces and virials are exact derivatives of the scalar potential in
+    Eq.~\eqref{eq:sm-bridged-energy}.
+\end{theorem}
+\begin{proof}
+    By smoothness, the scalar energy is differentiable to the order required for
+    force and stress computation. Forces and virials are defined by differentiating
+    that same scalar energy with respect to positions and the cell.
+\end{proof}
+
+\begin{lemma}[Silencing of frozen sources]
+    If atom $j$ has at least one neighbour $k$ with $r_{jk}\le r_{\mathrm{in}}$,
+    then $\eta_j=0$. Consequently every learned-branch term in which $j$ appears as
+    a source is zero in the geometric initial embedding, the Environment Initial
+    Embedding, envelope-weighted aggregation and envelope-gated softmax attention.
+    This source silencing is locally constant for motions that keep the
+    $j$--$k$ contact inside the inner zone.
+\end{lemma}
+\begin{proof}
+    The switch amplitude satisfies $w(r)=0$ for $r\le r_{\mathrm{in}}$. Since
+    $\eta_j$ is the product of $w(r_{ji})$ over neighbours of $j$, a single
+    inner-zone contact sets the whole source gate to zero. Each source-dependent
+    learned contribution is multiplied by this gate, so all information sourced from
+    $j$ is removed while the contact remains in the inner zone.
+\end{proof}
+
+\begin{proposition}[No direct learned short-range pair channel]
+    For a frozen pair $(j,k)$ with $r_{jk}\le r_{\mathrm{in}}$, the learned branch
+    has no direct dependence on the short-range edge channels $(j,k)$ and $(k,j)$:
+    the scalar radial channel is clamped to
+    $\widetilde{r}(r_{jk})=r_{\mathrm{in}}$, and the directional/source channels are
+    multiplied by $\eta_j=\eta_k=0$. Therefore the direct learned contribution
+    associated with the frozen pair has zero derivative with respect to that pair
+    distance and direction while the pair remains in the inner zone.
+\end{proposition}
+\begin{proof}
+    The clamp makes the learned scalar radial input for the pair constant in the
+    inner zone. The directional and multi-hop channels are removed by the source
+    gates $\eta_j=\eta_k=0$. Thus no direct learned edge channel remains through
+    which the inner-zone pair can generate a neural short-range pair force.
+\end{proof}
+
+This statement does not imply $\nabla_{\mathbf{R}_j}E^{\mathrm{NN}}=
+    \nabla_{\mathbf{R}_k}E^{\mathrm{NN}}=0$ in a many-body environment, because the
+same atoms may still receive learned contributions from non-frozen neighbours.
+It removes the direct learned short-range pair channel; the analytical ZBL
+branch supplies the corresponding inner-zone pair interaction.
+
+\subsection{Local-frame parameterisation and Clebsch--Gordan trivialisation}
+\label{sec:sm-cg-trivialisation}
+
+The local-frame construction can be understood as a computationally efficient
+parameterisation of direction-dependent equivariant linear maps. Three regimes
+are useful for comparison.
+
+\paragraph{Regime I: global frame, degree preserving.}
+If an edge message is built only from rotation-invariant radial functions in
+the global frame, Schur's lemma forces degree preservation:
+\begin{equation}
+    \mathbf{m}^{(\mathrm{I})}_{ij,(l,m),c}
+    =
+    \sum_{c'}W^{(l)}_{ij,c',c}\mathbf{h}_{j,(l,m),c'}.
+    \label{eq:sm-regime-I}
+\end{equation}
+No cross-degree map is possible, because the kernel depends only on invariants.
+
+\paragraph{Regime II: local frame, DPA4.}
+DPA4 rotates the source feature to the local frame, applies an
+SO(2)-equivariant cross-degree operator and rotates back:
+\begin{equation}
+    \mathbf{m}^{(\mathrm{II})}_{ij}
+    =
+    \Xi_M(D_{ij}^{\le M})^{\top}
+    W_{ij}^{\mathrm{SO2}}
+    D_{ij}^{\le M}\mathbf{h}_j.
+    \label{eq:sm-regime-II}
+\end{equation}
+The effective global-frame kernel is
+\begin{equation}
+    \mathcal{T}_{ij}
+    =
+    \Xi_M(D_{ij}^{\le M})^{\top}
+    W_{ij}^{\mathrm{SO2}}
+    D_{ij}^{\le M},
+    \label{eq:sm-regime-II-kernel}
+\end{equation}
+which is direction dependent through the two rotations $D_{ij}$ and can have
+off-diagonal degree blocks.
+
+\paragraph{Regime III: explicit SO(3) tensor product.}
+MACE/NequIP-style messages use an explicit equivariant edge feature
+$Y_{l_2}^{m_2}(\widehat{\mathbf{r}}_{ij})$ and Clebsch--Gordan coefficients:
+\begin{equation}
+    \mathbf{m}^{(\mathrm{III})}_{ij,(l_3,m_3),c}
+    =
+    \sum_{l_1,l_2}
+    \mathcal{R}_c^{(l_1,l_2,l_3)}(r_{ij})
+    \sum_{m_1,m_2}
+    \langle l_1m_1;l_2m_2|l_3m_3\rangle
+    \mathbf{h}_{j,(l_1,m_1),c}
+    Y_{l_2}^{m_2}(\widehat{\mathbf{r}}_{ij}).
+    \label{eq:sm-regime-III}
+\end{equation}
+
+In the local frame, $\widehat{\mathbf{r}}_{ij}$ is mapped to the north pole.
+Thus
+\begin{equation}
+    Y_{l_2}^{m_2}(\mathbf{e}_z)
+    =
+    \sqrt{\frac{2l_2+1}{4\pi}}\delta_{m_2,0}.
+    \label{eq:sm-y-pole}
+\end{equation}
+Substituting Eq.~\eqref{eq:sm-y-pole} into Eq.~\eqref{eq:sm-regime-III} and
+using the selection rule $m_1+m_2=m_3$ collapses the $m$ sum:
+\begin{equation}
+    [\mathbf{m}^{(\mathrm{III})}_{ij}]^{\mathrm{loc}}_{(l_3,m),c}
+    =
+    \sum_{l_1}
+    W_c^{(l_1,l_3,|m|)}(r_{ij})
+    \mathbf{h}^{\mathrm{loc}}_{j,(l_1,m),c},
+    \label{eq:sm-regime-III-local}
+\end{equation}
+where
+\begin{equation}
+    W_c^{(l_1,l_3,|m|)}(r)
+    =
+    \sum_{l_2=|l_1-l_3|}^{l_1+l_3}
+    \mathcal{R}_c^{(l_1,l_2,l_3)}(r)
+    \sqrt{\frac{2l_2+1}{4\pi}}
+    \langle l_1m;l_20|l_3m\rangle.
+    \label{eq:sm-cg-absorbed}
+\end{equation}
+Equation~\eqref{eq:sm-regime-III-local} is the key local-frame relation used by
+DPA4.
+After the edge direction has been aligned with the local $z$ axis, the
+Regime-III Clebsch--Gordan contraction becomes an SO(2)-equivariant operator:
+it is diagonal in $m$ and mixes angular degrees within each fixed $|m|$
+stratum. The displayed Clebsch--Gordan expression is written in the usual
+complex spherical-harmonic basis; after the standard real-basis change, the
+$m\ne0$ components are represented as complete $(-m,+m)$ pairs indexed by
+$|m|$. In the notation of the DPA4 edge convolution,
+$\mathbf{h}^{\mathrm{loc}}_{j,(l_1,m),c}$ is precisely the local source feature
+$\mathbf{x}_{ij,l_1,m,c}$ in Eq.~\eqref{eq:sm-xloc}, and
+Eq.~\eqref{eq:sm-regime-III-local} becomes
+\begin{equation}
+    [\mathbf{m}^{(\mathrm{III})}_{ij}]^{\mathrm{loc}}_{(l_{\mathrm{out}},m),c}
+    =
+    \sum_{l_{\mathrm{in}}\ge |m|}
+    W_{c}^{(l_{\mathrm{in}},l_{\mathrm{out}},|m|)}(r_{ij})
+    \mathbf{x}_{ij,l_{\mathrm{in}},m,c}.
+    \label{eq:sm-regime-III-dpa4-local}
+\end{equation}
+This is the same local SO(2) form as the edge-conditioned radial degree coupling in
+Eq.~\eqref{eq:sm-radial-degree-coupling}. The earlier diagonal radial
+modulation is recovered by setting
+$W_{c}^{(l_{\mathrm{in}},l_{\mathrm{out}},|m|)}
+    =\widetilde{\rho}_{ij,l_{\mathrm{in}},c}
+    \delta_{l_{\mathrm{in}},l_{\mathrm{out}}}$, whereas DPA4 uses an
+edge-conditioned matrix over $(l_{\mathrm{in}},l_{\mathrm{out}})$.
+
+\paragraph{Two local parameterisations.}
+At the per-channel level, the local mixer $W_{c}^{(l_1,l_3,|m|)}(r)$ can be
+presented in two ways. In the explicit Regime-III parameterisation, the
+learnable radial functions are indexed by CG triples and combined with fixed
+constants,
+\begin{equation}
+    W_{c}^{(l_1,l_3,|m|)}(r)
+    =
+    \sum_{l_2=|l_1-l_3|}^{l_1+l_3}
+    \mathcal{R}_{c}^{(l_1,l_2,l_3)}(r)
+    \Omega^{(l_1,l_2,l_3,m)},
+    \qquad
+    \Omega^{(l_1,l_2,l_3,m)}
+    =
+    \sqrt{\frac{2l_2+1}{4\pi}}
+    \langle l_1m;l_20|l_3m\rangle .
+    \label{eq:sm-w-vs-r}
+\end{equation}
+In the DPA4 parameterisation, the same object is learned through the
+$|m|$-stratified edge-conditioned mixer
+$\mathcal{K}_{ij,l_{\mathrm{out}},l_{\mathrm{in}},|m|,c}$ in
+Eq.~\eqref{eq:sm-radial-degree-coupling}. In the reported radial degree coupling configurations this mixer is
+the low-rank per-channel kernel of Eq.~\eqref{eq:sm-radial-low-rank}, rather
+than the full unconstrained tensor over
+$(l_{\mathrm{out}},l_{\mathrm{in}},|m|,c)$. Thus DPA4 uses a constrained
+local-frame SO(2) parameterisation of the operator form obtained from Regime
+III, but does not explicitly name the intermediate $l_2$ basis or evaluate
+Clebsch--Gordan contractions at runtime.
+The Clebsch--Gordan coefficients are fixed numerical constants absorbed into
+the learnable local radial-degree mixer and its low-rank channel basis.
+
+\paragraph{Where the edge direction is represented.}
+The nonzero $m_2\ne 0$ components of $Y_{l_2}^{m_2}(\widehat{\mathbf{r}}_{ij})$
+in the global frame are represented through the Wigner-D rotations that move
+between the global and edge-local frames. In the local frame the edge direction
+contributes through its $m_2=0$ component at the north pole, while the
+bracketing rotations $D_{ij}$ and $D_{ij}^{\top}$ carry the orientation
+dependence retained by the chosen $(L,M)$ layout. Thus the SO(2) mixer in
+Eq.~\eqref{eq:sm-radial-degree-coupling} is the computational local-frame
+parameterisation used by DPA4, not a full unconstrained Regime-III
+tensor-product implementation.
+
+\paragraph{Expressiveness ladder.}
+The three regimes form the inclusion
+\begin{equation}
+    \{\mathbf{m}_{ij}^{(\mathrm{I})}\}
+    \subsetneq
+    \{\mathbf{m}_{ij}^{(\mathrm{II})}\}
+    \subseteq
+    \{\mathbf{m}_{ij}^{(\mathrm{III})}\}.
+    \label{eq:sm-expressiveness-ladder}
+\end{equation}
+Regime I is strictly contained in Regime II because the global-frame
+degree-preserving kernel of Eq.~\eqref{eq:sm-regime-I} is recovered by choosing
+the cross-degree blocks of $W_{ij}^{\mathrm{SO2}}$ to vanish, whereas a generic
+local-frame SO(2) kernel has non-zero off-diagonal degree blocks after the two
+frame rotations. This strictness is not an implementation artifact; it is the
+consequence of Schur's lemma. In a fixed global frame, a kernel that depends
+only on invariants must be block diagonal in $l$. To mix different degrees
+while preserving SO(3) equivariance, the kernel must depend covariantly on the
+edge direction. Regime II achieves this through $D_{ij}$ and $D_{ij}^{\top}$;
+Regime III achieves it through explicit spherical harmonics and
+Clebsch--Gordan contractions.
+
+With an unconstrained local SO(2) kernel on the retained layout, Regime II can
+be expanded in a Clebsch--Gordan basis in global-frame form,
+\begin{equation}
+    [\mathcal{T}_{ij}]_{(l_3,m_3),(l_1,m_1)}
+    =
+    \sum_{l_2=|l_3-l_1|}^{l_3+l_1}
+    \widetilde{R}^{(l_1,l_2,l_3)}(r_{ij})
+    \sum_{m_2}
+    \langle l_1m_1;l_2m_2|l_3m_3\rangle
+    Y_{l_2}^{m_2}(\widehat{\mathbf{r}}_{ij}),
+    \label{eq:sm-kernel-cg-expansion}
+\end{equation}
+for effective radial coefficients determined by the local-frame SO(2) kernel.
+The reported DPA4 configurations learn a low-rank $|m|$-stratified mixer in
+Eq.~\eqref{eq:sm-radial-degree-coupling}, rather than naming the intermediate
+$l_2$ basis functions.
+
+\paragraph{Why DPA4 uses local-frame radial degree coupling.}
+The choice is not to stop at a less expressive diagonal radial modulation. DPA4
+uses edge-conditioned radial degree coupling inside the local SO(2) frame
+because Eq.~\eqref{eq:sm-regime-III-dpa4-local} shows that Regime-III
+direction-dependent kernels reduce to this SO(2) form after alignment to the
+local $z$ axis. The difference is one of parameterisation and cost: DPA4 learns
+a low-rank local $|m|$-stratified mixer directly, whereas an explicit
+Regime-III implementation would enumerate admissible $(l_1,l_2,l_3)$ triples
+and evaluate the associated Clebsch--Gordan contractions. The local frame is
+therefore a computationally efficient parameterisation of the retained
+direction-dependent equivariant operator, with expressiveness controlled by $M$
+and $R_{\mathrm{rad}}$.
+
+\section{Training and systems methods}
+\label{sec:sm-training-systems}
+
+\subsection{Training objective}
+\label{sec:sm-training-objective}
+
+DPA4 is trained as a conservative interatomic potential. The neural network
+predicts a scalar total energy, and forces are obtained by differentiating this
+energy with respect to atomic positions. The reported training runs use MAE
+losses with vector-norm force residuals. For a mini-batch of configurations
+$b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the objective is
+\begin{equation}
+    \mathcal{L}
+    =
+    \lambda_E
+    \frac{1}{B}\sum_{b=1}^{B}
+    \frac{|E_b-\widehat{E}_b|}{N_b}
+    +
+    \lambda_F
+    \frac{1}{\sum_b N_b}
+    \sum_{b=1}^{B}\sum_{i=1}^{N_b}
+    \left\|
+    \mathbf{F}_{bi}-\widehat{\mathbf{F}}_{bi}
+    \right\|_2
+    +
+    \lambda_{\Pi}
+    \frac{1}{9B}\sum_{b=1}^{B}
+    \frac{\left\|\Pi_b-\widehat{\Pi}_b\right\|_1}{N_b}.
+    \label{eq:sm-loss}
+\end{equation}
+The force residual is therefore treated as a three-dimensional vector for each
+atom: the Euclidean norm is taken before averaging over atoms. Energy and virial
+residuals use the MAE form with the usual per-atom normalisation.
+The benchmark-specific weights, batch sizes and training lengths are listed in
+Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
+
+\subsection{Warmup--stable--decay learning-rate schedule}
+\label{sec:sm-wsd-schedule}
+
+For long training runs, DPA4 uses a warmup--stable--decay schedule in which the
+learning rate first increases linearly, remains constant for the main training
+phase and is annealed only near the end of the run~\cite{wen2024wsd}. Let $T$
+be the total number of optimisation steps, $T_{\mathrm{w}}$ the warmup length,
+$T_{\mathrm{d}}$ the decay length and
+$T_{\mathrm{s}}=T-T_{\mathrm{w}}-T_{\mathrm{d}}$ the stable length. The
+schedule used in the reported DPA4 training runs is
+\begin{equation}
+    \alpha(t)=
+    \begin{cases}
+        \alpha_{\mathrm{w}}
+        +(\alpha_0-\alpha_{\mathrm{w}})t/T_{\mathrm{w}},
+         & 0\le t<T_{\mathrm{w}},                             \\[3pt]
+        \alpha_0,
+         & T_{\mathrm{w}}\le t<T_{\mathrm{w}}+T_{\mathrm{s}}, \\[3pt]
+        \alpha_{\mathrm{d}}(\tau),
+         & T_{\mathrm{w}}+T_{\mathrm{s}}\le t<T,              \\[3pt]
+        \alpha_{\min},
+         & t\ge T,
+    \end{cases}
+    \label{eq:sm-wsd-piecewise}
+\end{equation}
+where $\alpha_{\mathrm{w}}$ is the initial warmup learning rate,
+$\alpha_0$ is the stable-phase learning rate,
+$\alpha_{\min}$ is the final learning rate and
+\begin{equation}
+    \tau
+    =
+    \operatorname{clip}
+    \left(
+    \frac{t-T_{\mathrm{w}}-T_{\mathrm{s}}}{T_{\mathrm{d}}},
+    0,1
+    \right).
+    \label{eq:sm-wsd-tau}
+\end{equation}
+with cosine annealing in the decay phase,
+\begin{equation}
+    \alpha_{\mathrm{d}}(\tau)
+    =
+    \alpha_{\min}
+    +
+    \frac{\alpha_0-\alpha_{\min}}{2}
+    \left(1+\cos \pi\tau\right).
+    \label{eq:sm-wsd-cosine}
+\end{equation}
+Thus the stable phase carries most optimisation steps, whereas the final
+cosine decay suppresses high-learning-rate oscillations before checkpoint
+selection.
+
+\subsection{HybridMuon optimiser}
+\label{sec:sm-hybrid-muon}
+
+DPA4 is optimised with HybridMuon, a matrix-aware hybrid optimiser adapted from
+Muon~\cite{jordan2024muon} and scalable-Muon training
+studies~\cite{liu2025muon}. The design separates two classes of trainable
+parameters. Matrix-valued hidden transformations are routed to Muon, whereas
+biases, normalisation scales, one-dimensional parameters and explicitly marked
+auxiliary parameters are routed to Adam or decoupled-weight-decay Adam. This
+static routing is built on the first optimiser step and remains fixed during
+training, so the update rule for each parameter is independent of the current
+gradient value.
+
+\paragraph{Matrix views and slice mode.}
+Let a trainable tensor have an effective shape obtained by removing singleton
+dimensions. HybridMuon interprets a rank-two effective shape as one matrix. For
+higher-rank equivariant tensors, DPA4 uses slice mode: the leading dimensions
+index independent blocks, and Muon is applied separately to every trailing
+$(m,n)$ matrix. Thus, for an effective shape $(b_1,\ldots,b_q,m,n)$, the
+optimiser constructs
+\begin{equation}
+    B=\prod_{a=1}^{q}b_a
+    \quad\text{independent matrix blocks}\quad
+    G_t^{(b)}\in\mathbb{R}^{m\times n},
+    \qquad b=1,\ldots,B.
+    \label{eq:sm-muon-slice-view}
+\end{equation}
+This choice is important for SO(2)-structured equivariant weights: degree and
+order-indexed blocks are updated independently, rather than being flattened
+into one large matrix that would mix unrelated representation strata.
+
+\paragraph{Muon update.}
+For each Muon-routed block, the optimiser maintains a momentum buffer and forms
+a Nesterov-style update
+\begin{align}
+    M_t^{(b)}
+     & =
+    \beta M_{t-1}^{(b)}+(1-\beta)G_t^{(b)}, \\
+    U_t^{(b)}
+     & =
+    \beta M_t^{(b)}+(1-\beta)G_t^{(b)}.
+    \label{eq:sm-muon-nesterov}
+\end{align}
+The matrix $U_t^{(b)}$ is then orthogonalised by a Newton--Schulz polar
+iteration. For the standard square or batched path, the iteration starts from
+$X_0=U_t^{(b)}/\|U_t^{(b)}\|_{\mathrm{F}}$ and applies
+\begin{equation}
+    X_{k+1}
+    =
+    a_k X_k
+    +
+    \left(b_k A_k+c_k A_k^2\right)X_k,
+    \qquad
+    A_k=X_kX_k^{\mathsf{T}}.
+    \label{eq:sm-newton-schulz}
+\end{equation}
+DPA4 uses a two-stage schedule: eight fast iterations with
+$(a,b,c)=(3.4445,-4.7750,2.0315)$ followed by two Newton polishing iterations
+with $(a,b,c)=(2,-1.5,0.5)$. The resulting polar factor is denoted
+$Q_t^{(b)}$.
+
+\paragraph{Rectangular Gram path.}
+For rectangular matrices, HybridMuon uses a compiled Gram Newton--Schulz path
+following the fast polar-decomposition formulation used for
+Muon~\cite{dao2026gramnewtonschulz}. The matrix is oriented so that $m\le n$,
+normalised in single precision and iterated in half precision using a fixed
+Polar-Express coefficient schedule. Since the iteration depends on
+$XX^{\mathsf{T}}\in\mathbb{R}^{m\times m}$, rectangular blocks with the same
+smaller dimension can be column-padded, concatenated and orthogonalised in a
+single grouped call. Padding only the larger dimension preserves the Frobenius
+norm and the Gram matrix,
+\begin{equation}
+    [X\;0][X\;0]^{\mathsf{T}}=XX^{\mathsf{T}},
+    \label{eq:sm-gram-padding}
+\end{equation}
+so truncating the padded columns after the iteration exactly recovers the
+unpadded result while reducing the number of small GPU launches.
+
+\paragraph{Update-RMS matching and Adam-family path.}
+In the default match-RMS mode, the Muon update for an $m\times n$ block is
+scaled as
+\begin{equation}
+    \Delta W_t^{(b)}
+    =
+    -\alpha_t\,\gamma\,\sqrt{\max(m,n)}\,Q_t^{(b)},
+    \qquad \gamma=0.18.
+    \label{eq:sm-match-rms}
+\end{equation}
+This coefficient follows the update-RMS calibration used in scalable Muon
+training~\cite{liu2025muon}: it brings the per-element magnitude of the
+orthogonalised matrix update onto the same learning-rate scale as AdamW-like
+updates. Parameters routed to Adam use first and second moments in single
+precision, with bias correction and $\epsilon=10^{-20}$. Decoupled weight decay
+is applied to Muon-routed matrices and to decay-enabled Adam-routed tensors,
+but not to one-dimensional Adam-routed parameters.
+
+\subsection{Magma-lite update damping}
+\label{sec:sm-magma-lite}
+
+Conservative force training produces gradients that include mixed
+coordinate--parameter derivatives and can exhibit large block-to-block
+variation. DPA4 therefore augments the Muon path with a deterministic
+Magma-lite damping rule, adapted from momentum-aligned gradient
+masking~\cite{joo2026magma}. For each Muon block, let $G_t^{(b)}$ be the
+current gradient and $M_t^{(b)}$ the momentum buffer after the update in
+Eq.~\eqref{eq:sm-muon-nesterov}. The block alignment is
+\begin{equation}
+    \chi_t^{(b)}
+    =
+    \frac{
+        \left\langle M_t^{(b)},G_t^{(b)}\right\rangle_{\mathrm{F}}
+    }{
+        \|M_t^{(b)}\|_{\mathrm{F}}\,
+        \|G_t^{(b)}\|_{\mathrm{F}}+\varepsilon
+    },
+    \qquad
+    \chi_t^{(b)}\in[-1,1].
+    \label{eq:sm-magma-cosine}
+\end{equation}
+The score is mapped through a temperature-scaled sigmoid and stretched to
+$[0,1]$,
+\begin{equation}
+    r_t^{(b)}
+    =
+    \operatorname{clip}
+    \left[
+        \frac{
+            \sigma(\chi_t^{(b)}/\tau)-\sigma(-1/\tau)
+        }{
+            \sigma(1/\tau)-\sigma(-1/\tau)
+        },
+        0,1
+        \right],
+    \qquad \tau=2.
+    \label{eq:sm-magma-score}
+\end{equation}
+An exponential moving average gives
+\begin{equation}
+    u_t^{(b)}
+    =
+    \rho_{\mathrm{ema}} u_{t-1}^{(b)}
+    +(1-\rho_{\mathrm{ema}})r_t^{(b)},
+    \qquad \rho_{\mathrm{ema}}=0.9,
+    \label{eq:sm-magma-ema}
+\end{equation}
+and the final Muon update is rescaled by
+\begin{equation}
+    \Delta W_t^{(b)}
+    \leftarrow
+    \left[s_{\min}+(1-s_{\min})u_t^{(b)}\right]\Delta W_t^{(b)},
+    \qquad s_{\min}=0.1.
+    \label{eq:sm-magma-lite}
+\end{equation}
+This rule differs from stochastic masking: all blocks remain active, and
+poorly aligned updates are continuously damped rather than randomly skipped.
+The nonzero lower bound prevents the optimiser from freezing a block entirely,
+which is important for MLIP training where force labels can make the alignment
+temporarily noisy without implying that the corresponding representation block
+should stop learning.
+
+\subsection{Compiled conservative-force training}
+\label{sec:sm-compiled-training}
+
+The conservative energy path is compiled separately from direct-force or
+density-denoising modes. Force matching requires differentiating through
+\begin{equation}
+    \mathbf{F}_{\Theta}
+    =
+    -\frac{\partial E_{\Theta}}{\partial R},
+    \qquad
+    \frac{\partial\mathcal{L}}{\partial\Theta}
+    \supset
+    \frac{\partial^2E_{\Theta}}{\partial R\,\partial\Theta}.
+    \label{eq:sm-double-backward}
+\end{equation}
+A standard compiled forward/backward stack captures the forward graph and its
+first reverse-mode derivative, but it does not directly expose a nested
+coordinate derivative inside the compiled region. DPA4 resolves this by first
+executing the energy-to-force derivative during symbolic tracing and then
+lowering the resulting tensor graph with PyTorch
+Inductor~\cite{ansel2024pytorch2}.
+
+\paragraph{Tracing the conservative lower graph.}
+The compiled function wraps the lower energy computation as a tensor-only map:
+from extended coordinates, atom types, neighbour indices and optional
+conditioning tensors to energies, forces and virials. Before entering the
+traced function, the extended coordinates are rebound to a fresh leaf tensor.
+This restart removes any upstream graph carried by data loading or neighbour
+construction while preserving a well-defined coordinate endpoint for $\partial
+    E/\partial R$. During training, the force construction keeps the
+coordinate-derivative graph alive; the outer loss backward pass can therefore
+differentiate the force residual into the model parameters, realising the mixed
+derivative in Eq.~\eqref{eq:sm-double-backward}.
+
+\paragraph{Symbolic tracing and higher-order differentiability.}
+The implementation traces the conservative lower graph with symbolic shapes and
+real tensor inputs. Real inputs are needed because compact edge construction
+contains data-dependent operations; after that control flow is resolved, the
+runtime dimensions are represented symbolically. The trace uses a small
+five-frame representative batch chosen to avoid known symbolic-dimension
+collisions with singleton axes, charge--spin width, Cartesian coordinates and
+virial components. The SiLU backward operation is decomposed into elementary
+pointwise operations before tracing, so the compiler receives an explicit
+first-derivative graph when the optimiser later requests a second derivative.
+
+\paragraph{Preserving the force-loss gradient.}
+When the coordinate derivative is traced in training mode, autograd inserts
+detach nodes around saved forward activations. In the traced FX graph these
+nodes would become ordinary tensor operations and would sever the path from the
+force loss back to the parameters. DPA4 removes only the detach nodes matching
+the saved-tensor topology and keeps user-intended detach operations unchanged.
+The edited graph is then rebuilt into a fresh FX graph before compilation, so
+all compiler passes see a consistent node topology.
+
+\paragraph{Dynamic edge representation and cache structure.}
+The padded DeePMD neighbour list is converted inside the graph into a compact
+edge list. Edge vectors are formed by differentiable indexed selection from the
+extended coordinate tensor, and a single masked sentinel edge is appended to
+every batch. The sentinel edge guarantees a nonempty edge tensor under symbolic
+shapes while contributing exactly zero to downstream reductions. Compiled
+callables are cached by graph topology, including training versus evaluation,
+the presence of atomic virial outputs and coordinate-correction inputs. This
+multi-slot cache avoids recompilation when training is periodically interrupted
+by validation, while keeping distinct output signatures in separate compiled
+graphs.
+
+\paragraph{Inductor configuration.}
+The traced graph is lowered with dynamic-shape compilation. The compiled path
+uses deterministic compilation settings rather than autotuning, enables shape
+padding for fluctuating symbolic dimensions and disables compiler features that
+interfere with higher-order autograd metadata or produce unstable large fused
+reduction kernels for this higher-order graph. Training and evaluation use
+separate fusion limits because the training graph contains the
+second-derivative branch whereas the evaluation graph does not. This systems
+design preserves the scalar energy-to-force relation while allowing the
+conservative training path to remain inside compiled GPU code.
+
+\subsection*{Notation index}
+
+\begin{tabular}{ll}
+    $N$                                                       & number of atoms                                                                   \\
+    $Z_i$                                                     & atomic species of atom $i$                                                        \\
+    $\mathbf{R}_i$                                            & Cartesian position of atom $i$                                                    \\
+    $\mathbf{r}_{ij}$, $r_{ij}$, $\widehat{\mathbf{r}}_{ij}$  & edge displacement, distance and direction                                         \\
+    $r_{\mathrm{c}}$                                          & cutoff radius                                                                     \\
+    $r_{\mathrm{in}},r_{\mathrm{out}}$                        & inner and outer radii of the bridging window                                      \\
+    $\widetilde{r}$, $\widetilde{\mathbf{r}}_{ij}$            & clamped distance and clamped displacement                                         \\
+    $s(r)$                                                    & smooth cutoff envelope used for edge weighting                                    \\
+    $w(r)$                                                    & smooth bridging switch                                                            \\
+    $\eta_j$                                                  & source-freeze gate for atom $j$                                                   \\
+    $d_i,n_i$                                                 & smooth degree and inverse-square-root degree normalisation                        \\
+    $V_l$, $V_{\le L}$                                        & real SO(3) irreducible degree and truncated direct sum                            \\
+    $D^l(Q)$, $D(Q)$                                          & Wigner-D representation matrices                                                  \\
+    $\iota(l,m)$                                              & linear packing index for coefficient $(l,m)$                                      \\
+    $C$                                                       & channel width                                                                     \\
+    $F$, $C_f$, $H=FC_f$                                      & focus count, per-focus width and hidden width                                     \\
+    $M$                                                       & maximum retained local SO(2) order                                                \\
+    $D_M$, $P_M$, $\Xi_M$                                     & reduced-layout size, projector and rescaled lift                                  \\
+    $\boldsymbol{\rho}_{ij}$                                  & radial-species profile                                                            \\
+    $K_{\mathrm{deg}}$                                        & compact degree-pair count for radial degree coupling                              \\
+    $\mathcal{K}_{ij}$, $R_{\mathrm{rad}}$                    & edge-conditioned radial degree kernel and its low-rank channel factorisation rank \\
+    $\mathcal{A}^{\mathrm{rad}}$, $\mathcal{B}^{\mathrm{ch}}$ & radial degree basis and channel basis in the low-rank mixer                       \\
+    $K_{\mathrm{env}}$                                        & retained column count in the Environment Initial Embedding descriptor             \\
+    $A_i$, $\mathcal{D}_i$                                    & environment matrix and compact invariant descriptor                               \\
+    $\mathcal{C}_{\Theta}$                                    & SO(2) edge convolution                                                            \\
+    $\mathcal{F}_{\Theta}$                                    & equivariant feed-forward block                                                    \\
+    $\mathcal{B}_b$                                           & interaction block $b$                                                             \\
+    $\mathcal{T}_{ij}$                                        & effective global-frame kernel induced by the local SO(2) operator                 \\
+    $\mathcal{O}$                                             & scalar readout from the invariant slice                                           \\
+    $E^{\mathrm{NN}}$, $E^{\mathrm{ZBL}}$, $E$                & learned, analytical and total energies                                            \\
+    $\mathsf{P}$, $\mathsf{P}^{\dagger}$                      & spherical-grid projection and quadrature adjoint                                  \\
+\end{tabular}
+
