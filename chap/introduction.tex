@@ -3,13 +3,16 @@
 Atomistic simulation is increasingly being asked to operate as an engine for materials discovery, molecular design and non-equilibrium process modelling, not only as a post-processing tool for individual density functional theory (DFT) calculations.
 This shift changes the requirement on an interatomic potential: it must retain quantum-mechanical fidelity, scale to long trajectories and large systems, transfer across chemical environments, and remain stable when the simulation visits configurations far from equilibrium.
 Machine learning interatomic potentials (MLIPs) have made this program plausible by replacing repeated electronic-structure calculations with near-linear-cost surrogate potential-energy surfaces~\cite{behler2007generalized,bartok2010gaussian,zhang2018deep,batzner2022nequip,batatia2022mace}.
-The emergence of large atomistic models trained on broad DFT corpora further suggests that transferable potentials can be learned at scale across molecules and materials~\cite{batatia2023foundation,zhang2025dpa3}.
+One successful route has been to build invariant atomic descriptors and predict the total energy as a sum of local scalar contributions.
+Representative invariant models include atom-centred neural-network potentials, Gaussian approximation potentials, continuous-filter neural networks, PhysNet, Deep Potential and DPA-series models~\cite{behler2007generalized,bartok2010gaussian,schutt2017schnet,unke2019physnet,zhang2018deep,wang2018deepmd,zhang2022dpa,zhang2024dpa2,zhang2025dpa3}.
+These models show that broad DFT corpora can support transferable atomistic models across molecules and materials, but they still encode angular correlations indirectly through scalar descriptors and message updates.
 
 Yet a general-purpose potential is limited not by accuracy alone, but by the joint constraints of expressiveness, trainability and physical robustness.
-First, high-accuracy equivariant architectures such as NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace} and EquiformerV2~\cite{liao2023equiformerv2} represent angular information explicitly, but full SO(3) tensor products carry a steep algebraic cost.
+Equivariant architectures offer a complementary route by carrying directional features as first-class variables rather than compressing them immediately into invariants.
+Models such as NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace} and EquiformerV2~\cite{liao2023equiformerv2} have demonstrated the accuracy benefit of this design, but full SO(3) tensor products carry a steep algebraic cost.
 The Clebsch--Gordan contractions used in these models grow rapidly with the maximum spherical-harmonic order, making the most expressive versions difficult to scale to large models, broad training sets and long molecular-dynamics trajectories.
-Second, modern conservative-force training is an implementation problem as much as a modelling problem: force losses require coordinate--parameter second derivatives, while variable neighbour graphs, in-place graph updates and Python-level control flow often prevent efficient lowering by modern compiler stacks.
-Third, the short-range part of the potential-energy surface remains a weak point for data-driven models.
+Modern conservative-force training is also an implementation problem as much as a modelling problem: force losses require coordinate--parameter second derivatives, while variable neighbour graphs, in-place graph updates and Python-level control flow often prevent efficient lowering by modern compiler stacks.
+The short-range part of the potential-energy surface remains a weak point for data-driven models.
 Close atomic contacts in cascades, impacts, compression, melting or reactive transition paths probe a regime that is sparsely represented in ordinary DFT training data; external Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion, but post-hoc wrappers may break the smoothness and conservativeness of the learned potential.
 
 \begin{figure}[t]
