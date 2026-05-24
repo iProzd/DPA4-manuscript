@@ -1,106 +1,52 @@
 \section{Introduction}
 
-Atomistic simulation is increasingly being asked to operate as an engine for
-materials discovery, molecular design and non-equilibrium process modelling, not
-only as a post-processing tool for individual density functional theory (DFT)
-calculations. This shift changes the requirement on an interatomic potential:
-it must retain quantum-mechanical fidelity, scale to long trajectories and large
-systems, transfer across chemical environments, and remain stable when the
-simulation visits configurations far from equilibrium. Machine learning
-interatomic potentials (MLIPs) have made this program plausible by replacing
-repeated electronic-structure calculations with near-linear-cost surrogate
-potential-energy surfaces~\cite{behler2007generalized,bartok2010gaussian,zhang2018deep,batzner2022nequip,batatia2022mace}.
-The emergence of large atomistic models trained on broad DFT corpora further
-suggests that transferable potentials can be learned at scale across molecules
-and materials~\cite{batatia2023foundation,zhang2025dpa3}.
+Atomistic simulation is increasingly being asked to operate as an engine for materials discovery, molecular design and non-equilibrium process modelling, not only as a post-processing tool for individual density functional theory (DFT) calculations.
+This shift changes the requirement on an interatomic potential: it must retain quantum-mechanical fidelity, scale to long trajectories and large systems, transfer across chemical environments, and remain stable when the simulation visits configurations far from equilibrium.
+Machine learning interatomic potentials (MLIPs) have made this program plausible by replacing repeated electronic-structure calculations with near-linear-cost surrogate potential-energy surfaces~\cite{behler2007generalized,bartok2010gaussian,zhang2018deep,batzner2022nequip,batatia2022mace}.
+The emergence of large atomistic models trained on broad DFT corpora further suggests that transferable potentials can be learned at scale across molecules and materials~\cite{batatia2023foundation,zhang2025dpa3}.
 
-Yet a general-purpose potential is limited not by accuracy alone, but by the
-joint constraints of expressiveness, trainability and physical robustness. First,
-high-accuracy equivariant architectures such as NequIP~\cite{batzner2022nequip},
-MACE~\cite{batatia2022mace} and EquiformerV2~\cite{liao2023equiformerv2}
-represent angular information explicitly, but full SO(3) tensor products carry a
-steep algebraic cost. The Clebsch--Gordan contractions used in these models grow
-rapidly with the maximum spherical-harmonic order, making the most expressive
-versions difficult to scale to large models, broad training sets and long
-molecular-dynamics trajectories. Second, modern conservative-force training is
-an implementation problem as much as a modelling problem: force losses require
-coordinate--parameter second derivatives, while variable neighbour graphs,
-in-place graph updates and Python-level control flow often prevent efficient
-lowering by modern compiler stacks. Third, the short-range part of the
-potential-energy surface remains a weak point for data-driven models. Close
-atomic contacts in cascades, impacts, compression, melting or reactive
-transition paths probe a regime that is sparsely represented in ordinary DFT
-training data; external Ziegler--Biersack--Littmark (ZBL) corrections can repair
-the asymptotic repulsion, but post-hoc wrappers may break the smoothness and
-conservativeness of the learned potential.
+Yet a general-purpose potential is limited not by accuracy alone, but by the joint constraints of expressiveness, trainability and physical robustness.
+First, high-accuracy equivariant architectures such as NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace} and EquiformerV2~\cite{liao2023equiformerv2} represent angular information explicitly, but full SO(3) tensor products carry a steep algebraic cost.
+The Clebsch--Gordan contractions used in these models grow rapidly with the maximum spherical-harmonic order, making the most expressive versions difficult to scale to large models, broad training sets and long molecular-dynamics trajectories.
+Second, modern conservative-force training is an implementation problem as much as a modelling problem: force losses require coordinate--parameter second derivatives, while variable neighbour graphs, in-place graph updates and Python-level control flow often prevent efficient lowering by modern compiler stacks.
+Third, the short-range part of the potential-energy surface remains a weak point for data-driven models.
+Close atomic contacts in cascades, impacts, compression, melting or reactive transition paths probe a regime that is sparsely represented in ordinary DFT training data; external Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion, but post-hoc wrappers may break the smoothness and conservativeness of the learned potential.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.6\linewidth]{fig/fig1_CPS.pdf}
     \caption{
-        CPS score versus training cost for representative MLIPs. Marker area is proportional to the number of model parameters, and the x-axis uses a logarithmic scale of A100 GPU-days. Dashed marker outlines indicate models trained with additional strategies such as direct-force pre-training or DeNS.
+        CPS score versus training cost for representative MLIPs.
+        Marker area is proportional to the number of model parameters, and the x-axis uses a logarithmic scale of A100 GPU-days.
+        Dashed marker outlines indicate models trained with additional strategies such as direct-force pre-training or DeNS.
     }
     \label{fig:cps}
 \end{figure}
 
-Here we present DPA4, a conservative equivariant interatomic-potential
-architecture designed around these three requirements. DPA4 treats directional
-expressiveness, compiled conservative-force training and analytical short-range
-physics as one architectural problem rather than as independent add-ons. Its main
-contributions are as follows.
+Here we present DPA4, a conservative equivariant interatomic-potential architecture designed around these three requirements.
+DPA4 treats directional expressiveness, compiled conservative-force training and analytical short-range physics as one architectural problem rather than as independent add-ons.
+Its main contributions are as follows.
 \begin{enumerate}
     \item \textbf{SO(2)-equivariant local-frame architecture with attention.}
-          For each directed edge $(i,j)$, DPA4 chooses an edge-local gauge whose
-          $z$-axis aligns with the bond direction $\hat{r}_{ij}$. The residual
-          rotation symmetry in this gauge is the abelian group SO(2), so
-          equivariant operations become diagonal in the angular-order basis
-          $\{e^{im\theta}\}$ and avoid full Clebsch--Gordan tensor products. The
-          resulting local-frame update, inspired by the eSCN
-          framework~\cite{passaro2023reducing}, keeps directional equivariant
-          features while reducing the per-edge angular-message cost. DPA4 further
-          couples this update to multi-head attention over SO(2)-invariant
-          ($m=0$) channels, allowing each message-passing step to adapt its
-          neighbourhood aggregation to many-body context.
+          For each directed edge $(i,j)$, DPA4 chooses an edge-local gauge whose $z$-axis aligns with the bond direction $\hat{r}_{ij}$.
+          The residual rotation symmetry in this gauge is the abelian group SO(2), so equivariant operations become diagonal in the angular-order basis $\{e^{im\theta}\}$ and avoid full Clebsch--Gordan tensor products.
+          The resulting local-frame update, inspired by the eSCN framework~\cite{passaro2023reducing}, keeps directional equivariant features while reducing the per-edge angular-message cost.
+          DPA4 further couples this update to multi-head attention over SO(2)-invariant ($m=0$) channels, allowing each message-passing step to adapt its neighbourhood aggregation to many-body context.
     \item \textbf{End-to-end \texttt{torch.compile} training.}
-          DPA4 combines the lower algebraic cost of SO(2) updates with a
-          shape-stable neighbour representation and compiler-friendly tensor
-          program. The conservative-force path requires differentiating forces
-          through $E(R)$ and therefore includes second-order coordinate
-          derivatives; DPA4 makes this path compilable by tracing the inner
-          \texttt{autograd.grad} operation into ordinary FX nodes before lowering
-          with PyTorch Inductor. In the experiments below, this compiled
-          conservative-force path gives a \textbf{2--3$\times$} wall-clock
-          training speedup over eager execution at matched accuracy and runs
-          without model changes on commodity GPUs as well as data-centre
-          accelerators.
+          DPA4 combines the lower algebraic cost of SO(2) updates with a shape-stable neighbour representation and compiler-friendly tensor program.
+          The conservative-force path requires differentiating forces through $E(R)$ and therefore includes second-order coordinate derivatives; DPA4 makes this path compilable by tracing the inner \texttt{autograd.grad} operation into ordinary FX nodes before lowering with PyTorch Inductor.
+          In the experiments below, this compiled conservative-force path gives a \textbf{2--3$\times$} wall-clock training speedup over eager execution at matched accuracy and runs without model changes on commodity GPUs as well as data-centre accelerators.
     \item \textbf{Native ZBL Zone Bridging.}
-          DPA4 incorporates the analytical ZBL branch inside the scalar energy
-          rather than applying it as an external correction. A two-component
-          \emph{Zone Bridging} framework removes the direct learned short-range
-          pair channel while preserving learned many-body interactions from
-          non-frozen neighbours: \textbf{InnerClamp} is a $C^3$ septic Hermite
-          distance saturation that closes the scalar-distance leakage channel,
-          and \textbf{SFPG} (Source Freeze Propagation Gate) is a smooth per-node
-          multiplicative gate that closes the direction and multi-hop propagation
-          channels when a neighbour enters the inner frozen zone. The resulting
-          potential remains $C^3$ in atomic coordinates away from coincident
-          atoms and assigns the singular inner-zone pair interaction to the
-          physically motivated analytical branch.
+          DPA4 incorporates the analytical ZBL branch inside the scalar energy rather than applying it as an external correction.
+          A two-component \emph{Zone Bridging} framework removes the direct learned short-range pair channel while preserving learned many-body interactions from non-frozen neighbours: \textbf{InnerClamp} is a $C^3$ septic Hermite distance saturation that closes the scalar-distance leakage channel, and \textbf{SFPG} (Source Freeze Propagation Gate) is a smooth per-node multiplicative gate that closes the direction and multi-hop propagation channels when a neighbour enters the inner frozen zone.
+          The resulting potential remains $C^3$ in atomic coordinates away from coincident atoms and assigns the singular inner-zone pair interaction to the physically motivated analytical branch.
 \end{enumerate}
-DPA4 variants form a competitive accuracy--efficiency frontier on Matbench
-Discovery~\cite{riebesell2025matbench} and improve the molecular benchmark
-errors on SPICE-MACE-OFF in the experiments reported here. Training-efficiency
-ablations further show that the compiled conservative-force path is responsible
-for the 2--3$\times$ wall-clock speedup. We present DPA4 here as a single-task,
-per-dataset architecture; multi-task dataset encoding and foundation-model
-pre-training are natural extensions rather than assumptions of the present
-study.
+DPA4 variants form a competitive accuracy--efficiency frontier on Matbench Discovery~\cite{riebesell2025matbench} and improve the molecular benchmark errors on SPICE-MACE-OFF in the experiments reported here.
+Training-efficiency ablations further show that the compiled conservative-force path is responsible for the 2--3$\times$ wall-clock speedup.
+We present DPA4 here as a single-task, per-dataset architecture; multi-task dataset encoding and foundation-model pre-training are natural extensions rather than assumptions of the present study.
 
-The remainder of the paper is organized as follows. Section~\ref{sec:results}
-presents all benchmark results, beginning with the efficiency--accuracy Pareto
-analysis (Fig.~1), followed by Matbench Discovery, SPICE-MACE-OFF, training and
-inference efficiency, and the ZBL coupling case study.
-Section~\ref{sec:methods} describes the DPA4 architecture in full mathematical
-detail and specifies datasets and training protocols.
+The remainder of the paper is organized as follows.
+Section~\ref{sec:results} presents all benchmark results, beginning with the efficiency--accuracy Pareto analysis (Fig.~1), followed by Matbench Discovery, SPICE-MACE-OFF, training and inference efficiency, and the ZBL coupling case study.
+Section~\ref{sec:methods} describes the DPA4 architecture in full mathematical detail and specifies datasets and training protocols.
 
 % =============================================================
