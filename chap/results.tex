@@ -84,6 +84,7 @@ representation blocks are not flattened into one unrelated matrix.
 \begin{table}
     \centering
     \caption{Results on the Matbench Discovery leaderboard, with all compliant models accessed before May 25, 2026.}
+    \label{tab:matbench}
 
     \resizebox{\linewidth}{!}{
         \begin{tabular}{@{} l *{9}{c} c c @{}}
@@ -118,11 +119,39 @@ representation blocks are not flattened into one unrelated matrix.
     }
 \end{table}
 
-% TODO: 1 short paragraph reporting multi-seed stability of CPS to
-% pre-empt the "leaderboard gaming" reviewer concern.
+Matbench Discovery evaluates the ability of machine-learning interatomic
+potentials to support high-throughput inorganic-crystal discovery. Following
+the compliant leaderboard protocol, models trained on MPtrj are used to relax
+WBM candidate structures and predict their formation energies; these predictions
+are converted into convex-hull distances and assessed by classification,
+regression and structural-relaxation metrics. Table~\ref{tab:matbench} compares
+DPA4 with representative compliant models under this protocol.
+
+The largest evaluated model, DPA4-Pro, establishes a new state-of-the-art point
+on this benchmark, reaching a CPS of 0.830, an F1 score of 0.850 and a
+$\kappa$SRME of 0.241 with 32.7M parameters. The compact DPA4 variants occupy a
+strong accuracy--efficiency regime. DPA4-Air reaches a CPS of 0.804, exceeding
+eSEN-30M-MP while using 2.76M rather than 30.1M parameters. Its WBM energy MAE
+is 0.035~eV/atom, close to eSEN-30M-MP, and its $\kappa$SRME is lower
+(0.302 versus 0.340), indicating that the gain is not obtained by sacrificing
+relaxation quality. The smaller DPA4-Neo model, with only 1.60M parameters,
+still reaches a CPS of 0.781, comparable to MatRIS-10M-MP and above most
+published compliant baselines. These results show that the local-frame SO(2)
+architecture can deliver state-of-the-art crystal-discovery accuracy while also
+scaling down to substantially smaller models.
 
 \subsection{Small-molecule benchmarks}
 \label{sec:small_mol}
+
+We next evaluate DPA4 on SPICE-MACE-OFF, the organic-molecule benchmark used by
+MACE-OFF. The benchmark contains PubChem molecules, DES370K monomers and
+dimers, dipeptides, solvated amino acids, water clusters and QMugs-derived
+larger molecules, with reference energies and forces computed at the
+$\omega$B97M-D3(BJ)/def2-TZVPPD level. We keep the train/validation/test split
+used in the MACE-OFF and DPA3 comparisons and report per-subset energy and
+force MAEs together with a logarithmic weighted average MAE (LWAMAE), which
+summarizes performance across chemically heterogeneous subsets without allowing
+one high-error subset to dominate the aggregate score.
 
 \begin{table}
     \scriptsize
@@ -155,23 +184,30 @@ representation blocks are not flattened into one unrelated matrix.
                 \toprule
             \end{tabular}
             \begin{tablenotes}
-                \item[a] \footnotesize The Logarithmic Weighted Average MAE defined in Eq.~(1).
+                \item[a] \footnotesize The Logarithmic Weighted Average MAE is the exponential of the unweighted mean of logarithmic subset MAEs.
             \end{tablenotes}
         \end{spacing}
     \end{threeparttable}
 \end{table}
 
-% TODO: SPICE-MACE-OFF (Fig. 3 left or top panel).
-%   - Same train/val/test split as Ref. [Kovacs2023] / DPA3.
-%   - Three model sizes: DPA4-{S, M, L} (or whatever sizes mirror
-%     DPA3-L{6,12,24}).
-%   - Baselines: MACE(M/L), eSEN, EScAIP.
-%   - Reuse DPA3 Fig. 2(a) layout (per-subset bar chart of energy MAE).
-%   - Headline: report the final SPICE-MACE-OFF energy and force errors against
-%     the selected baselines.
+Table~\ref{table:spice} shows that DPA4 improves the molecular benchmark
+accuracy consistently across all subsets. DPA4-Plus gives the lowest energy and
+force MAEs in every subset and reduces the aggregate LWAMAE to
+0.09~meV/atom for energies and 1.77~meV/\AA{} for forces. Relative to the
+6.5M-parameter eSEN baseline, this corresponds to approximately 36\% lower
+energy LWAMAE and 31\% lower force LWAMAE with a smaller 5.3M-parameter model.
+Relative to DPA3-L24, the reductions are approximately 59\% and 69\%,
+respectively, indicating that the gain is not limited to inorganic crystals.
 
-% TODO: complete the SPICE-MACE-OFF analysis once the final evaluation table is
-% exported from the benchmark scripts.
+The smaller DPA4-Air model also performs competitively. With 2.7M parameters, it
+already improves upon the 6.5M-parameter eSEN model in aggregate energy and
+force LWAMAEs and is second-best in most subset-level comparisons. The
+improvement is especially pronounced for water, solvated amino acids and QMugs,
+where DPA4-Air substantially lowers the energy error relative to DPA3-L24 while
+remaining close to the larger DPA4-Plus model. Together, the two DPA4 sizes show
+that the SO(2) attention architecture transfers from inorganic crystals to
+organic molecules and offers a favourable accuracy--parameter trade-off across
+chemically diverse data.
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
