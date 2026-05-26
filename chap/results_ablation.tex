@@ -22,36 +22,34 @@ highlighted best value or when multiple rows are tied for the best value.
 
 \subsubsection{Compilation and training precision}
 
-This ablation quantifies the efficiency contribution of graph compilation and
+This ablation quantifies the systems-level benefit of graph compilation and
 reduced-precision tensor-core execution. Relative to the non-compiled FP32
-baseline, bfloat16 (bf16) AMP alone reduces training time by approximately 30\%
-and peak training memory by approximately 59\%, reflecting the lower arithmetic
-and activation-storage cost of bf16 execution. \texttt{torch.compile} provides
-an orthogonal systems-level acceleration: in the FP32 setting without bf16 AMP
-or TF32, compilation reduces training time by approximately 38\% and peak
-training memory by approximately 23\%. When TF32 is enabled in this compiled
-FP32 path, training time is further reduced from 0.62 to 0.55, an additional
-speedup of approximately 11\%, consistent with tensor-core acceleration of FP32
-matmul operations. This TF32 setting does not reduce memory because TF32
-changes the matmul execution format rather than the stored tensor precision.
-The strongest overall efficiency is obtained by combining
-\texttt{torch.compile} with bf16 AMP, which reduces training time by
-approximately 68\% and peak training memory by approximately 60\% relative to
-the FP32 baseline. Enabling TF32 on top of bf16 AMP gives no further measurable
-gain, as the dominant matrix operations already execute in bf16 under autocast.
+baseline, bf16 AMP alone gives a 1.43$\times$ training speedup and reduces peak
+training memory by 59\%. Graph compilation provides a larger and complementary
+gain: compiled FP32 training gives a 1.61$\times$ speedup, and enabling TF32 in
+this compiled path increases the speedup to 1.82$\times$. The largest practical
+improvement is obtained by combining compilation with bf16 AMP, which gives a
+3.1$\times$ speedup and reduces peak memory by 60\%. Thus, the compiled
+mixed-precision path makes conservative force training more than three times
+faster while using only about 40\% of the baseline peak GPU memory.
 
-The same comparison shows that these execution choices do not produce a visible
-loss in predictive accuracy. Although \texttt{torch.compile} preserves the
-mathematical computation graph, it may change the numerical execution path
-through kernel fusion, hardware-specific kernel selection, reduction ordering,
-and tensor-core dispatch. bf16 AMP and TF32 similarly alter the effective
-arithmetic used by eligible matrix operations. Small floating-point differences
-are therefore expected because finite-precision arithmetic is not strictly
-associative. DPA4 controls this numerical sensitivity by keeping geometric
-preprocessing and normalization operations such as RMSNorm in FP32, while
-allowing large matrix operations to use bf16 or TF32 where appropriate. The
-observed MAE differences remain small relative to run-to-run variation and are
-therefore not interpreted as systematic accuracy degradation.
+The corresponding accuracy changes are small compared with the efficiency gain.
+Against the FP32 baseline (27.603~meV/atom and 34.246~meV/\AA{}), bf16 AMP
+changes the energy and force MAEs by 1.7\% and 2.0\%, respectively. The
+compiled-bf16 setting, which gives the strongest speed and memory improvement,
+changes them by 2.7\% and 1.8\%; when TF32 is also enabled, the energy MAE
+changes by 2.8\% and the force MAE by only 0.1\%. These differences are
+consistent with small numerical and stochastic variation rather than systematic
+accuracy degradation. Although the random seed is fixed and
+\texttt{torch.compile} preserves the mathematical computation graph,
+compilation can change kernel fusion, hardware-specific kernel selection,
+reduction ordering, and tensor-core dispatch; bf16 AMP and TF32 also change the
+effective arithmetic used by eligible matrix operations. DPA4 limits this
+sensitivity by keeping geometric preprocessing and normalization operations
+such as RMSNorm in FP32, while allowing large matrix operations to use bf16 or
+TF32 where appropriate. We therefore enable \texttt{torch.compile}, bf16 AMP,
+and TF32 in the following ablations and benchmark experiments unless otherwise
+specified.
 
 \begin{table}[t]
     \centering
@@ -69,12 +67,12 @@ therefore not interpreted as systematic accuracy degradation.
             \textbf{Train time (rel.)}$\downarrow$ &
             \makecell{\textbf{Peak train}\\\textbf{mem. (rel.)}$\downarrow$}                                         \\
             \midrule
-            False                                  & False & N/A   & TBD    & TBD    & 1.00          & 1.00          \\
-            False                                  & True  & N/A   & TBD    & TBD    & 0.70          & 0.41          \\
-            True                                   & False & False & 28.012 & 37.458 & 0.62          & 0.77          \\
-            True                                   & False & True  & TBD    & TBD    & 0.55          & 1.00          \\
-            True                                   & True  & False & 28.108 & 37.595 & \textbf{0.32} & \textbf{0.40} \\
-            True                                   & True  & True  & 28.051 & 38.224 & \textbf{0.32} & \textbf{0.40} \\
+            False                                  & False & N/A   & 27.603 & 34.246 & 1.00          & 1.00          \\
+            False                                  & True  & N/A   & 28.081 & 34.936 & 0.70          & 0.41          \\
+            True                                   & False & False & 28.217 & 34.787 & 0.62          & 0.77          \\
+            True                                   & False & True  & 28.190 & 34.860 & 0.55          & 1.00          \\
+            True                                   & True  & False & 28.355 & 34.864 & \textbf{0.32} & \textbf{0.40} \\
+            True                                   & True  & True  & 28.364 & 34.275 & \textbf{0.32} & \textbf{0.40} \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}

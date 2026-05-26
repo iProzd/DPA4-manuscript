@@ -98,9 +98,10 @@ corresponding setting.
         \textbf{Train time (rel.)}$\downarrow$ &
         \textbf{Test time (rel.)}$\downarrow$                             \\
         \midrule
-        2                                 & 31.780 & 41.432 & 1.00 & 1.00 \\
-        3                                 & 30.696 & 41.557 & 1.15 & 1.18 \\
-        5                                 & 28.199 & 38.407 & 1.40 & 1.54 \\
+        2                                 & 30.012 & 41.482 & 1.00 & 1.00 \\
+        3                                 & 27.483 & 39.521 & 1.10 & 1.20 \\
+        4                                 & 27.407 & 38.822 & 1.28 & 1.26 \\
+        5                                 & 27.242 & 38.327 & 1.44 & 1.38 \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -314,12 +315,12 @@ adding category labels to the table body.
             bf16 AMP & -- & True & True & True & True \\
             TF32 matmul & -- & True & True & True & True \\
             LR scheduler & Cosine & Cosine & WSD & Cosine & Cosine \\
-            Max. LR & $4.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
+            Max. LR & $4\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
             Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
             Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 \\
             Decay ratio & N/A & N/A & 0.65 & N/A & N/A \\
             Decay type & N/A & N/A & Cosine & N/A & N/A \\
-            Batch size (per GPU) & $\lceil 1000/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$ & $\lceil 1000/N\rceil$ & $\lceil 700/N\rceil$ \\
+            Batch size (per GPU) & $\lceil 450/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$ & $\lceil 1000/N\rceil$ & $\lceil 700/N\rceil$ \\
             Training steps & $1\times10^6$ & $1\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ \\
             No. GPUs & 1 & 1 & 1 & 1 & 1 \\
             \midrule
