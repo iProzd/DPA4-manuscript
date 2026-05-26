@@ -300,7 +300,7 @@ compatible with the Adam-family path~\cite{joo2026magma}. Complete model- and
 dataset-specific hyperparameters are reported in Supplementary
 Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
-\subsection{Inference and \texttt{torch.compile}}
+\subsection{Compiled conservative-force training}
 
 DPA4 supports compiled conservative-force training. In conventional MLIP
 training, force matching differentiates through the conservative force
@@ -321,6 +321,6 @@ preserves inactive neighbours as exactly silent contributions, so compiled
 training retains the same conservative energy-to-force relationship as the
 uncompiled model. In ablations, the compiled mixed-precision training path
 gives the observed 2--3$\times$ wall-clock speedup without a systematic
-accuracy penalty (Supplementary Table~\ref{tab:dpa4_compile_ablation}).
+accuracy penalty (Table~\ref{tab:dpa4_compile_ablation}).
 
 % =============================================================

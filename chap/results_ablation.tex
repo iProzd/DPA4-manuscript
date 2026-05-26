@@ -90,12 +90,13 @@ The attention ablation isolates the aggregation rule while holding the feature
 dimension and focus count fixed within each pair of rows. Replacing scatter-sum
 aggregation with attention-weighted sum consistently reduces both energy and
 force MAEs across the 64-channel, 96-channel, and 96-channel 2-focus settings.
-This accuracy gain is obtained with only a modest computational overhead:
-training time increases by approximately 5--6\% within each subgroup, and
-inference time remains close to the corresponding scatter-sum control. This
-result supports the design choice of computing attention from rotationally
-invariant scalar channels: the model gains adaptive neighbour selection while
-preserving equivariance of the higher-order SO(2) features.
+The improvement is substantial and stable: energy MAE decreases by 8.3--9.3\%,
+and force MAE decreases by 4.7--6.8\% relative to the corresponding scatter-sum
+controls. The gain is obtained with a small computational cost, increasing
+training time by only 5--6\% and leaving test time within 1--5\% of the control
+models. This result supports the design choice of computing attention from
+rotationally invariant scalar channels: the model gains adaptive neighbour
+selection while preserving equivariance of the higher-order SO(2) features.
 
 \begin{table}[t]
     \centering
@@ -195,25 +196,26 @@ This ablation tests how radial features couple to local SO(2) edge features.
 The scalar-scaling baseline uses only the $l=0$ radial feature to scale edge
 features across angular orders, whereas degree mixing uses higher-order radial
 features to mix input and output angular degrees in the local SO(2) frame
-before modulating the edge features. Degree mixing without per-channel
-modulation leaves the energy MAE essentially unchanged but reduces force MAE
-from 38.349 to 37.212~meV/\AA{}, indicating that angularly resolved radial
-features primarily improve the force-sensitive response. Allowing the radial
-coupling to vary by channel further improves accuracy when the modulation
-kernel is low rank: rank 1 gives the second-best force MAE (35.689~meV/\AA{}),
-and rank 4 gives the best energy and force MAEs (26.556~meV/atom and
-35.675~meV/\AA{}). This improvement does not continue at higher rank. Rank 8,
-rank 16, and the full kernel increase the training cost to 2.27--3.36$\times$
-the scalar-scaling baseline but yield worse force MAEs (36.662, 36.401, and
-37.400~meV/\AA{}), with the full kernel also degrading the energy MAE to
-28.011~meV/atom. These results suggest that the low-rank per-channel kernel
-acts as a useful structural regularizer: it gives each channel enough freedom
-to adapt radial angular mixing while constraining the number of
-channel-specific degree couplings. In contrast, high-rank and full kernels
-introduce many weakly constrained angular-channel interactions, which can
-amplify high-order radial components and make the force derivatives more
-sensitive under the same training recipe. We therefore use compact low-rank
-radial degree coupling rather than the most expressive full coupling.
+before modulating the edge features. The main gain comes from allowing this
+degree mixing to be channel dependent while keeping the modulation kernel
+compact. Even the rank-1 per-channel kernel captures most of the benefit: it
+reduces energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to
+35.689~meV/\AA{} relative to scalar scaling, corresponding to 3.1\% and 6.9\%
+improvements, respectively. This improvement is obtained at low additional
+cost, with training and test times increasing only to 1.12$\times$ and
+1.10$\times$ the scalar-scaling baseline. Low-rank radial degree coupling
+therefore provides a favourable accuracy--throughput trade-off before the
+kernel is made substantially more expressive.
+
+The remaining rank sweep shows that more expressive radial coupling is not
+monotonically better. Increasing the rank from 1 to 4 gives the best energy and
+force MAEs, but also raises the training cost to 1.86$\times$ the baseline; rank
+8, rank 16, and the full kernel are still more expensive yet give worse force
+MAEs. These results suggest that compact per-channel kernels act as a structural
+regularizer, providing enough channel-specific angular mixing without
+introducing many weakly constrained radial--angular interactions. We therefore
+use compact low-rank radial degree coupling rather than the most expressive full
+coupling.
 
 \begin{table}[t]
     \centering
