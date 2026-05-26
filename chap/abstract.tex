@@ -1,25 +1,9 @@
 \begin{abstract}
-    Machine-learning interatomic potentials are moving from specialised
-    surrogates towards on-demand models that must be accurate across chemistry,
-    stable under close atomic contacts and efficient enough to train at scale.
-    Existing architectures usually improve one of these axes at the expense of
-    another: highly equivariant models are costly, invariant models miss
-    directional information, and post-hoc short-range corrections can introduce
-    non-conservative forces. Here we report DPA4, also referred to as SeZM for
-    Smooth equivariant Zone-bridging Model, a conservative atomistic model that
-    integrates architectural, physical and training-system advances in a single
-    scalar potential. The neural branch augments local-frame equivariant message
-    passing with envelope-gated softmax attention, multi-focus SO(2)
-    convolution, radial edge coupling and Lebedev-quadrature $S^2$ activation,
-    improving angular and environmental expressivity at controlled computational
-    cost. An optional short-range branch couples the learned potential to an
-    analytical Ziegler--Biersack--Littmark repulsion through Zone Bridging, where
-    a clamped learned geometry and a source-freeze gate remove the direct learned
-    close-contact pair channel without an external wrapper. DPA4 also makes
-    conservative force matching compatible with \texttt{torch.compile}, yielding
-    2--3$\times$ wall-clock training acceleration in controlled ablations. Across
-    inorganic-crystal and organic-molecule benchmarks, DPA4 sets new
-    state-of-the-art results on Matbench Discovery and SPICE-MACE-OFF,
-    establishing a practical foundation for accurate, efficient and physically
-    robust on-demand interatomic potentials.
+    Machine-learning interatomic potentials are becoming a practical route to on-demand atomistic simulation, but broad deployment requires models that are simultaneously accurate, efficient and stable beyond equilibrium.
+    Existing architectures often trade one requirement for another: highly equivariant models are costly to train and evaluate, whereas faster models can lose directional fidelity and usually treat short-range physics as an external correction.
+    Here we report DPA4, also referred to as SeZM for Smooth equivariant Zone-bridging Model, an equivariant interatomic potential based on an SO(2) convolution and attention framework.
+    The model preserves directional information at moderate computational cost, incorporates a native short-range treatment, and supports \texttt{torch.compile}-compatible conservative-force training.
+    Across inorganic-crystal and organic-molecule benchmarks, DPA4 achieves the best reported accuracy on both Matbench Discovery and SPICE-MACE-OFF among the compared models.
+    A compact DPA4 variant reaches eSEN-level Matbench Discovery accuracy with roughly one tenth of the parameters and can be trained within a few GPU-days on a single GPU.
+    These results establish DPA4 as a practical foundation for accurate, efficient and robust on-demand interatomic potentials.
 \end{abstract}
