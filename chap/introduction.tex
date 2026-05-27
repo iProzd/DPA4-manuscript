@@ -12,11 +12,11 @@ NequIP~\cite{batzner2022nequip}, Allegro~\cite{musaelian2022learning}, MACE~\cit
 However, the most expressive SO(3)-equivariant models rely on Clebsch--Gordan tensor products or dense spherical-grid operations whose cost grows rapidly with angular order, model width and neighbour count.
 This cost becomes a bottleneck when the target is not a single specialised potential, but an MLIP architecture that can scale to broad training sets and serve as the backbone of future LAMs.
 
-Two additional constraints are becoming equally important.
-First, modern conservative-force training is an implementation problem as much as a modelling problem: differentiating force losses through $E(R)$ requires mixed coordinate--parameter second derivatives, and dynamic neighbour graphs, in-place graph updates and Python-level control flow often prevent efficient compiler lowering.
-Second, the short-range region of the potential-energy surface remains difficult for data-driven models.
-Close atomic contacts in cascades, impacts, compression, melting or reactive transition paths are sparse in ordinary DFT training data; external Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion, but post-hoc wrappers may compromise the smoothness and conservativeness of the learned potential~\cite{ziegler1985}.
-These limitations motivate an architecture that treats directional expressiveness, training efficiency and short-range physics as coupled design requirements rather than separate add-ons.
+Efficiency and robustness impose further constraints on practical MLIP design.
+Conservative-force training can be difficult to accelerate because the force loss differentiates through the energy model, so mainstream AI optimisation stacks developed for first-order LLM training do not directly apply to this second-derivative setting.
+The short-range region of the potential-energy surface is also sparsely sampled in ordinary DFT datasets.
+External Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion~\cite{ziegler1985}, but native and smooth coupling is preferable when the model is used in molecular dynamics.
+These considerations motivate an architecture that treats directional expressiveness, training efficiency and short-range robustness as coupled design requirements rather than separate add-ons.
 
 \begin{figure}[t]
     \centering
