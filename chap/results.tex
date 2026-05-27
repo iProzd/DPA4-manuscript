@@ -212,90 +212,102 @@ chemically diverse data.
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
 
-% This subsection carries the strongest single message. Lead with the
-% Pareto figure.
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{fig/ase_infer.png}
+    \caption{
+        ASE inference throughput on the LAMBench \texttt{inorganic\_500}
+        test~\cite{peng2025lambench}.
+        Each benchmark point evaluates energy, forces and stress through the ASE
+        calculator interface after warm-up, using periodic repetitions of the
+        same inorganic seed structure to reach the target atom count.
+        Higher throughput indicates faster end-to-end inference.
+    }
+    \label{fig:ase_infer}
+\end{figure}
 
-% TODO: Fig. 1 --- the headline Pareto plot.
-%   - x-axis: cumulative GPU-hours (or wall-clock training time), log scale
-%   - y-axis: WBM energy MAE (Matbench Discovery test), log scale
-%   - Plot every Matbench-Discovery-compliant model for which training
-%     trajectories are available (CHGNet, M3GNet, MACE-MP-0, SevenNet,
-%     GRACE, AlphaNet, MatRIS, eSEN-30M-MP, ORB, eqV2, DPA3-L24, ...).
-%   - Highlight DPA4 as a new Pareto frontier strictly below and to
-%     the left of all baselines.
-%   - This figure can also serve as the visual abstract.
+We measured deployment-oriented inference speed through the same ASE calculator
+interface~\cite{ase-paper} used by LAMBench~\cite{peng2025lambench}. The
+\texttt{inorganic\_500} test isolates system-size scaling by periodically
+repeating one inorganic structure to different target atom counts and timing
+single-point energy--force--stress evaluations after warm-up. This setting is
+therefore complementary to the training-time ablations: it includes calculator
+overhead, neighbour-list construction and conservative force evaluation, rather
+than timing only individual neural-network kernels.
 
-% TODO: Tab. 2 --- training & inference efficiency details.
-%   Rows: DPA3-L24, DPA4-L24, DPA4-L24 (no compile), MACE(L), eSEN.
-%   Columns:
-%     - # parameters
-%     - Training throughput (samples / s)
-%     - GPU-hours to reach target WBM MAE = [TODO: X] meV/atom
-%     - ASE single-point latency at 80 / 200 / 500 / 1000 / 5000 atoms (ms)
-%     - Peak GPU memory (GB) at fixed batch size
+All measurements were performed on a single NVIDIA H20 GPU. DPA4 used compiled
+inference with Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy
+2.4.4. The MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning}
+used MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128, and
+EquiformerV3~\cite{liao2026equiformerv3} used the \texttt{atomicarchitects/equiformer\_v3}
+implementation at commit \texttt{a7300c5} with Python 3.11.15 and PyTorch
+2.8.0+cu128; both baseline environments used ASE 3.28.0 and NumPy 2.4.4.
 
-% TODO: write 3 short paragraphs.
+Figure~\ref{fig:ase_infer} shows that the compact DPA4 variants occupy the
+high-throughput regime of this ASE benchmark. DPA4-Neo reaches more than
+20~atoms/ms near $10^3$ atoms and remains competitive up to the largest tested
+systems, where MACE-OMAT-0-small becomes comparable. Around $10^3$ atoms,
+DPA4-Neo is approximately five to six times faster than DPA3-L24~\cite{zhang2025dpa3} and more than
+an order of magnitude faster than EquiformerV3 in the same end-to-end ASE path.
+DPA4-Air maintains about 10--13~atoms/ms over the mid-to-large system range,
+matching or exceeding the medium and multi-head MACE baselines while retaining
+the stronger Matbench Discovery accuracy reported above. The much larger
+DPA4-Pro model is slower and is evaluated only at smaller atom counts in this
+test, consistent with its role as a high-accuracy model rather than a
+throughput-optimized deployment variant.
 
-% ¶1 --- Algorithmic efficiency.
-%   - SO(2) ops are diagonal in the angular-order basis: O(d * m_max)
-%     per edge, vs SO(3) Clebsch--Gordan products that scale as O(L^6)
-%     in the maximum spherical-harmonic order.
-%   - Report FLOPs ratio of DPA4's edge update vs a comparable
-%     MACE-style SO(3) model.
-
-% ¶2 --- Implementation efficiency (torch.compile).
-%   - Why traditional MLIPs (incl. DPA3) cannot be torch.compile'd
-%     cleanly: dynamic neighbor counts, in-place graph buffers, Python
-%     control flow on the hot path, custom CUDA kernels with no
-%     dispatcher coverage.
-%   - DPA4's redesign: padded-neighbor representation, functional
-%     (non-in-place) updates, use of torch.fx / make_fx-style tracing
-%     where appropriate, plus full dispatcher coverage on hot ops.
-%   - Report compile-time overhead and steady-state speedup from
-%     enabling torch.compile alone (i.e. with/without compile on
-%     identical model + hardware).
-
-% ¶3 --- End-to-end claim and hardware portability.
-%   - Headline: at matched WBM MAE, DPA4 reaches the target in
-%     [TODO: 5--10x] fewer GPU-hours and uses [TODO: X%] of DPA3's
-%     peak memory.
-%   - Inference at large system size (5000 atoms): [TODO: Yx] faster
-%     than DPA3-L24, [TODO: Zx] faster than MACE(L).
-%   - Portability: report training throughput on V100 and RTX 4090
-%     (in addition to A800) to demonstrate that DPA4 is usable on
-%     commodity GPUs, not just data-center accelerators.
+At the largest atom counts, however, all DPA4 curves turn downward. This trend
+reflects the current DeePMD-kit native ASE inference path~\cite{zeng2025deepmdv3}
+rather than the SO(2) network computation alone: neighbour lists are constructed
+on the GPU, and this step becomes increasingly expensive in both runtime and
+memory as the repeated periodic system grows. The resulting memory pressure also
+reduces the largest system size that can be evaluated by the DPA4 calculators in
+this benchmark. Thus the right-hand side of Fig.~\ref{fig:ase_infer} should be
+interpreted as end-to-end deployment throughput under the present neighbour-list
+implementation, not as a pure limit of the compiled DPA4 forward pass.
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
 
-% TODO: Fig. 4(a) --- short-range energy curve.
-%   - For one or two atom pairs, plot the combined pair energy vs r,
-%     showing the smooth crossover from NN to ZBL.
-%   - Annotate r_in and r_out, and verify C^2 continuity visually.
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{fig/zbl.pdf}
+    \caption{
+        Short-range C--Si dimer response for models trained on an
+        ABACUS-computed 3C-SiC data set~\cite{li2016abacus}.
+        The DPA3 baseline is a five-layer DPA3 model trained with the
+        DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas
+        DPA4 uses the Native ZBL Zone Bridging branch described in
+        Section~\ref{sec:zbl_method}. The analytical curve is the
+        ZBL screened Coulomb potential~\cite{ziegler1985}.
+    }
+    \label{fig:zbl}
+\end{figure}
 
-% TODO: Fig. 4(b) --- cascade case study.
-%   - Pick the simplest example with a clear DPA4-ZBL vs DPA4-noZBL gap.
-%   - Suggested: PKA cascade in W (well-known irradiation benchmark).
-%   - Plot total energy drift / atomic-displacement stability vs
-%     simulation time; show DPA4-noZBL diverging while DPA4-ZBL stays
-%     stable.
-%   - Optional: overlay DPA3-with-external-ZBL or MACE-MP-0-with-ZBL
-%     to show that wrapper-style ZBL breaks conservativeness on a
-%     measurable timescale.
+We next test the short-range branch on a C--Si dimer scan derived from a
+3C-SiC data set computed with ABACUS. This one-dimensional probe is deliberately
+more severe than ordinary validation structures: it forces the model into the
+sub-\AA{} regime in which first-principles training labels are sparse and the
+repulsive screened Coulomb interaction should dominate. The comparison includes a
+five-layer DPA3 model trained with the DeePMD pair-ZBL strategy, which smoothly
+interpolates a Deep Potential model with an empirical pair potential for close
+contacts~\cite{wang2019dpzbl}, and the DPA4 model with the native ZBL branch
+enabled.
 
-% TODO: write 1--2 paragraphs.
-%
-% ¶1 --- Why wrapper-style ZBL is not enough.
-%   Briefly recap how DPA3-style or MACE-MP-0-style ZBL is applied
-%   externally and why this can break C^2 smoothness or
-%   conservativeness.
-%
-% ¶2 --- DPA4's native coupling and impact.
-%   Smooth switch is applied per pair before energy summation; forces
-%   and virials remain conservative by construction. Use the case
-%   study to illustrate practical impact (high-energy collisions,
-%   compression/melting, rare close-distance configurations on
-%   reaction paths).
+Figure~\ref{fig:zbl} shows that both learned models give a smooth attractive
+dimer energy over most of the scanned range, but the force curve exposes the
+difference between external pair coupling and native scalar-energy coupling. The
+DPA3 Pair ZBL baseline develops a sharp force excursion near the switching
+region, producing a local attractive impulse even though the analytical ZBL force
+is strongly repulsive at these separations. In contrast, DPA4 follows the
+analytical ZBL force in the inner region and joins smoothly to the learned force
+as the C--Si distance increases. This behaviour is the empirical counterpart of
+the construction in Section~\ref{sec:zbl_method}: the analytical ZBL branch reads
+the true distance, the learned branch reads a $C^3$ clamped displacement, and the
+source-freeze gate removes the direct learned short-range pair channel. As a
+result, short-range repulsion is supplied by the analytical branch before the
+total scalar energy is differentiated, avoiding the force-level switching
+artifact observed for the pair-ZBL baseline.
 
 \input{chap/results_ablation}
 
