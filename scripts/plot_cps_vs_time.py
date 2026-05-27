@@ -85,15 +85,13 @@ class DashedCircleHandler(HandlerBase):
         return [circle]
 
 
-def draw_param_scale(ax):
-    box_x, box_y = 0.84, 0.066
-    box_w, box_h = 0.12, 0.239
+def draw_param_scale(ax, box_x, box_y, box_w, box_h):
     frame = FancyBboxPatch(
         (box_x, box_y),
         box_w,
         box_h,
         transform=ax.transAxes,
-        boxstyle="round,pad=0.012,rounding_size=0.004",
+        boxstyle="round,pad=0,rounding_size=0.004",
         facecolor="white",
         edgecolor="#bbbbbb",
         linewidth=1.0,
@@ -103,7 +101,7 @@ def draw_param_scale(ax):
     ax.add_patch(frame)
     ax.text(
         box_x + box_w / 2,
-        box_y + box_h,
+        box_y + box_h - 0.025,
         "Params",
         transform=ax.transAxes,
         ha="center",
@@ -114,11 +112,12 @@ def draw_param_scale(ax):
 
     # Centers are not equally spaced: larger bubbles need more center distance
     # to keep the visible edge gaps balanced.
-    entries = [(1, "1M", 0.190), (10, "10M", 0.130), (30, "30M", 0.040)]
-    for params_m, label, y in entries:
+    entries = [(1, "1M", 0.73), (10, "10M", 0.48), (20, "20M", 0.22)]
+    for params_m, label, rel_y in entries:
+        y = box_y + box_h * rel_y
         ax.scatter(
             [box_x + 0.032],
-            [box_y + y],
+            [y],
             s=marker_size(params_m),
             transform=ax.transAxes,
             facecolors="none",
@@ -128,8 +127,8 @@ def draw_param_scale(ax):
             zorder=9,
         )
         ax.text(
-            box_x + 0.070,
-            box_y + y,
+            box_x + 0.078,
+            y,
             label,
             transform=ax.transAxes,
             ha="left",
@@ -160,25 +159,21 @@ matris = {
 }
 
 
-def main():
-    mpl.rcParams["font.family"] = "Times New Roman"
-    mpl.rcParams["font.serif"] = ["Times New Roman"]
-    mpl.rcParams["font.size"] = 12
-
-    fig, ax = plt.subplots(figsize=(6.4, 4.9))
-
-    ax.set_xlim(0, 420)
-    ax.set_ylim(0.49, 0.875)
-    ax.set_yticks(np.arange(0.50, 0.86, 0.05))
-    ax.set_xticks([0, 50, 100, 150, 200, 250, 300, 350, 400])
-    ax.set_xticklabels(["0", "50", "100", "150", "200", "250", "300", "350", "400"])
+def style_axis(ax):
+    ax.set_xscale("log")
+    ax.set_xlim(5, 420)
+    ax.set_xticks([5, 10, 30, 60, 100, 200, 400])
+    ax.set_xticklabels(["5", "10", "30", "60", "100", "200", "400"])
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.grid(True, which="major", linestyle="--", linewidth=0.6, color="#cccccc", alpha=0.7)
+    ax.grid(True, which="minor", axis="x", linestyle=":", linewidth=0.35, color="#dddddd", alpha=0.45)
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
         spine.set_linewidth(1.2)
     ax.tick_params(axis="both", width=1.1, length=4)
 
+
+def plot_model_points(ax):
     for name, m in models.items():
         is_dpa4 = name.startswith("DPA4")
         uses_extra_training = name in EXTRA_TRAINING_MODELS
@@ -195,6 +190,22 @@ def main():
             zorder=5 if is_dpa4 else 3,
         )
 
+    for p in matris.values():
+        ax.scatter(
+            p["x"],
+            p["y"],
+            s=marker_size(p["params_m"]),
+            c=MATRIS_COLOR,
+            marker="o",
+            edgecolors="black",
+            linewidth=1.0,
+            linestyles="--",
+            alpha=0.94,
+            zorder=4,
+        )
+
+
+def draw_dpa4_trend(ax):
     dpa4_xy = [
         (models["DPA4-air"]["x"], models["DPA4-air"]["y"]),
         (models["DPA4-plus"]["x"], models["DPA4-plus"]["y"]),
@@ -210,42 +221,67 @@ def main():
         zorder=2,
     )
 
-    for p in matris.values():
-        ax.scatter(
-            p["x"],
-            p["y"],
-            s=marker_size(p["params_m"]),
-            c=MATRIS_COLOR,
-            marker="o",
-            edgecolors="black",
-            linewidth=1.0,
-            linestyles="--",
-            alpha=0.94,
-            zorder=4,
-        )
 
-    ax.annotate(
+def draw_axis_break(ax_top, ax_bottom):
+    ax_top.spines["bottom"].set_visible(False)
+    ax_bottom.spines["top"].set_visible(False)
+    ax_top.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
+    ax_bottom.tick_params(axis="x", which="both", top=False)
+
+    d = 0.008
+    kwargs = dict(color="black", clip_on=False, linewidth=1.0)
+    ax_top.plot((-d, +d), (-d, +d), transform=ax_top.transAxes, **kwargs)
+    ax_top.plot((1 - d, 1 + d), (-d, +d), transform=ax_top.transAxes, **kwargs)
+    ax_bottom.plot((-d, +d), (1 - d, 1 + d), transform=ax_bottom.transAxes, **kwargs)
+    ax_bottom.plot((1 - d, 1 + d), (1 - d, 1 + d), transform=ax_bottom.transAxes, **kwargs)
+
+
+def main():
+    mpl.rcParams["font.family"] = "Times New Roman"
+    mpl.rcParams["font.serif"] = ["Times New Roman"]
+    mpl.rcParams["font.size"] = 12
+
+    fig, (ax_top, ax_bottom) = plt.subplots(
+        2,
+        1,
+        sharex=True,
+        figsize=(6.4, 5.05),
+        gridspec_kw={"height_ratios": [1.05, 1.0], "hspace": 0.04},
+    )
+
+    for ax in (ax_top, ax_bottom):
+        style_axis(ax)
+        plot_model_points(ax)
+
+    ax_top.set_ylim(0.748, 0.862)
+    ax_top.set_yticks([0.76, 0.78, 0.80, 0.82, 0.84, 0.86])
+    ax_bottom.set_ylim(0.50, 0.735)
+    ax_bottom.set_yticks([0.50, 0.55, 0.60, 0.65, 0.70])
+    draw_axis_break(ax_top, ax_bottom)
+    draw_dpa4_trend(ax_top)
+
+    ax_top.annotate(
         "Air",
         xy=(models["DPA4-air"]["x"], models["DPA4-air"]["y"]),
-        xytext=(10, -16),
+        xytext=(-17, 8),
         textcoords="offset points",
         fontsize=10.5,
         fontweight="bold",
         color=DPA4_COLOR,
     )
-    ax.annotate(
+    ax_top.annotate(
         "Plus",
         xy=(models["DPA4-plus"]["x"], models["DPA4-plus"]["y"]),
-        xytext=(8, 12),
+        xytext=(-22, 10),
         textcoords="offset points",
         fontsize=10.5,
         fontweight="bold",
         color=DPA4_COLOR,
     )
-    ax.annotate(
+    ax_top.annotate(
         "Pro",
         xy=(models["DPA4-pro"]["x"], models["DPA4-pro"]["y"]),
-        xytext=(14, 12),
+        xytext=(-22, 10),
         textcoords="offset points",
         fontsize=10.5,
         fontweight="bold",
@@ -253,12 +289,11 @@ def main():
     )
 
     speedup = models["eSEN-30M-MP"]["x"] / models["DPA4-air"]["x"]
-    arrow_start_y = models["eSEN-30M-MP"]["y"]
-    arrow_end_y = models["DPA4-air"]["y"]
-    ax.annotate(
+    arrow_y = models["eSEN-30M-MP"]["y"]
+    ax_top.annotate(
         "",
-        xy=(models["DPA4-air"]["x"], arrow_end_y),
-        xytext=(models["eSEN-30M-MP"]["x"], arrow_start_y),
+        xy=(models["DPA4-air"]["x"], arrow_y),
+        xytext=(models["eSEN-30M-MP"]["x"], arrow_y),
         arrowprops=dict(
             arrowstyle="->",
             color=COLORS["gray"],
@@ -269,9 +304,9 @@ def main():
         ),
         zorder=1,
     )
-    ax.text(
+    ax_top.text(
         55,
-        arrow_end_y + 0.007,
+        arrow_y + 0.006,
         f"{speedup:.1f}x",
         fontsize=10.5,
         color=COLORS["gray"],
@@ -312,10 +347,10 @@ def main():
                 )
             )
 
-    leg = ax.legend(
+    leg = ax_bottom.legend(
         handles=handles,
         loc="lower left",
-        bbox_to_anchor=(0.02, 0.04),
+        bbox_to_anchor=(0.02, 0.005),
         ncol=2,
         fontsize=8.4,
         frameon=True,
@@ -326,14 +361,24 @@ def main():
         handler_map={DashedCircleLegend: DashedCircleHandler()},
     )
     leg.get_frame().set_edgecolor("#bbbbbb")
-    ax.add_artist(leg)
+    ax_bottom.add_artist(leg)
 
-    draw_param_scale(ax)
+    fig.canvas.draw()
+    legend_bbox = leg.get_frame().get_window_extent(fig.canvas.get_renderer()).transformed(
+        ax_bottom.transAxes.inverted()
+    )
+    draw_param_scale(
+        ax_bottom,
+        legend_bbox.x1 - 0.032,
+        legend_bbox.y0,
+        0.135,
+        legend_bbox.height * 0.90,
+    )
 
-    ax.set_xlabel("Training time (A100 GPU-days)", fontsize=14, labelpad=8)
-    ax.set_ylabel("CPS score (higher is better)", fontsize=14)
+    ax_bottom.set_xlabel("Training cost (A100 GPU-days)", fontsize=14, labelpad=8)
+    fig.text(0.028, 0.54, "CPS score (higher is better)", va="center", rotation="vertical", fontsize=14)
 
-    fig.subplots_adjust(left=0.13, right=0.98, bottom=0.13, top=0.96)
+    fig.subplots_adjust(left=0.13, right=0.98, bottom=0.13, top=0.96, hspace=0.04)
     output_path = Path(__file__).resolve().parents[1] / "fig" / "fig1_CPS.pdf"
     plt.savefig(output_path, bbox_inches="tight")
     print(f"Saved to {output_path}")
