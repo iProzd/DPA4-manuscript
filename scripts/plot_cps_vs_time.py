@@ -2,7 +2,6 @@ from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.patches import Circle, FancyBboxPatch
 from matplotlib.ticker import NullFormatter
@@ -17,7 +16,7 @@ except ImportError:
 RMSD_BASELINE = 0.15
 PARAM_SIZE_SCALE = 16
 if sns is not None:
-    PALETTE = sns.color_palette("muted", 10).as_hex()
+    PALETTE = sns.color_palette("colorblind", 10).as_hex()
 else:
     PALETTE = [
         "#4878D0",
@@ -46,7 +45,7 @@ COLORS = {
     "teal": "#00897B",
 }
 MATRIS_COLOR = COLORS["brown"]
-DPA4_COLOR = COLORS["red"]
+DPA4_COLOR = "#C44E52"
 EXTRA_TRAINING_MODELS = {"eSEN-30M-MP", "EqV2 S DeNS", "EqV3+DeNS-MP"}
 
 
@@ -87,7 +86,7 @@ class DashedCircleHandler(HandlerBase):
 
 
 def draw_param_scale(ax):
-    box_x, box_y = 0.49, 0.066
+    box_x, box_y = 0.84, 0.066
     box_w, box_h = 0.12, 0.239
     frame = FancyBboxPatch(
         (box_x, box_y),
@@ -151,9 +150,9 @@ models = {
     "SevenNet-l3i5": dict(x=381, y=0.714, params_m=1.17, color=COLORS["yellow"], marker="o"),
     "DPA3": dict(x=104, y=0.718, params_m=4.81, color=COLORS["blue"], marker="o"),
     "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=COLORS["teal"], marker="o"),
-    "DPA4-air": dict(x=9.2, y=0.796, params_m=2.7, color=DPA4_COLOR, marker="o"),
-    "DPA4-plus": dict(x=41, y=0.823, params_m=9.0, color=DPA4_COLOR, marker="o"),
-    "DPA4-pro": dict(x=222, y=0.832, params_m=32.4, color=DPA4_COLOR, marker="o"),
+    "DPA4-air": dict(x=7.8, y=0.804, params_m=2.76, color=DPA4_COLOR, marker="o"),
+    "DPA4-plus": dict(x=41, y=0.822, params_m=5.40, color=DPA4_COLOR, marker="o"),
+    "DPA4-pro": dict(x=106.6, y=0.831, params_m=20.91, color=DPA4_COLOR, marker="o"),
 }
 
 matris = {
@@ -162,21 +161,19 @@ matris = {
 
 
 def main():
-    mpl.rcParams["font.family"] = "Nimbus Roman"
-    mpl.rcParams["font.serif"] = ["Nimbus Roman"]
+    mpl.rcParams["font.family"] = "Times New Roman"
+    mpl.rcParams["font.serif"] = ["Times New Roman"]
     mpl.rcParams["font.size"] = 12
 
     fig, ax = plt.subplots(figsize=(6.4, 4.9))
 
-    ax.set_xscale("log")
-    ax.set_xlim(5, 420)
+    ax.set_xlim(0, 420)
     ax.set_ylim(0.49, 0.875)
     ax.set_yticks(np.arange(0.50, 0.86, 0.05))
-    ax.set_xticks([5, 10, 30, 60, 100, 200, 400])
-    ax.set_xticklabels(["5", "10", "30", "60", "100", "200", "400"])
+    ax.set_xticks([0, 50, 100, 150, 200, 250, 300, 350, 400])
+    ax.set_xticklabels(["0", "50", "100", "150", "200", "250", "300", "350", "400"])
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.grid(True, which="major", linestyle="--", linewidth=0.6, color="#cccccc", alpha=0.7)
-    ax.grid(True, which="minor", axis="x", linestyle=":", linewidth=0.35, color="#dddddd", alpha=0.45)
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
         spine.set_linewidth(1.2)
@@ -210,7 +207,7 @@ def main():
         color=DPA4_COLOR,
         linewidth=1.3,
         alpha=0.85,
-        zorder=4,
+        zorder=2,
     )
 
     for p in matris.values():
@@ -230,7 +227,7 @@ def main():
     ax.annotate(
         "Air",
         xy=(models["DPA4-air"]["x"], models["DPA4-air"]["y"]),
-        xytext=(11, 8),
+        xytext=(10, -16),
         textcoords="offset points",
         fontsize=10.5,
         fontweight="bold",
@@ -239,7 +236,7 @@ def main():
     ax.annotate(
         "Plus",
         xy=(models["DPA4-plus"]["x"], models["DPA4-plus"]["y"]),
-        xytext=(10, 7),
+        xytext=(8, 12),
         textcoords="offset points",
         fontsize=10.5,
         fontweight="bold",
@@ -248,7 +245,7 @@ def main():
     ax.annotate(
         "Pro",
         xy=(models["DPA4-pro"]["x"], models["DPA4-pro"]["y"]),
-        xytext=(14, 8),
+        xytext=(14, 12),
         textcoords="offset points",
         fontsize=10.5,
         fontweight="bold",
@@ -256,17 +253,25 @@ def main():
     )
 
     speedup = models["eSEN-30M-MP"]["x"] / models["DPA4-air"]["x"]
-    arrow_y = models["DPA4-air"]["y"] - 0.002
+    arrow_start_y = models["eSEN-30M-MP"]["y"]
+    arrow_end_y = models["DPA4-air"]["y"]
     ax.annotate(
         "",
-        xy=(models["DPA4-air"]["x"] * 1.18, arrow_y),
-        xytext=(models["eSEN-30M-MP"]["x"] * 0.96, arrow_y),
-        arrowprops=dict(arrowstyle="->", color=COLORS["gray"], lw=1.0, zorder=1),
+        xy=(models["DPA4-air"]["x"], arrow_end_y),
+        xytext=(models["eSEN-30M-MP"]["x"], arrow_start_y),
+        arrowprops=dict(
+            arrowstyle="->",
+            color=COLORS["gray"],
+            lw=1.0,
+            shrinkA=15,
+            shrinkB=11,
+            zorder=1,
+        ),
         zorder=1,
     )
     ax.text(
         55,
-        arrow_y + 0.007,
+        arrow_end_y + 0.007,
         f"{speedup:.1f}x",
         fontsize=10.5,
         color=COLORS["gray"],
@@ -325,12 +330,12 @@ def main():
 
     draw_param_scale(ax)
 
-    ax.set_xlabel("Training time (A100 GPU-days, log scale)", fontsize=14, labelpad=8)
+    ax.set_xlabel("Training time (A100 GPU-days)", fontsize=14, labelpad=8)
     ax.set_ylabel("CPS score (higher is better)", fontsize=14)
 
     fig.subplots_adjust(left=0.13, right=0.98, bottom=0.13, top=0.96)
-    output_path = Path(__file__).resolve().with_name("cps_vs_time_v3.png")
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    output_path = Path(__file__).resolve().parents[1] / "fig" / "fig1_CPS.pdf"
+    plt.savefig(output_path, bbox_inches="tight")
     print(f"Saved to {output_path}")
 
 
