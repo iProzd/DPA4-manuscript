@@ -9,71 +9,32 @@
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
 
-DPA4 was designed as a conservative equivariant potential in which the main
-geometric work is shared across all interaction blocks
-(Fig.~\ref{fig:arch}a,b). For each neighbour graph, the model constructs a
-single edge cache containing smooth cutoff envelopes, radial-species features,
-local gauges and short-range bridging gates. The same cache feeds the input
-embedding, the SO(2) interaction blocks and the analytical ZBL branch. This
-organization avoids repeated geometry construction while ensuring that
-energies, forces and virials are all derived from one scalar potential.
+DPA4 is a conservative SO(3)-equivariant message-passing graph neural network for interatomic potentials, built around an SO(2) local-frame transformation and attention-based neighbour aggregation; see Section~\ref{sec:methods} for the full formulation.
 
-The central architectural choice is to perform equivariant message passing in
-an edge-local SO(2) representation rather than through full SO(3)
-Clebsch--Gordan tensor products (Fig.~\ref{fig:arch}c). Aligning each bond with
-a local reference axis reduces the residual symmetry of the edge update to
-SO(2), so coefficients can be processed in fixed $|m|$ strata. Within these
-strata, DPA4 uses edge-conditioned radial degree coupling and multi-focus SO(2)
-convolutions to mix angular degrees without introducing a separate equivariant
-edge feature. The construction retains the directional representation needed
-for equivariant molecular and materials modelling while reducing the algebraic
-cost of each message update.
+Figure~\ref{fig:arch} summarizes the model at three levels.
+Panel (a) shows the overall energy model, in which Geometry-Aware Input Embedding (GIE), stacked equivariant interaction blocks and an atomic energy head form a single differentiable energy path.
+Panel (b) focuses on GIE, which injects local geometric information into the initial representation using cached neighbour geometry and radial features.
+Panel (c) shows the SO(2) multi-focus convolution, where local-frame equivariant messages are constructed and aggregated by Smooth Gated Attention during message passing.
 
-Two additional components make this local-frame architecture effective in the
-benchmarks below. First, the Environment Initial Embedding supplies the scalar
-backbone with a rotation-invariant local-environment prior at layer 0, while
-the higher-degree initial features carry directional information from spherical
-harmonics. Second, envelope-gated softmax attention aggregates edge messages
-with invariant weights that vanish smoothly at the cutoff. The attention
-mechanism therefore increases the flexibility of neighbourhood aggregation
-without breaking equivariance or introducing a discontinuity in the
-conservative energy.
+The key architectural choice is to perform equivariant message passing in an edge-local SO(2) representation rather than through full SO(3) Clebsch--Gordan tensor products; see Section~\ref{sec:so2} and Supplementary Section~\ref{sec:sm-cg-trivialisation} for details.
+GIE is applied once at the input stage to initialise scalar and higher-degree node features from local geometry, as described in Section~\ref{sec:initial-representation}.
+Each subsequent interaction block rotates source features into the edge-local SO(2) frame, applies multi-focus SO(2) convolution, lifts the resulting edge messages back to the global frame, and aggregates them with Smooth Gated Attention, implemented as the envelope-gated softmax attention in Section~\ref{sec:attn}.
+After the interaction blocks, the invariant $l=0$ features are passed to the atomic energy head, while forces and virials are obtained by differentiating the total energy.
 
-DPA4 also treats short-range nuclear repulsion as part of the model rather than
-as an external correction. The analytical ZBL energy is summed with the neural
-branch before differentiation, and Native ZBL Zone Bridging removes the direct
-learned short-range pair channel in the inner frozen zone. Thus the model keeps
-the differentiable scalar-energy formulation used for force training while
-assigning the singular short-range pair interaction to a physically motivated
-analytical branch.
-
-The architecture is co-designed with the training system. Conservative MLIP
-training is difficult to compile because the force loss differentiates through
-$\mathbf{F}=-\partial E/\partial R$ and therefore requires mixed
-coordinate--parameter second derivatives. DPA4 removes this barrier by tracing
-the energy-to-force derivative into an ordinary tensor graph and lowering the
-resulting conservative-force path with \texttt{torch.compile}. This makes the
-same scalar-energy model trainable in compiled mode rather than switching to a
-direct-force surrogate, and is the main source of the 2--3$\times$ wall-clock
-training speedup quantified below. The optimiser is matched to this structure:
-HybridMuon applies matrix-aware Muon updates to hidden transformations, keeps
-scalar and normalisation parameters on Adam-family updates, and updates
-degree-indexed equivariant tensors in slice mode so that distinct SO(2)
-representation blocks are not flattened into one unrelated matrix.
+Beyond the message-passing architecture, two design choices improve practical training efficiency and short-range robustness.
+First, the conservative force path is implemented in a compiler-friendly form compatible with \texttt{torch.compile}, as detailed in Section~\ref{sec:methods}.
+Second, DPA4 includes a native ZBL branch through a smooth Zone Bridging mechanism for close contacts; see Section~\ref{sec:zbl_method}.
+The training recipe uses a WSD schedule~\cite{wen2024wsd} and the HybridMuon optimiser: Muon updates are applied to matrix-valued hidden transformations~\cite{jordan2024muon,liu2025muon}, while scalar, normalisation and auxiliary parameters use Adam-family updates~\cite{kingma2014adam}.
+Further optimisation details are given in Supplementary Sections~\ref{sec:sm-wsd-schedule}--\ref{sec:sm-hybrid-muon}.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\textwidth]{fig/fig2_simplified_wh.pdf}
     \caption{
         Overview of the DPA4 architecture.
-        (a) The full model combines a shared edge cache, geometry-aware input
-        embedding, stacked equivariant interaction blocks, and an atomic energy
-        head.
-        (b) Geometry and radial features are computed once and reused by the input
-        embedding and all interaction blocks.
-        (c) Each SO(2) multi-focus convolution rotates features to an edge-local
-        frame, applies radial modulation and focus competition, and aggregates
-        messages after rotating them back.
+        (a) The full model combines a shared edge cache, geometry-aware input embedding, stacked equivariant interaction blocks, and an atomic energy head.
+        (b) Geometry-Aware Input Embedding injects cached local geometry and radial features into the initial representation.
+        (c) Each SO(2) multi-focus convolution rotates features to an edge-local frame, applies radial modulation and focus competition, and aggregates messages through Smooth Gated Attention after rotating them back.
     }
     \label{fig:arch}
 \end{figure}
