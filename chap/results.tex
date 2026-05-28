@@ -96,7 +96,7 @@ DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.833 wi
 Its CPS is slightly higher than EquiformerV3+DeNS-MP (0.833 versus 0.830) while using 31\% fewer parameters (20.91M versus 30.3M)~\cite{liao2026equiformerv3,liao2024dens}.
 As shown in Fig.~\ref{fig:cps}, DPA4-Pro also reaches this accuracy with a lower A100-equivalent training cost than EquiformerV3+DeNS-MP.
 
-This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages.
+This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked by dashed marker outlines in Fig.~\ref{fig:cps}.
 DeNS has been shown to improve equivariant force fields by denoising non-equilibrium structures~\cite{liao2024dens}, and EquiformerV3+DeNS-MP further combines this strategy with direct-force pretraining~\cite{liao2026equiformerv3}.
 DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
 This result suggests that the DPA4 architecture itself contributes to the improved accuracy rather than relying on an auxiliary denoising or direct-force objective.
