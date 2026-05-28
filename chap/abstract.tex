@@ -3,7 +3,7 @@
     Existing architectures often trade one requirement for another: highly equivariant models are costly to train and evaluate, whereas faster models can lose directional fidelity and usually treat short-range physics as an external correction.
     Here we report DPA4, also referred to as SeZM for Smooth equivariant Zone-bridging Model, an equivariant interatomic potential based on an SO(2) convolution and attention framework.
     The model preserves directional information at moderate computational cost, incorporates a native short-range treatment, and supports \texttt{torch.compile}-compatible conservative-force training.
-    Across inorganic-material and organic-molecule benchmarks, DPA4 achieves the best reported accuracy on both Matbench Discovery and SPICE-MACE-OFF among the compared models.
+    Across inorganic-material and organic-molecule benchmarks, DPA4 achieves the best reported Matbench Discovery CPS and SPICE-MACE-OFF aggregate accuracy among the compared models.
     A compact DPA4 variant reaches eSEN-level Matbench Discovery accuracy with roughly one tenth of the parameters and can be trained within a few GPU-days on a single GPU.
     These results establish DPA4 as a practical foundation for accurate, efficient and robust on-demand interatomic potentials.
 \end{abstract}

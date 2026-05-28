@@ -1,31 +1,26 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% TODO: structure as 3 paragraphs.
+DPA4 shows that equivariant accuracy and practical efficiency can be improved together when representation, aggregation and training are designed as one system.
+The central architectural idea is the SO(2) local-frame construction, which keeps directional features in the message-passing pathway without relying on full SO(3) Clebsch--Gordan tensor products.
+The surrounding design choices improve geometric initialization, message aggregation, conservative-force training and short-range coupling within the same energy-based framework.
+This combination explains why the same MLIP architecture improves the accuracy--parameter frontier across both inorganic crystals and organic molecules.
 
-% ¶1 --- summarize the three contributions and how they interlock.
-%   - SO(2) equivariance: accuracy at moderate cost.
-%   - Attention: longer-range correlations within each MP step.
-%   - Native ZBL: extends domain of validity to short interatomic
-%     distances without breaking conservativeness.
+The results also show that architecture design for MLIPs must account for engineering constraints and practical training efficiency, not only formal expressiveness.
+DPA4-Air reaches the compliant Matbench Discovery frontier with single-digit A100-equivalent GPU-days, and the compiled conservative-force pathway further reduces the wall-clock cost of training.
+This shifts specialised MLIP development towards the setting implied by on-demand interatomic potentials: a high-accuracy model for a target dataset can be trained in days on accessible single-GPU hardware rather than requiring a large dedicated training campaign.
+The practical consequence is that accurate interatomic potentials can become routine tools for specific scientific problems, rather than infrastructure-scale modelling projects.
 
-% ¶2 --- limitations.
-%   - DPA4 is presented here as a single-task / per-dataset model; we
-%     have not yet integrated DPA3's multi-task dataset-encoding
-%     scheme, nor trained a DPA4-based foundation potential. We
-%     anticipate doing this in follow-up work.
-%   - Charged species, open-shell magnetism, and relativistic heavy
-%     elements remain out of scope.
-%   - SO(2) is in principle a strict subset of SO(3) equivariance; the
-%     gap appears empirically negligible but may resurface in
-%     symmetry-sensitive tasks (e.g. accurate phonons in highly
-%     symmetric crystals).
+Native ZBL Zone Bridging is a robustness component rather than the main source of benchmark accuracy.
+The C--Si dimer scan shows that coupling the analytical repulsion inside the scalar energy avoids the force-level switching artifact observed for an external pair correction.
 
-% ¶3 --- outlook.
-%   - DPA4 as the base architecture for a future foundation potential
-%     trained on OpenLAM-v1 / OMol25 in a multi-task setup.
-%   - Downstream applications enabled by DPA4's efficiency: long-time
-%     MD, irradiation-damage simulation, high-throughput catalysis
-%     screening on commodity GPUs.
+Several limitations remain.
+DPA4 is evaluated here as a single-task, per-dataset MLIP architecture, not as a pretrained large atomistic model.
+Its behaviour under large-scale multitask training, heterogeneous DFT datasets and LAM-style pretraining remains to be established.
+The short-range study is also intentionally local, and full extreme-condition molecular-dynamics tests remain future work.
+
+The natural next step is to use DPA4 as a backbone for LAM pretraining and downstream adaptation.
+Future work should optimise the core LAM workflow across multitask pretraining, downstream fine-tuning and efficient model distillation.
+In the emerging era of agentic science, these directions point beyond a single model towards autonomous workflows that coordinate architecture exploration, interatomic potential generation, active data sampling and closed-loop simulations.
 
 % =============================================================
