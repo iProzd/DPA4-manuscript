@@ -252,63 +252,14 @@ coupling.
     \end{threeparttable}
 \end{table}
 
-\subsubsection{\texorpdfstring{$S^2$}{S2} activation and quadrature}
-
-This ablation separates two coupled design choices in the spherical-grid
-nonlinearity: the model component to which $S^2$ activation is applied and the
-quadrature rule used to project grid features back to equivariant coefficients.
-When $S^2$ activation is restricted to the FFN component, replacing the e3nn
-product grid with the Lebedev rule slightly reduces the energy MAE while
-leaving the force MAE and computational cost essentially unchanged. Applying S2
-activation additionally inside the SO(2) convolution component does not improve
-the overall accuracy--cost trade-off under this setting; with the e3nn product
-grid, both MAEs increase and the relative training and inference costs more
-than double. In this expanded activation configuration, Lebedev quadrature
-reduces the energy error and lowers the relative training and inference costs
-compared with the e3nn product grid, although the force MAE remains higher than
-in the FFN-only configuration. These results indicate that the main benefit
-comes from retaining $S^2$ activation in the FFN component, while Lebedev
-quadrature provides a more favorable projection rule when spherical-grid
-nonlinearities are used in equivariant branches.
-
-\begin{table}[t]
-    \centering
-    \scriptsize
-    \begin{threeparttable}
-        \caption{Ablation of $S^2$ activation placement and quadrature rule.\tnote{a}}
-        \label{tab:dpa4_quadrature_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
-            \toprule
-            \textbf{SO(2) S2 act.}                 &
-            \textbf{FFN S2 act.}                   &
-            \textbf{Quadrature}                    &
-            \textbf{E MAE}$\downarrow$             &
-            \textbf{F MAE}$\downarrow$             &
-            \textbf{Train time (rel.)}$\downarrow$ &
-            \textbf{Test time (rel.)}$\downarrow$                                                                           \\
-            \midrule
-            False                                  & True & e3nn    & \underline{29.225} & \textbf{38.055}    & 1.00 & 1.00 \\
-            False                                  & True & Lebedev & \textbf{28.992}    & \underline{38.103} & 0.98 & 1.01 \\
-            True                                   & True & e3nn    & 31.074             & 39.522             & 2.41 & 2.23 \\
-            True                                   & True & Lebedev & 29.709             & 39.808             & 1.98 & 1.76 \\
-            \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
-            \item[a] Train time (rel.) and Test time (rel.) are normalized to the FFN-only S2 row
-            using the e3nn product grid. The quadrature rule is used when projecting
-            S2-grid features back to equivariant coefficients.
-        \end{tablenotes}
-    \end{threeparttable}
-\end{table}
-
 \subsubsection{Supplementary ablation studies}
 
 Additional controlled studies are provided in the Supplementary Information to
 document model selection and robustness analyses beyond the main mechanisms
 tested above. These include model-depth scaling over the number of interaction
 blocks, SO(2) layers per block, and FFN layers per block, attention-aggregation
-design variants, normalization-placement variants, and the learning-rate
-scheduler comparison.
+design variants, normalization-placement variants, the learning-rate scheduler
+comparison, and the $S^2$ activation and quadrature comparison.
 These results support reproducibility and hyperparameter selection, whereas the
 main text focuses on ablations that directly test the principal architectural
 and implementation choices of DPA4.
