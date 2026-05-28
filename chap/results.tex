@@ -181,64 +181,33 @@ Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the acc
     \centering
     \includegraphics[width=\textwidth]{fig/lmp-inorganic_500.png}
     \caption{
-        LAMMPS inference throughput on the LAMBench \texttt{inorganic\_500}
-        test~\cite{peng2025lambench}.
-        Each point reports molecular-dynamics throughput for periodic
-        repetitions of the same inorganic seed structure, evaluated with the
-        LAMMPS--DeePMD-kit interface~\cite{thompson2022lammps,zeng2025deepmdv3}
-        after warm-up on an NVIDIA H20 GPU.
-        The four panels show complementary speed and cost measures; higher
-        rates and lower time-per-ns or time-per-step values indicate faster
-        simulation.
+        LAMMPS inference throughput on the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} test.
+        Each point reports molecular-dynamics throughput for periodic repetitions of the same inorganic seed structure, evaluated with the LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface after warm-up on an NVIDIA H20 GPU.
+        The four panels show complementary speed and cost measures; higher rates and lower time-per-ns or time-per-step values indicate faster simulation.
     }
     \label{fig:lmp_inorganic_infer}
 \end{figure}
 
-The training efficiency of DPA4 is quantified by the CPS--training-cost
-comparison in Fig.~\ref{fig:cps}, using the Matbench Discovery CPS
-metric~\cite{riebesell2025matbench}. DPA4-Air reaches a CPS of 0.804 using 7.8
-A100 GPU-days, compared with 0.797 using 335 A100 GPU-days for
-eSEN-30M-MP~\cite{fu2025esen}; this corresponds to a 43$\times$ lower training
-cost with a slightly higher score. DPA4-Plus raises the CPS to 0.822 at 41 A100
-GPU-days, an 8.2$\times$ lower cost than eSEN-30M-MP, and DPA4-Pro reaches a
-CPS of 0.833 at 106.6 A100 GPU-days, slightly above EquiformerV3+DeNS-MP
-(0.830)~\cite{liao2026equiformerv3} at a 1.5$\times$ lower cost. These
-comparisons are conservative with respect to the training protocol: the
-high-CPS dashed-outline baselines in Fig.~\ref{fig:cps} use additional training
-strategies such as DeNS~\cite{liao2024dens} or direct-force
-pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants
-are trained throughout with conservative forces obtained as gradients of a
-scalar energy. Incorporating analogous DeNS-style pretraining may further
-reduce the DPA4 training cost or increase the CPS, but is not used in the
-results reported here. The conservative training path is made practical by the
-compiled implementation: in controlled ablations,
-\texttt{torch.compile}~\cite{ansel2024pytorch2} together with bf16 automatic
-mixed precision provides a 3.1$\times$ wall-clock training speedup and reduces
-peak training memory to about 40\% of the FP32 baseline
-(Table~\ref{tab:dpa4_compile_ablation}).
+Figure~\ref{fig:cps} complements the Matbench Discovery~\cite{riebesell2025matbench} leaderboard metrics by plotting CPS against A100-equivalent training cost.
+DPA4-Air reaches a CPS of 0.804 using 7.8 A100 GPU-days, whereas eSEN-30M-MP~\cite{fu2025esen} reaches a lower CPS of 0.797 using 335 A100 GPU-days.
+This corresponds to 42.9$\times$ less training compute for DPA4-Air at a slightly higher leaderboard score.
+DPA4-Pro remains below the training cost of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} while reaching a higher CPS.
+The dashed-outline baselines in Fig.~\ref{fig:cps} use DeNS~\cite{liao2024dens} or direct-force pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants are trained through the conservative energy path without either auxiliary stage.
 
-Deployment-oriented inference was evaluated through the LAMMPS--DeePMD-kit
-interface, which is the relevant path for production molecular dynamics. The
-primary comparison uses the LAMBench \texttt{inorganic\_500} system-size sweep
-and therefore includes neighbour-list construction, force evaluation and
-simulation driver overhead, rather than timing isolated neural-network kernels.
-The LAMMPS benchmarks were run with Kokkos acceleration~\cite{trott2022kokkos}
-on a single NVIDIA H20 GPU; full software details and additional ASE/LAMMPS
-measurements are given in Supplementary
-Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
+The lower training cost is supported by the compiled conservative-force implementation.
+In controlled ablations, \texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed precision gives a 3.1$\times$ wall-clock training speedup and reduces peak training memory to about 40\% of the FP32 baseline (Table~\ref{tab:dpa4_compile_ablation}).
+This systems-level gain is obtained without replacing energy-based force matching by a direct-force surrogate.
 
-Figure~\ref{fig:lmp_inorganic_infer} shows that compact DPA4 models preserve
-high molecular-dynamics throughput while using the same equivariant
-architecture that gives the Matbench Discovery gains above. As expected, the
-scalar DPA1-L0 baseline~\cite{zhang2018deep} remains the fastest model, but it
-represents a substantially less expressive accuracy regime. Among the more
-accurate neural potentials, DPA4-Neo and DPA4-Air maintain favourable atom-step
-throughput up to $10^4$ atoms. At the largest systems, DPA4-Neo delivers
-roughly twice the atom-step throughput of MACE-S and several times that of
-MACE-M~\cite{batatia2022mace,barroso2024open}, while DPA4-Air retains a smaller
-but consistent advantage over the MACE baselines. Thus the compact DPA4
-variants are not only cheaper to train; they also provide a practical inference
-regime for large inorganic simulations.
+Deployment-oriented inference was evaluated through the LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface, which is the relevant path for production molecular dynamics.
+The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbour-list construction, force evaluation and simulation-driver overhead.
+The LAMMPS benchmarks were run with Kokkos acceleration~\cite{trott2022kokkos} on a single NVIDIA H20 GPU, with additional ASE and LAMMPS measurements reported in Supplementary Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
+
+Figure~\ref{fig:lmp_inorganic_infer} shows that compact DPA4 models retain practical molecular-dynamics throughput despite the equivariant message-passing operations.
+The scalar DPA1-L0 baseline~\cite{zhang2022dpa} remains the fastest model, as expected for a less expressive descriptor.
+Among the more accurate neural potentials, DPA4-Neo and DPA4-Air maintain favourable atom-step throughput up to $10^4$ atoms.
+At the largest system size, DPA4-Neo is roughly twice as fast as MACE-S and several times faster than MACE-M~\cite{batatia2022mace,barroso2024open} in atom-step throughput.
+DPA4-Air is slower than DPA4-Neo but still remains consistently faster than the MACE baselines.
+Thus, the compact DPA4 variants reduce both training cost and deployment cost for large atomistic simulations.
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
