@@ -82,12 +82,105 @@ $E^{\mathrm{ZBL}}$. Second, outside the bridging window
 ($r_{ij}\geq r_{\mathrm{out}}$) the clamp is the identity, so the learned
 branch sees the true geometry.
 
-\subsubsection{Initial equivariant representation}
-\label{sec:initial-representation}
+\subsubsection{Geometric initial embedding (GIE)}
+\label{sec:gie}
 
-The initial scalar state is a learnable element embedding. For $l\geq1$, DPA4
-adds a geometric initial embedding by projecting each neighbour direction into
-real spherical harmonics and modulating it by radial-species features:
+The initial feature $\mathbf{h}_i^{(0)}\in V_{\leq L}\otimes\mathbb{R}^{C}$
+depends on both \emph{chemistry} (atomic species $Z_i$ and the species of
+neighbours) and \emph{geometry} (the relative positions $\{\mathbf{r}_{ij}\}$
+inside the cutoff). The two sources of information enter the $l=0$ and $l\geq 1$
+slices in complementary ways.
+
+\paragraph{$l=0$ slice.}
+The chemistry-only baseline is a learnable element embedding
+$\mathbf{T}\in\mathbb{R}^{n_t\times C}$, so that
+$\mathbf{h}_{i,l=0,c}^{(0)}=\mathbf{T}_{Z_i,c}$ at first pass. To inject local
+geometry into the scalar slice without breaking SO(3) invariance, DPA4 builds a
+compact rotation-invariant local-environment descriptor $\mathcal{D}_i$ in the
+spirit of the smooth-edition Deep Potential descriptor~\cite{zhang2018end} as
+follows. Define the per-edge four-vector
+\begin{equation}
+    \mathbf{u}_{ij,0} = \frac{s_5(r_{ij})}{r_{ij}},
+    \qquad
+    \mathbf{u}_{ij,k} = \mathbf{u}_{ij,0}\,\widehat{\mathbf{r}}_{ij,k},\quad k=1,2,3,
+    \label{eq:dpa4-env-vector}
+\end{equation}
+whose first component is a smooth invariant and whose last three components
+together transform as an SO(3) vector. Here $s_5$ is a particular instance of
+the family of $C^3$ cutoff envelopes
+\begin{equation}
+    s_p(r) =
+    \begin{cases}
+        1+x^p\bigl(a_p+b_p x+c_p x^2+d_p x^3\bigr), & x=r/r_{\mathrm{c}}\in[0,1), \\
+        0,                                          & x\ge 1,
+    \end{cases}
+    \label{eq:dpa4-envelope}
+\end{equation}
+with coefficients $(a_p,b_p,c_p,d_p)$ uniquely fixed by
+$s_p(r_{\mathrm{c}})=s_p'(r_{\mathrm{c}})=s_p''(r_{\mathrm{c}})=s_p'''(r_{\mathrm{c}})=0$
+(closed forms given in Supplementary Section~\ref{sec:sm-radial}). DPA4 uses
+$s_5$ for edge weighting and inside the smooth degree, and $s_7$ inside the
+radial basis (Eq.~\eqref{eq:dpa4-radial-basis} below). With a separate
+radial-species map
+$\mathbf{g}:\mathbb{R}_{\ge 0}\times\{1,\dots,n_t\}^2\to\mathbb{R}^{C_{\mathrm{env}}}$,
+form the per-atom matrix
+\begin{equation}
+    A_i = n_i\sum_{j:r_{ij}<r_{\mathrm{c}}} \eta_j\,
+    \mathbf{u}_{ij}\otimes \mathbf{g}(r_{ij};Z_i,Z_j)
+    \in\mathbb{R}^{4\times C_{\mathrm{env}}},
+    \label{eq:dpa4-env-matrix}
+\end{equation}
+where
+\begin{equation}
+    n_i = (d_i+\varepsilon)^{-1/2},
+    \qquad
+    d_i = \sum_{j:r_{ij}<r_{\mathrm{c}}} s_5(r_{ij})^2,
+    \label{eq:dpa4-degree}
+\end{equation}
+is a smooth degree normalisation (squaring $s_5$ makes $d_i$ inherit $C^6$
+regularity; the regulariser $\varepsilon>0$ prevents singularity for isolated
+atoms), and $\eta_j$ is the source-freeze gate defined in
+Eq.~\eqref{eq:dpa4-source-freeze}. Contracting the first axis of $A_i$ yields
+a rotation-invariant Gram-style descriptor,
+\begin{equation}
+    \mathcal{D}_i = A_i^{\top} A_i^{(:,1{:}K_{\mathrm{env}})}
+    \in\mathbb{R}^{C_{\mathrm{env}}\times K_{\mathrm{env}}},
+    \label{eq:dpa4-env-descriptor}
+\end{equation}
+where the truncation to $K_{\mathrm{env}}$ columns controls cost. Invariance of
+$\mathcal{D}_i$ follows because the spatial part of $\mathbf{u}_{ij}$
+transforms as an SO(3) vector while the scalar part is invariant, so $A_i^\top
+A_i$ contracts the spatial index and the temporal component contributes a
+scalar block. The descriptor then conditions the scalar features through a
+Feature-wise Linear Modulation~\cite{perez2018film} (FiLM) step,
+\begin{equation}
+    \mathbf{h}_{i,l=0}^{(0)}
+    \leftarrow
+    \boldsymbol{\gamma}_i \odot \mathbf{h}_{i,l=0}^{(0)} + \boldsymbol{\beta}_i,
+    \label{eq:dpa4-film}
+\end{equation}
+with per-channel scale and shift
+\begin{equation}
+    \boldsymbol{\gamma}_i = \mathbf{1} + e^{\lambda_\alpha}\tanh\!\bigl(N_0(W_\alpha\,\mathrm{vec}\,\mathcal{D}_i)\bigr),
+    \qquad
+    \boldsymbol{\beta}_i = e^{\lambda_\beta}\tanh\!\bigl(N_0(W_\beta\,\mathrm{vec}\,\mathcal{D}_i)\bigr),
+    \label{eq:dpa4-film-gb}
+\end{equation}
+where $W_\alpha,W_\beta\in\mathbb{R}^{C\times C_{\mathrm{env}}K_{\mathrm{env}}}$
+are learnable projections, $N_0$ is a scalar RMS normaliser, and the bounded
+nonlinearities are gated by learnable log-strengths
+$\lambda_\alpha,\lambda_\beta\in\mathbb{R}$ initialised at
+$\lambda_\alpha=\lambda_\beta=\log(0.01)$, so the conditioning begins close to
+the identity ($\boldsymbol{\gamma}_i\approx\mathbf{1}$,
+$\boldsymbol{\beta}_i\approx\mathbf{0}$) and the species embedding dominates at
+the start of training. Because $\mathcal{D}_i$ is SO(3)-invariant and FiLM acts
+diagonally in the channel index, the $l=0$ slice remains a scalar.
+
+\paragraph{$l\geq 1$ slices.}
+For higher degrees no chemistry-only baseline exists: equivariant features must
+carry directional information from the start. DPA4 obtains them by projecting
+each neighbour direction onto real spherical harmonics and weighting the
+projection by a radial-species profile,
 \begin{equation}
     \mathbf{h}_{i,\iota(l,m),c}^{(0)}
     \mathrel{+}=
@@ -96,86 +189,147 @@ real spherical harmonics and modulating it by radial-species features:
     \rho_{ij,l,c},\qquad l\geq 1.
     \label{eq:dpa4-gie}
 \end{equation}
-Here $\iota(l,m)$ indexes the coefficient of degree $l$ and order $m$,
-$n_i$ is a smooth degree normalisation, $\eta_j$ is the source-freeze gate
-defined below, and $\rho_{ij,l,c}$ is a smooth radial-species profile. This
-initialisation is SO(3)-equivariant because it multiplies each degree-$l$
-spherical harmonic by a scalar invariant.
-
-DPA4 further conditions the $l=0$ slice with an Environment Initial Embedding.
-A compact invariant descriptor $\mathcal{D}_i$ is built from a smooth local
-environment matrix containing scalar and directional radial-species moments
-(Supplementary Section~\ref{sec:sm-initial-embeddings}). This descriptor
-provides an initialisation prior for the scalar backbone through feature-wise
-affine modulation,
+Here $\iota(l,m)$ indexes the coefficient of degree $l$ and order $m$, and
+$n_i$ and $\eta_j$ are the same smooth degree normalisation and source-freeze
+gate as in Eq.~\eqref{eq:dpa4-env-matrix} (Eqs.~\eqref{eq:dpa4-degree} and
+\eqref{eq:dpa4-source-freeze}). The radial-species profile $\rho_{ij,l,c}$
+mixes the per-pair chemistry into a smooth function of distance,
 \begin{equation}
-    \mathbf{h}_{i,l=0}^{(0)}
-    \leftarrow
-    \gamma(\mathcal{D}_i)\odot \mathbf{h}_{i,l=0}^{(0)}
-    +\beta(\mathcal{D}_i).
-    \label{eq:dpa4-film}
+    \rho_{ij,l,c}
+    =
+    \bigl[\Pi^{\mathrm{rad}}\!\bigl(\boldsymbol{\phi}(r_{ij})\bigr)\bigr]_{l,c}
+    + \bigl[\mathbf{T}_{\mathrm{edge}}(Z_i,Z_j)\bigr]_{c},
+    \label{eq:dpa4-rho}
 \end{equation}
-The affine map is initialised near the identity, so the species embedding remains
-the dominant signal at the beginning of training while the model learns when to
-use environment conditioning.
+where $\Pi^{\mathrm{rad}}:\mathbb{R}^{n_r}\to\mathbb{R}^{(L+1)\times C}$ is a
+bias-free SiLU MLP, $\mathbf{T}_{\mathrm{edge}}(Z_i,Z_j)\in\mathbb{R}^{C}$ is a
+per-pair species embedding broadcast across the $(L+1)$ degree slots, and
+$\boldsymbol{\phi}(r_{ij})=(\phi_1(r_{ij}),\dots,\phi_{n_r}(r_{ij}))
+\in\mathbb{R}^{n_r}$ is the sinusoidal radial basis
+\begin{equation}
+    \phi_n(r) = \frac{\sin(\omega_n r)}{r}\,s_7(r),\qquad n=1,\dots,n_r,
+    \label{eq:dpa4-radial-basis}
+\end{equation}
+with learnable frequencies initialised at $\omega_n=n\pi/r_{\mathrm{c}}$ and
+$s_7$ the cutoff envelope from Eq.~\eqref{eq:dpa4-envelope}.
 
-\subsubsection{Local-frame SO(2) convolution}
+Equation~\eqref{eq:dpa4-gie} is SO(3)-equivariant because every prefactor is
+rotation-invariant and the entire angular content is carried by the degree-$l$
+spherical harmonic $Y_l^m(\widehat{\mathbf{r}}_{ij})$, which transforms as
+$D^l(R)$ under a rotation $R$.
+
+\subsubsection{SO(2) multi-focus convolution}
 \label{sec:so2}
 
-Full SO(3)-equivariant tensor products require Clebsch--Gordan expansions whose
-cost grows steeply with angular
-order~\cite{batatia2022mace,liao2023equiformerv2}. DPA4 follows the local-frame
-strategy of reducing SO(3) convolutions to SO(2)
-operations~\cite{passaro2023reducing}: for each directed edge $(i,j)$, an
-edge-local gauge $R_{ij}$ maps the bond direction to the reference axis,
+Each interaction block applies an SO(3)-equivariant convolution
+$\mathcal{C}_{\theta}:(V_{\le L}\otimes\mathbb{R}^{C})^{N}\to(V_{\le L}\otimes
+\mathbb{R}^{C})^{N}$ that aggregates information from neighbours into a
+per-atom update. For atom $i$, the convolution takes the form
+\begin{equation}
+    \bigl(\mathcal{C}_{\theta}\mathbf{h}\bigr)_i
+    =
+    n_i \sum_{j:r_{ij}<r_{\mathrm{c}}} s_5(r_{ij})\,\eta_j\,\mathbf{m}_{ij}
+    \in V_{\le L}\otimes\mathbb{R}^{C},
+    \label{eq:dpa4-conv}
+\end{equation}
+with the same smooth degree normalisation $n_i$ and source-freeze gate $\eta_j$
+as before and $\mathbf{m}_{ij}\in V_{\le L}\otimes\mathbb{R}^{C}$ the per-edge
+equivariant message built below. The combined edge weight
+$s_5(r_{ij})\,\eta_j$ is an SO(3)-invariant scalar that multiplies every
+$(l,m)$ component uniformly, so the message-level equivariance carries through
+to $(\mathcal{C}_\theta\mathbf{h})_i$. Equation~\eqref{eq:dpa4-conv} is the
+``plain'' aggregation; a softmax-attention variant that replaces
+$s_5(r_{ij})\eta_j$ by an envelope-gated attention weight is introduced in
+Sec.~\ref{sec:attn}.
+
+\paragraph{Edge-local frame.}
+Full SO(3)-equivariant tensor products require Clebsch--Gordan expansions
+whose cost grows steeply with angular
+order~\cite{batatia2022mace,liao2023equiformerv2}. DPA4 instead reduces SO(3)
+convolutions to SO(2) by rotating each directed edge $(i,j)$ into a gauge that
+aligns its bond direction with the reference axis~\cite{passaro2023reducing},
 \begin{equation}
     R_{ij}\widehat{\mathbf{r}}_{ij}=(0,0,1)^{\top}.
+    \label{eq:dpa4-local-gauge}
 \end{equation}
-The residual symmetry in this frame is the abelian group SO(2), so angular
-orders $m$ can be processed in independent strata. DPA4 retains coefficients
-with $|m|\leq M\leq L$ inside the edge-local convolution and applies a
-degree-dependent lift factor after rotating back to compensate the norm loss
-from truncation.
+In this frame the residual symmetry is the abelian group SO(2), so angular
+orders $m$ decouple into independent strata. DPA4 retains coefficients with
+$|m|\leq M\leq L$ inside the convolution and applies a degree-dependent lift
+factor $\Xi_M$ after rotating back to compensate the norm loss from truncation.
 
-For a source feature $\mathbf{h}_j^{(b)}$ at block $b$, the edge-local tensor
-is
+\paragraph{Per-edge equivariant message.}
+For a source feature $\mathbf{h}_j$ the edge-local tensor is
 \begin{equation}
-    \mathbf{x}_{ij}=
-    P_M D(R_{ij})\,\mathbf{h}_j^{(b)},
+    \mathbf{x}_{ij}=P_M\,D(R_{ij})\,L^{\mathrm{pre}}_{\mathrm{deg}}\mathbf{h}_j
+    \in\mathbb{R}^{D_M\times H},
     \label{eq:dpa4-local-projection}
 \end{equation}
-where $D(R_{ij})$ is block diagonal in $l$ and $P_M$ selects the retained
-$m$-strata. Edge-conditioned radial degree coupling then applies a smooth kernel
-across angular degrees at fixed $|m|$:
+where $L^{\mathrm{pre}}_{\mathrm{deg}}$ is a degree-wise channel pre-mixer that
+lifts the descriptor width from $C$ to a hidden width $H=F\,C_f$ (with focus
+count $F$ and per-focus width $C_f$), $D(R_{ij})$ is block diagonal in $l$, and
+$P_M$ selects the retained $m$-strata to dimension $D_M$. Edge-conditioned
+radial degree coupling then mixes across angular degrees at fixed $|m|$ using a
+scalar kernel built from the same radial-species features $\rho_{ij,l,c}$ as
+Eq.~\eqref{eq:dpa4-rho},
 \begin{equation}
-    \mathbf{z}_{ij,l_{\mathrm{out}},m,c}
-    =
-    \sum_{l_{\mathrm{in}}\geq |m|}
-    \mathcal{K}_{ij,l_{\mathrm{out}},l_{\mathrm{in}},|m|,c}\,
-    \mathbf{x}_{ij,l_{\mathrm{in}},m,c}.
+    \mathbf{x}_{ij,l,m,c}\;\leftarrow\;
+    \sum_{l'\geq |m|}
+    \mathcal{K}_{l,l',|m|,c}(\rho_{ij})\,\mathbf{x}_{ij,l',m,c}.
     \label{eq:dpa4-radial-coupling}
 \end{equation}
-In the DPA4 configurations using radial degree coupling, the kernel is a low-rank per-channel
-function of scalar radial-species information and therefore does not introduce a
-new equivariant edge feature. It generalises diagonal radial scaling while
-preserving the local SO(2) selection rule: coefficients of different $|m|$ are
-never mixed, and the $(-m,+m)$ pair transforms as one two-dimensional real
-representation.
+Because $\mathcal{K}$ depends only on rotation-invariant radial-species
+information and never mixes different $|m|$, the $(-m,+m)$ pair continues to
+transform as a single two-dimensional real SO(2) representation.
 
-The subsequent SO(2)-equivariant linear maps are unrestricted on the $m=0$
-subspace and use the real form of complex multiplication on each $|m|>0$
-subspace. Multiple focus streams may process the same edge context in parallel;
-a scalar-keyed softmax over the invariant $l=0$ slice assigns smooth
-competition weights to these streams before the edge message is lifted back to
-the global frame. The resulting message is
+The hidden width factorises as $\mathbb{R}^{H}=\mathbb{R}^{F}\otimes
+\mathbb{R}^{C_f}$, so $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times F\times C_f}$
+splits into $F$ \emph{focus streams}. A multi-layer SO(2) stack
+$\mathcal{S}_{\Theta}$ acts in parallel on each focus,
 \begin{equation}
-    \mathbf{m}_{ij}=
-    \Xi_M D(R_{ij})^{\top}P_M^{\top}\,
-    \mathcal{S}_{\Theta}(\mathbf{z}_{ij}),
+    \mathbf{x}_{ij}\;\leftarrow\;\mathcal{S}_{\Theta}(\mathbf{x}_{ij}),
+    \label{eq:dpa4-so2-stack}
+\end{equation}
+composed of SO(2)-equivariant linear maps (unrestricted on $m=0$, the real
+form of complex multiplication on each $|m|>0$ subspace), equivariant
+RMS norms, and gated activations with zero-initialised residual scales.
+
+\paragraph{Cross-focus competition.}
+The focus streams compete through a softmax over the SO(2)-invariant $l=0$
+slice. Let $\mathbf{x}^{(0)}_{ij}\in\mathbb{R}^{F\times C_f}$ be the $(l,m)=(0,0)$
+component of $\mathbf{x}_{ij}$ at the entry of the stack
+\eqref{eq:dpa4-so2-stack}; with learnable weights
+$W^{\mathrm{cf}}\in\mathbb{R}^{C_f\times F}$, temperature $\tau>0$, and
+label-smoothing parameter $\epsilon\in[0,1)$, set
+\begin{equation}
+    \alpha_{ij,f}
+    =
+    (1-\epsilon)\,\frac{\exp\!\bigl(\tau^{-1}\sum_{c}W^{\mathrm{cf}}_{c,f}\,
+        N_0(\mathbf{x}^{(0)}_{ij})_{f,c}\bigr)}
+    {\sum_{f'}\exp\!\bigl(\tau^{-1}\sum_{c}W^{\mathrm{cf}}_{c,f'}\,
+        N_0(\mathbf{x}^{(0)}_{ij})_{f',c}\bigr)}
+    +\frac{\epsilon}{F},
+    \label{eq:dpa4-focus-compete}
+\end{equation}
+and reweight the stream features by
+$\mathbf{x}_{ij}\leftarrow\alpha_{ij}\odot\mathbf{x}_{ij}$ (with $\alpha_{ij}$
+broadcast across the $(l,m)$ and $c$ axes). Equivariance is preserved because
+$\alpha_{ij,f}$ is constructed from an SO(2)-invariant $l=0$ slice.
+
+\paragraph{Lift back to the global frame.}
+The equivariant edge message is recovered by inverting the local gauge,
+\begin{equation}
+    \mathbf{m}_{ij}
+    =
+    L^{\mathrm{post}}_{\mathrm{deg}}\bigl[\,
+    \Xi_M\,D(R_{ij})^{\top}P_M^{\top}\,\mathbf{x}_{ij}\,\bigr]
+    \in V_{\le L}\otimes\mathbb{R}^{C},
     \label{eq:dpa4-edge-message}
 \end{equation}
-where $\mathcal{S}_{\Theta}$ denotes the multi-layer SO(2) stack and
-$\Xi_M$ is the degree-wise truncation compensation.
+where $L^{\mathrm{post}}_{\mathrm{deg}}$ is a degree-wise channel post-mixer
+that projects $H$ back down to $C$. The post-mixer is zero-initialised so
+$\mathcal{C}_{\theta}\equiv 0$ at the start of training; substituting
+$\mathbf{m}_{ij}$ into Eq.~\eqref{eq:dpa4-conv} closes the definition of the
+multi-focus convolution.
 
 \subsubsection{Envelope-gated softmax attention}
 \label{sec:attn}
