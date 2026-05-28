@@ -83,7 +83,7 @@ representation blocks are not flattened into one unrelated matrix.
 
 \begin{table}
     \centering
-    \caption{Results on the Matbench Discovery leaderboard, with all compliant models accessed before May 25, 2026.}
+    \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.}
     \label{tab:matbench}
 
     \resizebox{\linewidth}{!}{
@@ -91,12 +91,12 @@ representation blocks are not flattened into one unrelated matrix.
             \toprule
             \textbf{Model}       & \textbf{CPS}$\uparrow$ & \textbf{Acc}$\uparrow$ & \textbf{F1}$\uparrow$ & \textbf{DAF}$\uparrow$ & \textbf{Prec}$\uparrow$ & \textbf{MAE}$\downarrow$ & \textbf{R2}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$ & \textbf{RMSD}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{Targets} \\
             \midrule
-            DPA4-Pro             & 0.831                  & 0.955                  & 0.856                 & 5.607                  & 0.857                   & 0.030                    & 0.833                 & 0.256                             & 0.069                     & 20.91M                      & EFSG             \\
-            DPA4-Plus            & 0.822                  & 0.954                  & 0.851                 & 5.583                  & 0.854                   & 0.031                    & 0.748                 & 0.276                             & 0.072                     & 5.40M                       & EFSG             \\
+            DPA4-Pro             & \textbf{0.831}         & \underline{0.955}      & \underline{0.856}     & \textbf{5.607}         & \textbf{0.857}          & \underline{0.030}        & \underline{0.833}     & \textbf{0.256}                    & \textbf{0.069}            & 20.91M                      & EFSG             \\
+            DPA4-Plus            & 0.822                  & 0.954                  & 0.851                 & \underline{5.583}      & \underline{0.854}       & 0.031                    & 0.748                 & 0.276                             & 0.072                     & 5.40M                       & EFSG             \\
             DPA4-Air             & 0.804                  & 0.946                  & 0.828                 & 5.303                  & 0.811                   & 0.035                    & 0.743                 & 0.302                             & 0.075                     & 2.76M                       & EFSG             \\
             DPA4-Neo             & 0.781                  & 0.941                  & 0.815                 & 5.189                  & 0.793                   & 0.036                    & 0.805                 & 0.367                             & 0.079                     & 1.60M                       & EFSG             \\
             \midrule
-            EquiformerV3+DeNS-MP & 0.830                  & 0.956                  & 0.863                 & 5.479                  & 0.838                   & 0.029                    & 0.840                 & 0.275                             & 0.070                     & 30.3M                       & EFSG             \\
+            EquiformerV3+DeNS-MP & \underline{0.830}      & \textbf{0.956}         & \textbf{0.863}        & 5.479                  & 0.838                   & \textbf{0.029}           & \textbf{0.840}        & \underline{0.275}                 & \underline{0.070}         & 30.3M                       & EFSG             \\
             eSEN-30M-MP          & 0.797                  & 0.946                  & 0.831                 & 5.260                  & 0.804                   & 0.033                    & 0.822                 & 0.340                             & 0.075                     & 30.1M                       & EFSG             \\
             MatRIS-10M-MP        & 0.778                  & 0.951                  & 0.847                 & 5.422                  & 0.829                   & 0.031                    & 0.824                 & 0.489                             & 0.072                     & 10.4M                       & EFSGM            \\
             Eqnorm MPtrj         & 0.756                  & 0.929                  & 0.786                 & 4.844                  & 0.741                   & 0.040                    & 0.799                 & 0.408                             & 0.084                     & 1.31M                       & EFSG             \\
@@ -116,59 +116,96 @@ representation blocks are not flattened into one unrelated matrix.
             \bottomrule
         \end{tabular}%
     }
+    \smallskip
+    \begin{minipage}{\linewidth}
+        \scriptsize Leaderboard entries include all compliant models accessed before
+        May 25, 2026. Boldface and underlining denote the best and second-best
+        values for each ranked evaluation metric, respectively.
+    \end{minipage}
 \end{table}
 
 Matbench Discovery evaluates the ability of machine-learning interatomic
-potentials to support high-throughput inorganic-crystal discovery. Following
-the compliant leaderboard protocol, models trained on MPtrj are used to relax
-WBM candidate structures and predict their formation energies; these predictions
-are converted into convex-hull distances and assessed by classification,
-regression and structural-relaxation metrics. Table~\ref{tab:matbench} compares
-DPA4 with representative compliant models under this protocol.
+potentials to support high-throughput inorganic-crystal
+discovery~\cite{riebesell2025matbench}. Following the compliant leaderboard
+protocol, models trained on MPtrj~\cite{deng2023chgnet} are used to relax WBM
+candidate structures~\cite{WBM} and predict their formation energies; these
+predictions are converted into convex-hull distances and assessed by
+classification, regression and structural-relaxation
+metrics~\cite{riebesell2025matbench}. Table~\ref{tab:matbench} compares DPA4
+with representative compliant models under this protocol.
 
-The largest evaluated model, DPA4-Pro, establishes a new state-of-the-art point
-on this benchmark, reaching a CPS of 0.831, an F1 score of 0.856 and a
-$\kappa$SRME of 0.256 with 20.91M parameters. The compact DPA4 variants occupy a
-strong accuracy--efficiency regime. DPA4-Plus reaches a CPS of 0.822 with only
-5.40M parameters, approaching the EquiformerV3+DeNS-MP score while using a much
-smaller model. DPA4-Air reaches a CPS of 0.804, exceeding eSEN-30M-MP while
-using 2.76M rather than 30.1M parameters. Its WBM energy MAE is 0.035~eV/atom,
+The DPA4 family forms a compact accuracy--efficiency frontier on this
+benchmark. DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}
+(0.831), with an F1 score of 0.856 and a $\kappa$SRME of 0.256, using 20.91M
+parameters. Its CPS is slightly above that of
+EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} while using 31\%
+fewer parameters. This comparison is conservative with respect to
+accuracy-enhancing supervision. DeNS improves energy--force prediction by
+corrupting non-equilibrium structures and conditioning the denoising target on
+the original forces~\cite{liao2024dens}; EquiformerV3+DeNS-MP further combines
+this auxiliary task with direct-force pretraining before gradient
+fine-tuning~\cite{liao2026equiformerv3}. DPA4-Pro is trained without DeNS or a
+direct-force stage, using a single training run without subsequent fine-tuning,
+yet exceeds this DeNS-assisted baseline; forces are obtained throughout as
+gradients of a scalar energy. The result therefore points to an architectural
+accuracy gain rather than to an auxiliary denoising objective.
+
+The smaller DPA4 variants show that this advantage is not confined to the
+largest model. DPA4-Plus reaches a CPS of 0.822 with only 5.40M parameters,
+using 82\% fewer parameters than the DeNS-assisted EquiformerV3 baseline while
+remaining close to its CPS. DPA4-Air reaches a CPS of 0.804, exceeding
+eSEN-30M-MP~\cite{fu2025esen} while using 2.76M rather than 30.1M parameters, a
+10.9$\times$ reduction in model size. Its WBM energy MAE is 0.035~eV/atom,
 close to eSEN-30M-MP, and its $\kappa$SRME is lower (0.302 versus 0.340),
 indicating that the gain is not obtained by sacrificing relaxation quality. The
-smaller DPA4-Neo model, with only 1.60M parameters, still reaches a CPS of
-0.781, comparable to MatRIS-10M-MP and above most published compliant baselines.
-These results show that the local-frame SO(2) architecture can deliver
-state-of-the-art crystal-discovery accuracy while also scaling down to
-substantially smaller models.
+smallest model, DPA4-Neo, contains only 1.60M parameters but still reaches a
+CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris} and above most
+published compliant baselines.
+
+The progression from DPA4-Air to DPA4-Plus and DPA4-Pro indicates diminishing
+returns from increasing model capacity within the MPtrj-only compliant setting.
+MPtrj is a large but fixed subset of Materials Project relaxation and static
+calculations~\cite{deng2023chgnet}, whereas WBM deliberately probes chemically
+substituted structures that become increasingly out-of-distribution relative to
+Materials Project-derived training data~\cite{riebesell2025matbench,WBM}. The
+remaining error at the top of the leaderboard is therefore likely influenced
+not only by model capacity, but also by the coverage and label protocol of the
+available training set. Within this constraint, the DPA4 series achieves the
+leading accuracy while retaining a substantially smaller parameter budget than
+the strongest DeNS-assisted equivariant baselines.
 
 \subsection{Small-molecule benchmarks}
 \label{sec:small_mol}
 
-We next evaluate DPA4 on SPICE-MACE-OFF, the organic-molecule benchmark used by
-MACE-OFF. The benchmark contains PubChem molecules, DES370K monomers and
-dimers, dipeptides, solvated amino acids, water clusters and QMugs-derived
-larger molecules, with reference energies and forces computed at the
-$\omega$B97M-D3(BJ)/def2-TZVPPD level. We keep the train/validation/test split
-used in the MACE-OFF and DPA3 comparisons and report per-subset energy and
-force MAEs together with a logarithmic weighted average MAE (LWAMAE), which
-summarizes performance across chemically heterogeneous subsets without allowing
-one high-error subset to dominate the aggregate score.
+DPA4 was next evaluated on SPICE-MACE-OFF, the organic-molecule benchmark used
+by MACE-OFF~\cite{kovacs2023mace}. The benchmark spans PubChem molecules,
+DES370K~\cite{donchev2021des370k} monomers and dimers, dipeptides, solvated
+amino acids, water clusters and larger QMugs-derived
+molecules~\cite{eastman2023spice,isert2022qmugs}. Reference energies and forces
+were computed at the $\omega$B97M-D3(BJ)/def2-TZVPPD
+level~\cite{eastman2023spice,kovacs2023mace}. We use the same
+train/validation/test split as the MACE-OFF and DPA3
+comparisons~\cite{kovacs2023mace,zhang2025dpa3} and report per-subset energy
+and force MAEs. We also report a logarithmic weighted average MAE (LWAMAE),
+which summarizes performance across chemically heterogeneous subsets without
+allowing a single high-error subset to dominate the aggregate score.
 
 \begin{table}
     \scriptsize
-    \caption{Test MAE on SPICE-MACE-OFF dataset. Energy (E) MAE is in meV/atom and force (F) MAE is in meV/\AA.}
-    \label{table:spice}
     \centering
+    \setlength{\tabcolsep}{3pt}
+    \caption{SPICE-MACE-OFF small-molecule benchmark performance.}
+    \label{table:spice}
     \begin{threeparttable}
         \begin{spacing}{1.15}
             \begin{tabular}{l
-                    | R{0.55cm}R{0.55cm}  % MACE(M)
-                    | R{0.55cm}R{0.55cm}  % MACE(L)
-                    | R{0.55cm}R{0.55cm}  % eSEN (3.2M)
-                    | R{0.55cm}R{0.55cm}  % eSEN (6.5M)
-                    | R{0.55cm}R{0.55cm}  % DPA3-L24
-                    | R{0.55cm}R{0.55cm}  % DPA4: Air
-                    | R{0.55cm}R{0.55cm}  % DPA4: Plus
+                    | R{0.62cm}R{0.62cm}  % MACE(M)
+                    | R{0.62cm}R{0.62cm}  % MACE(L)
+                    | R{0.62cm}R{0.62cm}  % eSEN (3.2M)
+                    | R{0.62cm}R{0.62cm}  % eSEN (6.5M)
+                    | R{0.62cm}R{0.62cm}  % DPA3-L24
+                    | R{0.62cm}R{0.62cm}  % DPA4: Air
+                    | R{0.62cm}R{0.62cm}  % DPA4: Plus
                 }
                 \toprule
                                    & \multicolumn{2}{c|}{MACE(M)} & \multicolumn{2}{c|}{MACE(L)} & \multicolumn{2}{c|}{eSEN}  & \multicolumn{2}{c|}{eSEN}  & \multicolumn{2}{c|}{DPA3-L24} & \multicolumn{2}{c|}{DPA4: Air} & \multicolumn{2}{c}{DPA4: Plus}                                                                                                                          \\\hline
@@ -185,87 +222,101 @@ one high-error subset to dominate the aggregate score.
                 \toprule
             \end{tabular}
             \begin{tablenotes}
-                \item[a] \footnotesize The Logarithmic Weighted Average MAE is the exponential of the unweighted mean of logarithmic subset MAEs.
+                \item[] Reported values are test-set MAEs on the
+                SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy (E) MAEs are in
+                meV/atom and force (F) MAEs are in meV/\AA. Boldface and underlining
+                denote the best and second-best values for each dataset--target pair,
+                respectively.
+                \item[a] LWAMAE denotes the exponential of the unweighted mean of logarithmic subset
+                MAEs.
             \end{tablenotes}
         \end{spacing}
     \end{threeparttable}
 \end{table}
 
-Table~\ref{table:spice} shows that DPA4 improves the molecular benchmark
-accuracy consistently across all subsets. DPA4-Plus gives the lowest energy and
-force MAEs in every subset and reduces the aggregate LWAMAE to
-0.09~meV/atom for energies and 1.77~meV/\AA{} for forces. Relative to the
-6.5M-parameter eSEN baseline, this corresponds to approximately 36\% lower
-energy LWAMAE and 31\% lower force LWAMAE with a smaller 5.3M-parameter model.
-Relative to DPA3-L24, the reductions are approximately 59\% and 69\%,
-respectively, indicating that the gain is not limited to inorganic crystals.
+Table~\ref{table:spice} shows that DPA4 improves molecular accuracy across all
+subsets. DPA4-Plus gives the lowest energy and force MAEs in every subset and
+reduces the aggregate LWAMAE to 0.09~meV/atom for energies and 1.77~meV/\AA{}
+for forces. Relative to the 6.5M-parameter eSEN baseline~\cite{fu2025esen},
+this corresponds to approximately 36\% lower energy LWAMAE and 31\% lower force
+LWAMAE with a smaller 5.3M-parameter model. Relative to
+DPA3-L24~\cite{zhang2025dpa3}, the reductions are approximately 59\% and 69\%,
+respectively.
 
-The smaller DPA4-Air model also performs competitively. With 2.7M parameters, it
-already improves upon the 6.5M-parameter eSEN model in aggregate energy and
+The smaller DPA4-Air model also performs competitively. With 2.7M parameters,
+it already improves on the 6.5M-parameter eSEN model in aggregate energy and
 force LWAMAEs and is second-best in most subset-level comparisons. The
 improvement is especially pronounced for water, solvated amino acids and QMugs,
 where DPA4-Air substantially lowers the energy error relative to DPA3-L24 while
-remaining close to the larger DPA4-Plus model. Together, the two DPA4 sizes show
-that the SO(2) attention architecture transfers from inorganic crystals to
-organic molecules and offers a favourable accuracy--parameter trade-off across
-chemically diverse data.
+remaining close to the larger DPA4-Plus model. Together, the two DPA4 sizes
+show that DPA4 remains highly parameter- and data-efficient across both
+inorganic crystals and chemically diverse molecular data.
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\textwidth]{fig/ase_infer.png}
+    \includegraphics[width=\textwidth]{fig/lmp-inorganic_500.png}
     \caption{
-        ASE inference throughput on the LAMBench \texttt{inorganic\_500}
+        LAMMPS inference throughput on the LAMBench \texttt{inorganic\_500}
         test~\cite{peng2025lambench}.
-        Each benchmark point evaluates energy, forces and stress through the ASE
-        calculator interface after warm-up, using periodic repetitions of the
-        same inorganic seed structure to reach the target atom count.
-        Higher throughput indicates faster end-to-end inference.
+        Each point reports molecular-dynamics throughput for periodic
+        repetitions of the same inorganic seed structure, evaluated with the
+        LAMMPS--DeePMD-kit interface~\cite{thompson2022lammps,zeng2025deepmdv3}
+        after warm-up on an NVIDIA H20 GPU.
+        The four panels show complementary speed and cost measures; higher
+        rates and lower time-per-ns or time-per-step values indicate faster
+        simulation.
     }
-    \label{fig:ase_infer}
+    \label{fig:lmp_inorganic_infer}
 \end{figure}
 
-We measured deployment-oriented inference speed through the same ASE calculator
-interface~\cite{ase-paper} used by LAMBench~\cite{peng2025lambench}. The
-\texttt{inorganic\_500} test isolates system-size scaling by periodically
-repeating one inorganic structure to different target atom counts and timing
-single-point energy--force--stress evaluations after warm-up. This setting is
-therefore complementary to the training-time ablations: it includes calculator
-overhead, neighbour-list construction and conservative force evaluation, rather
-than timing only individual neural-network kernels.
+The training efficiency of DPA4 is quantified by the CPS--training-cost
+comparison in Fig.~\ref{fig:cps}, using the Matbench Discovery CPS
+metric~\cite{riebesell2025matbench}. DPA4-Air reaches a CPS of 0.804 using 7.8
+A100 GPU-days, compared with 0.797 using 335 A100 GPU-days for
+eSEN-30M-MP~\cite{fu2025esen}; this corresponds to a 43$\times$ lower training
+cost with a slightly higher score. DPA4-Plus raises the CPS to 0.822 at 41 A100
+GPU-days, an 8.2$\times$ lower cost than eSEN-30M-MP, and DPA4-Pro reaches a
+CPS of 0.831 at 106.6 A100 GPU-days, slightly above EquiformerV3+DeNS-MP
+(0.830)~\cite{liao2026equiformerv3} at a 1.5$\times$ lower cost. These
+comparisons are conservative with respect to the training protocol: the
+high-CPS dashed-outline baselines in Fig.~\ref{fig:cps} use additional training
+strategies such as DeNS~\cite{liao2024dens} or direct-force
+pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants
+are trained throughout with conservative forces obtained as gradients of a
+scalar energy. Incorporating analogous DeNS-style pretraining may further
+reduce the DPA4 training cost or increase the CPS, but is not used in the
+results reported here. The conservative training path is made practical by the
+compiled implementation: in controlled ablations,
+\texttt{torch.compile}~\cite{ansel2024pytorch2} together with bf16 automatic
+mixed precision provides a 3.1$\times$ wall-clock training speedup and reduces
+peak training memory to about 40\% of the FP32 baseline
+(Table~\ref{tab:dpa4_compile_ablation}).
 
-All measurements were performed on a single NVIDIA H20 GPU. DPA4 used compiled
-inference with Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy
-2.4.4. The MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning}
-used MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128, and
-EquiformerV3~\cite{liao2026equiformerv3} used the \texttt{atomicarchitects/equiformer\_v3}
-implementation at commit \texttt{a7300c5} with Python 3.11.15 and PyTorch
-2.8.0+cu128; both baseline environments used ASE 3.28.0 and NumPy 2.4.4.
+Deployment-oriented inference was evaluated through the LAMMPS--DeePMD-kit
+interface, which is the relevant path for production molecular dynamics. The
+primary comparison uses the LAMBench \texttt{inorganic\_500} system-size sweep
+and therefore includes neighbour-list construction, force evaluation and
+simulation driver overhead, rather than timing isolated neural-network kernels.
+The LAMMPS benchmarks were run with Kokkos acceleration~\cite{trott2022kokkos}
+on a single NVIDIA H20 GPU; full software details and additional ASE/LAMMPS
+measurements are given in Supplementary
+Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
 
-Figure~\ref{fig:ase_infer} shows that the compact DPA4 variants occupy the
-high-throughput regime of this ASE benchmark. DPA4-Neo reaches more than
-20~atoms/ms near $10^3$ atoms and remains competitive up to the largest tested
-systems, where MACE-OMAT-0-small becomes comparable. Around $10^3$ atoms,
-DPA4-Neo is approximately five to six times faster than DPA3-L24~\cite{zhang2025dpa3} and more than
-an order of magnitude faster than EquiformerV3 in the same end-to-end ASE path.
-DPA4-Air maintains about 10--13~atoms/ms over the mid-to-large system range,
-matching or exceeding the medium and multi-head MACE baselines while retaining
-the stronger Matbench Discovery accuracy reported above. The much larger
-DPA4-Pro model is slower and is evaluated only at smaller atom counts in this
-test, consistent with its role as a high-accuracy model rather than a
-throughput-optimized deployment variant.
-
-At the largest atom counts, however, all DPA4 curves turn downward. This trend
-reflects the current DeePMD-kit native ASE inference path~\cite{zeng2025deepmdv3}
-rather than the SO(2) network computation alone: neighbour lists are constructed
-on the GPU, and this step becomes increasingly expensive in both runtime and
-memory as the repeated periodic system grows. The resulting memory pressure also
-reduces the largest system size that can be evaluated by the DPA4 calculators in
-this benchmark. Thus the right-hand side of Fig.~\ref{fig:ase_infer} should be
-interpreted as end-to-end deployment throughput under the present neighbour-list
-implementation, not as a pure limit of the compiled DPA4 forward pass.
+Figure~\ref{fig:lmp_inorganic_infer} shows that compact DPA4 models preserve
+high molecular-dynamics throughput while using the same equivariant
+architecture that gives the Matbench Discovery gains above. As expected, the
+scalar DPA1-L0 baseline~\cite{zhang2018deep} remains the fastest model, but it
+represents a substantially less expressive accuracy regime. Among the more
+accurate neural potentials, DPA4-Neo and DPA4-Air maintain favourable atom-step
+throughput up to $10^4$ atoms. At the largest systems, DPA4-Neo delivers
+roughly twice the atom-step throughput of MACE-S and several times that of
+MACE-M~\cite{batatia2022mace,barroso2024open}, while DPA4-Air retains a smaller
+but consistent advantage over the MACE baselines. Thus the compact DPA4
+variants are not only cheaper to train; they also provide a practical inference
+regime for large inorganic simulations.
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
@@ -285,30 +336,30 @@ implementation, not as a pure limit of the compiled DPA4 forward pass.
     \label{fig:zbl}
 \end{figure}
 
-We next test the short-range branch on a C--Si dimer scan derived from a
-3C-SiC data set computed with ABACUS. This one-dimensional probe is deliberately
-more severe than ordinary validation structures: it forces the model into the
+We next test the short-range branch on a C--Si dimer scan derived from a 3C-SiC
+data set computed with ABACUS. This one-dimensional probe is deliberately more
+severe than ordinary validation structures: it forces the model into the
 sub-\AA{} regime in which first-principles training labels are sparse and the
-repulsive screened Coulomb interaction should dominate. The comparison includes a
-five-layer DPA3 model trained with the DeePMD pair-ZBL strategy, which smoothly
-interpolates a Deep Potential model with an empirical pair potential for close
-contacts~\cite{wang2019dpzbl}, and the DPA4 model with the native ZBL branch
-enabled.
+repulsive screened Coulomb interaction should dominate. The comparison includes
+a five-layer DPA3 model trained with the DeePMD pair-ZBL strategy, which
+smoothly interpolates a Deep Potential model with an empirical pair potential
+for close contacts~\cite{wang2019dpzbl}, and the DPA4 model with the native ZBL
+branch enabled.
 
 Figure~\ref{fig:zbl} shows that both learned models give a smooth attractive
 dimer energy over most of the scanned range, but the force curve exposes the
-difference between external pair coupling and native scalar-energy coupling. The
-DPA3 Pair ZBL baseline develops a sharp force excursion near the switching
-region, producing a local attractive impulse even though the analytical ZBL force
-is strongly repulsive at these separations. In contrast, DPA4 follows the
-analytical ZBL force in the inner region and joins smoothly to the learned force
-as the C--Si distance increases. This behaviour is the empirical counterpart of
-the construction in Section~\ref{sec:zbl_method}: the analytical ZBL branch reads
-the true distance, the learned branch reads a $C^3$ clamped displacement, and the
-source-freeze gate removes the direct learned short-range pair channel. As a
-result, short-range repulsion is supplied by the analytical branch before the
-total scalar energy is differentiated, avoiding the force-level switching
-artifact observed for the pair-ZBL baseline.
+difference between external pair coupling and native scalar-energy coupling.
+The DPA3 Pair ZBL baseline develops a sharp force excursion near the switching
+region, producing a local attractive impulse even though the analytical ZBL
+force is strongly repulsive at these separations. In contrast, DPA4 follows the
+analytical ZBL force in the inner region and joins smoothly to the learned
+force as the C--Si distance increases. This behaviour is the empirical
+counterpart of the construction in Section~\ref{sec:zbl_method}: the analytical
+ZBL branch reads the true distance, the learned branch reads a $C^3$ clamped
+displacement, and the source-freeze gate removes the direct learned short-range
+pair channel. As a result, short-range repulsion is supplied by the analytical
+branch before the total scalar energy is differentiated, avoiding the
+force-level switching artifact observed for the pair-ZBL baseline.
 
 \input{chap/results_ablation}
 

@@ -55,7 +55,7 @@ specified.
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of \texttt{torch.compile} and training precision.\tnote{a}}
+        \caption{Ablation of graph compilation and training precision.\tnote{a}}
         \label{tab:dpa4_compile_ablation}
         \begin{tabular}{@{}ccccccc@{}}
             \toprule
@@ -157,7 +157,7 @@ before the rotate-back step.
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of feature width and focus count in SO(2) convolution.\tnote{a}}
+        \caption{Ablation of SO(2) feature width and focus count.\tnote{a}}
         \label{tab:dpa4_focus_ablation}
         \begin{tabular}{@{}cccccccc@{}}
             \toprule
@@ -221,7 +221,7 @@ coupling.
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of radial degree coupling for edge-feature modulation.\tnote{a}}
+        \caption{Ablation of radial coupling in SO(2) edge-feature modulation.\tnote{a}}
         \label{tab:dpa4_radial_degree_ablation}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
@@ -306,8 +306,9 @@ nonlinearities are used in equivariant branches.
 Additional controlled studies are provided in the Supplementary Information to
 document model selection and robustness analyses beyond the main mechanisms
 tested above. These include model-depth scaling over the number of interaction
-blocks and SO(2) layers per block, attention-aggregation design variants,
-normalization-placement variants, and the learning-rate scheduler comparison.
+blocks, SO(2) layers per block, and FFN layers per block, attention-aggregation
+design variants, normalization-placement variants, and the learning-rate
+scheduler comparison.
 These results support reproducibility and hyperparameter selection, whereas the
 main text focuses on ablations that directly test the principal architectural
 and implementation choices of DPA4.
