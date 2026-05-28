@@ -24,7 +24,7 @@ After the interaction blocks, the invariant $l=0$ features are passed to the ato
 Beyond the message-passing architecture, two design choices improve practical training efficiency and short-range robustness.
 First, the conservative force path is implemented in a compiler-friendly form compatible with \texttt{torch.compile}, as detailed in Section~\ref{sec:methods}.
 Second, DPA4 includes a native ZBL branch through a smooth Zone Bridging mechanism for close contacts; see Section~\ref{sec:zbl_method}.
-The training recipe uses a WSD schedule~\cite{wen2024wsd} and the HybridMuon optimiser: Muon updates are applied to matrix-valued hidden transformations~\cite{jordan2024muon,liu2025muon}, while scalar, normalisation and auxiliary parameters use Adam-family updates~\cite{kingma2014adam}.
+The optimisation procedure uses a WSD learning-rate schedule~\cite{wen2024wsd} and the HybridMuon optimiser: Muon updates are applied to matrix-valued hidden transformations~\cite{jordan2024muon,liu2025muon}, while scalar, normalisation and auxiliary parameters use Adam-family updates~\cite{kingma2014adam}.
 Further optimisation details are given in Supplementary Sections~\ref{sec:sm-wsd-schedule}--\ref{sec:sm-hybrid-muon}.
 
 \begin{figure}[t]
