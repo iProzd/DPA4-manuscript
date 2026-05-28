@@ -29,16 +29,13 @@ $R=\{\mathbf{R}_i\}_{i=1}^{N}$. DPA4 represents the potential energy as the sum
 of a learned equivariant message-passing branch and an analytical
 Ziegler--Biersack--Littmark (ZBL) short-range branch:
 \begin{equation}
-    E(Z,R)=E_{\Theta}^{\mathrm{NN}}\bigl(Z,R;\{\widetilde{\mathbf{r}}_{ij}\}\bigr)
-    + E^{\mathrm{ZBL}}\bigl(Z,R;\{r_{ij}\}\bigr),
+    E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R) + E^{\mathrm{ZBL}}(Z,R),
     \label{eq:dpa4-total-energy}
 \end{equation}
-where $r_{ij}=|\mathbf{R}_j-\mathbf{R}_i|$ is the true interatomic distance and
-$\widetilde{\mathbf{r}}_{ij}$ is the clamped displacement consumed by the
-learned branch inside the Native ZBL Zone Bridging window. Forces and virials are
-obtained by differentiating the scalar energy in Eq.~\eqref{eq:dpa4-total-energy}
-with respect to atomic positions and the cell, so the neural and analytical
-branches define one conservative potential.
+where $r_{ij}=|\mathbf{R}_j-\mathbf{R}_i|$ denotes the interatomic distance.
+Forces and virials are obtained by differentiating the scalar energy in
+Eq.~\eqref{eq:dpa4-total-energy} with respect to atomic positions and the
+cell, so the neural and analytical branches define one conservative potential.
 
 DPA4 carries node features in the real irreducible representation space
 $V_{\leq L}\otimes\mathbb{R}^{C}$, where $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$
@@ -54,6 +51,36 @@ activation in the feed-forward branch and Native ZBL Zone Bridging for
 short-range repulsion. Geometry-dependent quantities, including radial basis
 functions, cutoff envelopes, local gauges and bridging gates, are constructed
 once per neighbour graph and reused across blocks.
+
+\subsubsection{Geometric inputs to the learned branch}
+\label{sec:geom-inputs}
+
+Throughout Section~\ref{sec:methods}, every geometric quantity entering the
+learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff
+envelopes, real spherical harmonics $Y_l^m(\widehat{\mathbf{r}}_{ij})$, the
+per-edge local-frame rotation $\mathbf{D}_{ij}$, and the local-environment
+descriptor $\mathcal{D}_i$ -- is evaluated on the \emph{clamped distance}
+$\widetilde{r}(r_{ij})$ in place of the raw $r_{ij}$. The unit direction
+$\widehat{\mathbf{r}}_{ij}=\mathbf{r}_{ij}/r_{ij}$ is preserved exactly,
+because the clamp acts purely on the radial magnitude. With this convention
+the symbol $r_{ij}$ in every downstream equation should be read as
+$\widetilde{r}(r_{ij})$ whenever it feeds the learned branch.
+
+The map $\widetilde{r}:\mathbb{R}_{\geq 0}\to\mathbb{R}_{\geq 0}$ is a $C^3$
+piecewise function on a bridging window $[r_{\mathrm{in}},r_{\mathrm{out}}]$:
+$\widetilde{r}(r)=r_{\mathrm{in}}$ for $r\leq r_{\mathrm{in}}$,
+$\widetilde{r}(r)=r$ for $r\geq r_{\mathrm{out}}$, and a septic Hermite
+interpolant connects the two on the window. The formal definition together
+with the companion source-freeze gate is given in
+Section~\ref{sec:zbl_method}.
+
+Two consequences are used implicitly in the rest of Section~\ref{sec:methods}.
+First, on the inner zone $r_{ij}\leq r_{\mathrm{in}}$ every NN-side geometric
+quantity is constant in $r_{ij}$, so the learned branch contributes zero
+gradient there and the short-range repulsion is handled exclusively by
+$E^{\mathrm{ZBL}}$. Second, outside the bridging window
+($r_{ij}\geq r_{\mathrm{out}}$) the clamp is the identity, so the learned
+branch sees the true geometry.
 
 \subsubsection{Initial equivariant representation}
 \label{sec:initial-representation}
