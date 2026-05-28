@@ -216,41 +216,22 @@ Thus, the compact DPA4 variants reduce both training cost and deployment cost fo
     \centering
     \includegraphics[width=0.9\textwidth]{fig/dimer_c_si.pdf}
     \caption{
-        Short-range C--Si dimer response for models trained on an
-        ABACUS-computed 3C-SiC data set~\cite{li2016abacus}.
-        The DPA3 baseline is a five-layer DPA3 model trained with the
-        DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas
-        DPA4 uses the Native ZBL Zone Bridging branch described in
-        Section~\ref{sec:zbl_method}. The analytical curve is the
-        ZBL screened Coulomb potential~\cite{ziegler1985}.
+        Short-range C--Si dimer response for models trained on an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+        The DPA3 baseline uses the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas DPA4 uses the Native ZBL Zone Bridging branch described in Section~\ref{sec:zbl_method}.
+        The analytical reference is the ZBL screened Coulomb potential~\cite{ziegler1985}.
     }
     \label{fig:zbl}
 \end{figure}
 
-We next test the short-range branch on a C--Si dimer scan derived from a 3C-SiC
-data set computed with ABACUS. This one-dimensional probe is deliberately more
-severe than ordinary validation structures: it forces the model into the
-sub-\AA{} regime in which first-principles training labels are sparse and the
-repulsive screened Coulomb interaction should dominate. The comparison includes
-a five-layer DPA3 model trained with the DeePMD pair-ZBL strategy, which
-smoothly interpolates a Deep Potential model with an empirical pair potential
-for close contacts~\cite{wang2019dpzbl}, and the DPA4 model with the native ZBL
-branch enabled.
+We test the short-range branch on a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+This one-dimensional probe drives the model into the sub-\AA{} regime, where ordinary DFT training data are sparse and the repulsive screened Coulomb interaction should dominate.
+The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging enabled.
 
-Figure~\ref{fig:zbl} shows that both learned models give a smooth attractive
-dimer energy over most of the scanned range, but the force curve exposes the
-difference between external pair coupling and native scalar-energy coupling.
-The DPA3 Pair ZBL baseline develops a sharp force excursion near the switching
-region, producing a local attractive impulse even though the analytical ZBL
-force is strongly repulsive at these separations. In contrast, DPA4 follows the
-analytical ZBL force in the inner region and joins smoothly to the learned
-force as the C--Si distance increases. This behaviour is the empirical
-counterpart of the construction in Section~\ref{sec:zbl_method}: the analytical
-ZBL branch reads the true distance, the learned branch reads a $C^3$ clamped
-displacement, and the source-freeze gate removes the direct learned short-range
-pair channel. As a result, short-range repulsion is supplied by the analytical
-branch before the total scalar energy is differentiated, avoiding the
-force-level switching artifact observed for the pair-ZBL baseline.
+Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of the scan, but the force response separates the two short-range treatments.
+The DPA3 DP-ZBL baseline develops a sharp force excursion near the switching region, producing a local attractive impulse where the analytical ZBL force~\cite{ziegler1985} is strongly repulsive.
+DPA4 instead follows the analytical ZBL force in the inner region and joins smoothly to the learned force as the C--Si distance increases.
+This behaviour is consistent with Section~\ref{sec:zbl_method}: the analytical branch reads the true distance, the learned branch reads a $C^3$ clamped displacement, and the source-freeze gate suppresses the direct learned short-range pair channel.
+Native ZBL Zone Bridging therefore supplies the close-contact repulsion before differentiating the total scalar energy, avoiding the force-level switching artifact observed for the external pair correction.
 
 \input{chap/results_ablation}
 
