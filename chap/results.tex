@@ -93,18 +93,18 @@ Non-compliant leaderboard entries may additionally involve different training da
 
 Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} shows the corresponding accuracy--efficiency frontier in terms of CPS versus training cost.
 DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.833 with an F1 score of 0.859, a $\kappa$SRME of 0.255 and 20.91M parameters.
-Its CPS is slightly higher than EquiformerV3+DeNS-MP (0.833 versus 0.830) while using 31\% fewer parameters (20.91M versus 30.3M)~\cite{liao2026equiformerv3,liao2024dens}.
+Its CPS is slightly higher than EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} (0.833 versus 0.830) while using 31\% fewer parameters (20.91M versus 30.3M).
 As shown in Fig.~\ref{fig:cps}, DPA4-Pro also reaches this accuracy with a lower A100-equivalent training cost than EquiformerV3+DeNS-MP.
 
 This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked by dashed marker outlines in Fig.~\ref{fig:cps}.
-DeNS has been shown to improve equivariant force fields by denoising non-equilibrium structures~\cite{liao2024dens}, and EquiformerV3+DeNS-MP further combines this strategy with direct-force pretraining~\cite{liao2026equiformerv3}.
+DeNS~\cite{liao2024dens} has been shown to improve equivariant force fields by denoising non-equilibrium structures, and EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3} further combines this strategy with direct-force pretraining.
 DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
 This result suggests that the DPA4 architecture itself contributes to the improved accuracy rather than relying on an auxiliary denoising or direct-force objective.
 
 The smaller DPA4 variants show that the same architecture remains effective in a lower-cost regime.
 DPA4-Plus reaches a CPS of 0.822 with only 5.40M parameters, reducing the gap to EquiformerV3+DeNS-MP to 0.008 CPS while using 82\% fewer parameters.
-DPA4-Air reaches a CPS of 0.804 with 2.76M parameters, exceeding eSEN-30M-MP (0.797 CPS, 30.1M parameters) with a 10.9$\times$ smaller model~\cite{fu2025esen}.
-DPA4-Neo contains only 1.60M parameters but still reaches a CPS of 0.781, comparable to MatRIS-10M-MP (0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model~\cite{zhou2026matris}.
+DPA4-Air reaches a CPS of 0.804 with 2.76M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 10.9$\times$ smaller model.
+DPA4-Neo contains only 1.60M parameters but still reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model.
 Beyond parameter count, Fig.~\ref{fig:cps} compares the A100-equivalent training cost needed to reach each point on the leaderboard.
 On this scale, DPA4-Air requires only single-digit A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP while achieving a higher CPS.
 For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS peak FP32 throughput.
