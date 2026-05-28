@@ -151,7 +151,7 @@ models = {
     "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=COLORS["teal"], marker="o"),
     "DPA4-air": dict(x=7.8, y=0.804, params_m=2.76, color=DPA4_COLOR, marker="o"),
     "DPA4-plus": dict(x=41, y=0.822, params_m=5.40, color=DPA4_COLOR, marker="o"),
-    "DPA4-pro": dict(x=106.6, y=0.831, params_m=20.91, color=DPA4_COLOR, marker="o"),
+    "DPA4-pro": dict(x=106.6, y=0.833, params_m=20.91, color=DPA4_COLOR, marker="o"),
 }
 
 matris = {

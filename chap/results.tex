@@ -91,14 +91,14 @@ representation blocks are not flattened into one unrelated matrix.
             \toprule
             \textbf{Model}       & \textbf{CPS}$\uparrow$ & \textbf{Acc}$\uparrow$ & \textbf{F1}$\uparrow$ & \textbf{DAF}$\uparrow$ & \textbf{Prec}$\uparrow$ & \textbf{MAE}$\downarrow$ & \textbf{R2}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$ & \textbf{RMSD}$\downarrow$ & \textbf{Params}$\downarrow$ & \textbf{Targets} \\
             \midrule
-            DPA4-Pro             & \textbf{0.831}         & \underline{0.955}      & \underline{0.856}     & \textbf{5.607}         & \textbf{0.857}          & \underline{0.030}        & \underline{0.833}     & \textbf{0.256}                    & \textbf{0.069}            & 20.91M                      & EFSG             \\
+            DPA4-Pro             & \textbf{0.833}         & \textbf{0.957}         & \underline{0.859}     & \textbf{5.635}         & \textbf{0.861}          & \underline{0.030}        & 0.775                 & \textbf{0.255}                    & \textbf{0.069}            & 20.91M                      & EFSG             \\
             DPA4-Plus            & 0.822                  & 0.954                  & 0.851                 & \underline{5.583}      & \underline{0.854}       & 0.031                    & 0.748                 & 0.276                             & 0.072                     & 5.40M                       & EFSG             \\
             DPA4-Air             & 0.804                  & 0.946                  & 0.828                 & 5.303                  & 0.811                   & 0.035                    & 0.743                 & 0.302                             & 0.075                     & 2.76M                       & EFSG             \\
             DPA4-Neo             & 0.781                  & 0.941                  & 0.815                 & 5.189                  & 0.793                   & 0.036                    & 0.805                 & 0.367                             & 0.079                     & 1.60M                       & EFSG             \\
             \midrule
             EquiformerV3+DeNS-MP & \underline{0.830}      & \textbf{0.956}         & \textbf{0.863}        & 5.479                  & 0.838                   & \textbf{0.029}           & \textbf{0.840}        & \underline{0.275}                 & \underline{0.070}         & 30.3M                       & EFSG             \\
             eSEN-30M-MP          & 0.797                  & 0.946                  & 0.831                 & 5.260                  & 0.804                   & 0.033                    & 0.822                 & 0.340                             & 0.075                     & 30.1M                       & EFSG             \\
-            MatRIS-10M-MP        & 0.778                  & 0.951                  & 0.847                 & 5.422                  & 0.829                   & 0.031                    & 0.824                 & 0.489                             & 0.072                     & 10.4M                       & EFSGM            \\
+            MatRIS-10M-MP        & 0.778                  & 0.951                  & 0.847                 & 5.422                  & 0.829                   & 0.031                    & \underline{0.824}     & 0.489                             & 0.072                     & 10.4M                       & EFSGM            \\
             Eqnorm MPtrj         & 0.756                  & 0.929                  & 0.786                 & 4.844                  & 0.741                   & 0.040                    & 0.799                 & 0.408                             & 0.084                     & 1.31M                       & EFSG             \\
             Nequix MP PFT        & 0.755                  & 0.914                  & 0.748                 & 4.479                  & 0.685                   & 0.044                    & 0.784                 & 0.307                             & 0.087                     & 708k                        & EFSHG            \\
             Nequip-MP-L          & 0.733                  & 0.921                  & 0.761                 & 4.704                  & 0.719                   & 0.043                    & 0.791                 & 0.452                             & 0.086                     & 9.6M                        & EFSG             \\
@@ -136,7 +136,7 @@ with representative compliant models under this protocol.
 
 The DPA4 family forms a compact accuracy--efficiency frontier on this
 benchmark. DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}
-(0.831), with an F1 score of 0.856 and a $\kappa$SRME of 0.256, using 20.91M
+(0.833), with an F1 score of 0.859 and a $\kappa$SRME of 0.255, using 20.91M
 parameters. Its CPS is slightly above that of
 EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} while using 31\%
 fewer parameters. This comparison is conservative with respect to
@@ -171,7 +171,7 @@ Materials Project-derived training data~\cite{riebesell2025matbench,WBM}. The
 remaining error at the top of the leaderboard is therefore likely influenced
 not only by model capacity, but also by the coverage and label protocol of the
 available training set. Within this constraint, the DPA4 series achieves the
-leading accuracy while retaining a substantially smaller parameter budget than
+leading overall score while retaining a substantially smaller parameter budget than
 the strongest DeNS-assisted equivariant baselines.
 
 \subsection{Small-molecule benchmarks}
@@ -279,7 +279,7 @@ A100 GPU-days, compared with 0.797 using 335 A100 GPU-days for
 eSEN-30M-MP~\cite{fu2025esen}; this corresponds to a 43$\times$ lower training
 cost with a slightly higher score. DPA4-Plus raises the CPS to 0.822 at 41 A100
 GPU-days, an 8.2$\times$ lower cost than eSEN-30M-MP, and DPA4-Pro reaches a
-CPS of 0.831 at 106.6 A100 GPU-days, slightly above EquiformerV3+DeNS-MP
+CPS of 0.833 at 106.6 A100 GPU-days, slightly above EquiformerV3+DeNS-MP
 (0.830)~\cite{liao2026equiformerv3} at a 1.5$\times$ lower cost. These
 comparisons are conservative with respect to the training protocol: the
 high-CPS dashed-outline baselines in Fig.~\ref{fig:cps} use additional training
