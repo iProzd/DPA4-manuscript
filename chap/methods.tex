@@ -503,22 +503,162 @@ other operation is either degree-wise or acts inside an
 SO(2)-equivariant local frame. The post-mixer is zero-initialised so
 $\mathcal{C}_{\theta}\equiv 0$ at the start of training.
 
-\subsubsection{Equivariant feed-forward update and Lebedev \texorpdfstring{$S^2$}{S2} activation}
+\subsubsection{Equivariant feed-forward network with Lebedev \texorpdfstring{$S^2$}{S2} grid activation}
 \label{sec:s2-method}
 
 After each SO(2) convolution, DPA4 applies an equivariant feed-forward network
-with residual connection. Degree-wise linear maps act independently on each
-$l$-block, and higher-degree channels are gated by scalar functions of the
-$l=0$ slice. In the reported DPA4 configurations, the feed-forward nonlinearity
-uses a spherical-grid SwiGLU activation in the feed-forward branch. The
-activation projects the $l\geq1$ value and gate tensors to quadrature points on
-$S^2$, applies the nonlinearity pointwise on the sphere, and projects the
-result back to irreducible coefficients; the scalar $l=0$ slice is processed by
-the usual SwiGLU. DPA4 evaluates these spherical maps with Lebedev quadrature
-rather than the product grids commonly used in Equiformer-family
-implementations, reducing the number of quadrature points and the measured
-equivariance error for the degrees used in this work (Supplementary
-Section~\ref{sec:sm-s2}).
+(FFN) $\mathcal{F}_{\theta_{\mathrm{FFN}}}$ with residual connection. The FFN
+acts independently on every atom and respects SO(3)-equivariance by
+sandwiching a nonlinearity between two degree-wise SO(3)-linear maps. The
+nonlinearity is realised as a \emph{spherical-grid SwiGLU}: the $l\geq 1$
+slice is projected from spherical-harmonic coefficients to function values on
+a discrete set of points on $S^2$, processed by a point-wise SwiGLU MLP on
+those points, and projected back to spherical-harmonic coefficients; the
+$l=0$ slice is processed in parallel by an ordinary scalar SwiGLU. The
+spherical grid is chosen as a Lebedev quadrature rule.
+
+\paragraph{Architecture.}
+Let $L^{\mathrm{ch}}_{\mathrm{in}}:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}
+\otimes\mathbb{R}^{H_{\mathrm{FFN}}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}:
+V_{\le L}\otimes\mathbb{R}^{H_{\mathrm{FFN}}}\to V_{\le L}\otimes\mathbb{R}^{C}$
+be degree-wise channel-mixing maps at FFN hidden width $H_{\mathrm{FFN}}$.
+Writing $\mathbf{u}\coloneqq L^{\mathrm{ch}}_{\mathrm{in}}\mathbf{h}_i\in
+V_{\le L}\otimes\mathbb{R}^{H_{\mathrm{FFN}}}$ for the lifted node feature,
+the FFN update is
+\begin{equation}
+    \mathcal{F}_{\theta_{\mathrm{FFN}}}(\mathbf{h}_i)
+    =
+    L^{\mathrm{ch}}_{\mathrm{out}}\!\bigl[\Phi^{\mathrm{grid}}(\mathbf{u})
+    +\Psi^{\mathrm{scalar}}(\mathbf{h}_i|_{l=0})\bigr],
+    \qquad
+    \mathbf{h}_i \;\leftarrow\; \mathbf{h}_i + \mathcal{F}_{\theta_{\mathrm{FFN}}}(\mathbf{h}_i),
+    \label{eq:dpa4-ffn}
+\end{equation}
+where $\Phi^{\mathrm{grid}}$ is the spherical-grid SwiGLU nonlinearity acting
+on the full lifted feature $\mathbf{u}$ (all degrees $l=0,\dots,L$), and
+$\Psi^{\mathrm{scalar}}$ is an auxiliary scalar SwiGLU that consumes the
+original $l=0$ slice $\mathbf{h}_i|_{l=0}\in\mathbb{R}^{C}$ and contributes
+only to the $l=0$ slot of the sum inside the brackets. The output linear
+$L^{\mathrm{ch}}_{\mathrm{out}}$ is zero-initialised so the residual update
+starts at the identity at training time zero.
+
+\paragraph{Lebedev quadrature on \texorpdfstring{$S^2$}{S2}.}
+A Lebedev rule of algebraic order of accuracy $p\geq 2L$ (also referred to
+as algebraic precision) is a finite set of points
+$\{\mathbf{q}_a\}_{a=1}^{A}\subset S^2$ together with positive weights
+$\{w_a\}_{a=1}^{A}$, normalised so that $\sum_{a}w_a=1$. The defining
+property is that, for every spherical-harmonic product of total degree at most
+$p$, the discrete sum $\sum_{a}w_a\,f(\mathbf{q}_a)$ equals the exact
+spherical average $(4\pi)^{-1}\int_{S^2}f$. In particular, with the
+real-form spherical harmonics in the ``norm'' convention
+$Y_l^m:S^2\to\mathbb{R}$, the discrete orthogonality
+\begin{equation}
+    \sum_{a=1}^{A}w_a\,Y_{l}^{m}(\mathbf{q}_a)\,Y_{l'}^{m'}(\mathbf{q}_a)
+    =\frac{\delta_{ll'}\delta_{mm'}}{2l+1},\qquad 0\le l,l'\le L,
+    \label{eq:dpa4-lebedev-orth}
+\end{equation}
+holds exactly whenever the precision satisfies $p\ge 2L$. Choosing $p=2L$
+minimises $A$. Compared with the latitude--longitude product grids of
+EquiformerV2--EquiformerV3, the Lebedev rule uses substantially fewer
+sample points at the same algebraic order of accuracy and incurs much smaller
+numerical equivariance error at the $L$ relevant for this work
+(Supplementary Sec.~\ref{sec:sm-s2}).
+
+\paragraph{Coefficient--grid projection.}
+For an irreducible feature $\mathbf{u}\in V_{\le L}\otimes\mathbb{R}^{H_{\mathrm{FFN}}}$
+with coefficients $\mathbf{u}_{(l,m),c}$, the forward and inverse projections
+to grid values $\{\mathbf{U}_{a,c}\}_{a=1,\dots,A}$ are
+\begin{equation}
+    \mathbf{U}_{a,c}
+    =\sum_{l=0}^{L}\sum_{m=-l}^{l}Y_l^m(\mathbf{q}_a)\,\mathbf{u}_{(l,m),c},
+    \qquad
+    \mathbf{u}_{(l,m),c}
+    =(2l+1)\sum_{a=1}^{A}w_a\,Y_l^m(\mathbf{q}_a)\,\mathbf{U}_{a,c},
+    \label{eq:dpa4-s2-projection}
+\end{equation}
+which are mutually inverse on the band-limited space spanned by
+$\{Y_l^m\}_{l\le L}$ by virtue of Eq.~\eqref{eq:dpa4-lebedev-orth}. Both
+projections are linear in $\mathbf{u}$ (resp.\ $\mathbf{U}$); their
+projection matrices depend only on the precomputed $(\mathbf{q}_a, w_a)$ and
+are cached as buffers.
+
+\paragraph{Point-wise grid SwiGLU $\Phi^{\mathrm{grid}}$.}
+Define the point-wise SwiGLU nonlinearity
+\begin{equation}
+    \mathrm{SwiGLU}(\mathbf{z})
+    \coloneqq\sigma(\mathbf{z}_{\mathrm{gate}})\odot
+    \mathbf{z}_{\mathrm{gate}}\odot\mathbf{z}_{\mathrm{val}},
+    \quad
+    \mathbf{z}=(\mathbf{z}_{\mathrm{gate}},\mathbf{z}_{\mathrm{val}})
+    \in\mathbb{R}^{2H_{\mathrm{FFN}}},
+    \label{eq:dpa4-swiglu}
+\end{equation}
+which splits its input internally into a gate half
+$\mathbf{z}_{\mathrm{gate}}\in\mathbb{R}^{H_{\mathrm{FFN}}}$ and a value half
+$\mathbf{z}_{\mathrm{val}}\in\mathbb{R}^{H_{\mathrm{FFN}}}$ along the channel
+axis and returns a vector in $\mathbb{R}^{H_{\mathrm{FFN}}}$. The grid
+nonlinearity $\Phi^{\mathrm{grid}}$ then acts on the full lifted feature
+$\mathbf{u}\in V_{\le L}\otimes\mathbb{R}^{H_{\mathrm{FFN}}}$ in three steps.
+First, the entire coefficient tensor (all degrees $l=0,\dots,L$) is projected
+to grid values via Eq.~\eqref{eq:dpa4-s2-projection},
+\begin{equation}
+    \mathbf{U}_{a,c}
+    =\sum_{l=0}^{L}\sum_{m=-l}^{l} Y_l^m(\mathbf{q}_a)\,\mathbf{u}_{(l,m),c},
+    \quad a=1,\dots,A.
+    \label{eq:dpa4-s2-to-grid}
+\end{equation}
+Second, a two-layer point-wise MLP with a SwiGLU nonlinearity acts at each
+grid point independently,
+\begin{equation}
+    \mathbf{V}_{a,:}
+    = W_2\,\mathrm{SwiGLU}\!\bigl(W_1\,\mathbf{U}_{a,:}\bigr),
+    \label{eq:dpa4-s2-pointwise}
+\end{equation}
+where $W_1\in\mathbb{R}^{2H_{\mathrm{FFN}}\times H_{\mathrm{FFN}}}$
+expands to $2H_{\mathrm{FFN}}$ channels (which SwiGLU consumes as the gate
+and value halves) and $W_2\in\mathbb{R}^{H_{\mathrm{FFN}}\times
+H_{\mathrm{FFN}}}$ is a second learnable linear map mixing the SwiGLU output
+channels at the same width $H_{\mathrm{FFN}}$. Third, the
+processed grid is mapped back to coefficients via the inverse projection of
+Eq.~\eqref{eq:dpa4-s2-projection},
+\begin{equation}
+    \Phi^{\mathrm{grid}}(\mathbf{u})_{(l,m),c}
+    =(2l+1)\sum_{a=1}^{A}w_a\,Y_l^m(\mathbf{q}_a)\,\mathbf{V}_{a,c},
+    \quad 0\le l\le L,\ -l\le m\le l.
+    \label{eq:dpa4-s2-from-grid}
+\end{equation}
+
+The auxiliary scalar branch $\Psi^{\mathrm{scalar}}$ of Eq.~\eqref{eq:dpa4-ffn}
+takes the original $l=0$ slice of $\mathbf{h}_i$ at representation width $C$
+and produces a width-$H_{\mathrm{FFN}}$ scalar output via
+\begin{equation}
+    \Psi^{\mathrm{scalar}}(\mathbf{h}_i|_{l=0})
+    =
+    \mathrm{SwiGLU}\!\bigl(W_3\,\mathbf{h}_i|_{l=0}\bigr)
+    \in\mathbb{R}^{H_{\mathrm{FFN}}},
+    \label{eq:dpa4-ffn-scalar}
+\end{equation}
+with $W_3\in\mathbb{R}^{2H_{\mathrm{FFN}}\times C}$; the scalar output
+contributes only to the $l=0$ slot of the sum
+$\Phi^{\mathrm{grid}}(\mathbf{u})+\Psi^{\mathrm{scalar}}(\mathbf{h}_i|_{l=0})$
+inside the brackets of Eq.~\eqref{eq:dpa4-ffn}.
+
+\paragraph{Equivariance.}
+The projection \eqref{eq:dpa4-s2-to-grid} is the evaluation of a band-limited
+function in $V_{\le L}$ at the points $\mathbf{q}_a$, so under
+$\mathbf{q}\mapsto R\mathbf{q}$ the grid values transform as
+$\mathbf{U}(\mathbf{q})\mapsto\mathbf{U}(R^{-1}\mathbf{q})$; a point-wise
+nonlinearity commutes with this argument-substitution action. Provided
+$p\ge 2L$, Eq.~\eqref{eq:dpa4-lebedev-orth} makes the inverse projection
+\eqref{eq:dpa4-s2-from-grid} exact on $V_{\le L}$, so the round trip
+``coefficients\,$\to$\,grid\,$\to$\,point-wise SwiGLU\,$\to$\,coefficients''
+preserves SO(3)-equivariance to numerical precision. The auxiliary scalar
+branch $\Psi^{\mathrm{scalar}}$ acts only on the trivial $l=0$
+representation and is therefore SO(3)-invariant; adding its output to the
+$l=0$ slot of $\Phi^{\mathrm{grid}}(\mathbf{u})$ does not affect the higher
+degrees. Composition with the degree-wise channel-mixers
+$L^{\mathrm{ch}}_{\mathrm{in}},L^{\mathrm{ch}}_{\mathrm{out}}$ preserves
+equivariance of $\mathcal{F}_{\theta_{\mathrm{FFN}}}$.
 
 \subsubsection{Native ZBL Zone Bridging}
 \label{sec:zbl_method}

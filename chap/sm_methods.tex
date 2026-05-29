@@ -974,7 +974,7 @@ $\mathbf{y}=(\mathbf{v},\mathbf{g})$, the spherical-grid SwiGLU activation is
 \end{enumerate}
 The quadrature backend is Lebedev rather than a tensor-product grid. The
 Lebedev rules select rotationally balanced points with sufficient algebraic
-precision for the low-degree bilinear products in the activation. We evaluated
+order of accuracy for the low-degree bilinear products in the activation. We evaluated
 the numerical equivariance of this activation in two settings: the full
 coefficient layout, which tests SO(3) equivariance under random rotations, and
 the $m$-truncated local layout, which tests equivariance under random rotations
@@ -1006,26 +1006,28 @@ deviations between the two equivariance paths, ``rotate then activate'' and
     \caption{
         Full-coefficient $S^2$ activation equivariance under random SO(3)
         rotations. Product-grid rules are reported as
-        $(R_{\phi},R_{\theta})$ after the square-grid lift; Lebedev rules are
-        reported as (algebraic precision, number of points). Errors are maximum
-        absolute deviations between the two equivariance paths.
+        $(R_{\phi},R_{\theta})$ after the square-grid lift, with the
+        total number of grid points $R_{\phi}R_{\theta}$ given alongside.
+        Lebedev rules are reported by their algebraic order of accuracy
+        $p$ and the corresponding number of points. Errors are maximum absolute
+        deviations between the two equivariance paths.
     }
     \label{tab:sm_s2_full_equivariance}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccccc@{}}
         \toprule
         \textbf{$L$} &
-        \multicolumn{3}{c}{\textbf{Product grid}} &
-        \multicolumn{3}{c}{\textbf{Lebedev quadrature}} \\
-        \cmidrule(lr){2-4}\cmidrule(lr){5-7}
-        & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error}
-        & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error} \\
+        \multicolumn{4}{c}{\textbf{Product grid}} &
+        \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
+        \cmidrule(lr){2-5}\cmidrule(lr){6-9}
+        & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
+        & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
         \midrule
-        2 & $8\times8$   & $3.62\times10^{-7}$ & $4.77\times10^{-7}$ & $(7,26)$   & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        3 & $12\times12$ & $7.04\times10^{-7}$ & $6.86\times10^{-7}$ & $(9,38)$   & $3.58\times10^{-14}$ & $3.58\times10^{-7}$ \\
-        4 & $14\times14$ & $7.97\times10^{-7}$ & $1.55\times10^{-6}$ & $(13,74)$  & $5.82\times10^{-14}$ & $6.56\times10^{-7}$ \\
-        5 & $18\times18$ & $1.48\times10^{-6}$ & $1.49\times10^{-6}$ & $(15,86)$  & $3.22\times10^{-14}$ & $6.56\times10^{-7}$ \\
-        6 & $20\times20$ & $4.14\times10^{-6}$ & $2.27\times10^{-6}$ & $(19,146)$ & $7.99\times10^{-14}$ & $8.35\times10^{-7}$ \\
-        7 & $24\times24$ & $3.19\times10^{-6}$ & $2.03\times10^{-6}$ & $(21,170)$ & $6.86\times10^{-14}$ & $8.79\times10^{-7}$ \\
+        2 & $8\times8$   & 64  & $3.62\times10^{-7}$ & $4.77\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
+        3 & $12\times12$ & 144 & $7.04\times10^{-7}$ & $6.86\times10^{-7}$ & 9  & 38  & $3.58\times10^{-14}$ & $3.58\times10^{-7}$ \\
+        4 & $14\times14$ & 196 & $7.97\times10^{-7}$ & $1.55\times10^{-6}$ & 13 & 74  & $5.82\times10^{-14}$ & $6.56\times10^{-7}$ \\
+        5 & $18\times18$ & 324 & $1.48\times10^{-6}$ & $1.49\times10^{-6}$ & 15 & 86  & $3.22\times10^{-14}$ & $6.56\times10^{-7}$ \\
+        6 & $20\times20$ & 400 & $4.14\times10^{-6}$ & $2.27\times10^{-6}$ & 19 & 146 & $7.99\times10^{-14}$ & $8.35\times10^{-7}$ \\
+        7 & $24\times24$ & 576 & $3.19\times10^{-6}$ & $2.03\times10^{-6}$ & 21 & 170 & $6.86\times10^{-14}$ & $8.79\times10^{-7}$ \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -1037,34 +1039,37 @@ deviations between the two equivariance paths, ``rotate then activate'' and
     \caption{
         $m$-truncated $S^2$ activation equivariance under random local
         $z$-axis rotations. These cases test the reduced local layout used in
-        SO(2) convolution. Product-grid rules are $(R_{\phi},R_{\theta})$;
-        Lebedev rules are (algebraic precision, number of points). Errors are
-        maximum absolute deviations between the two equivariance paths.
+        SO(2) convolution. Product-grid rules are
+        $(R_{\phi},R_{\theta})$ with the total number of grid points
+        $R_{\phi}R_{\theta}$ given alongside; Lebedev rules are reported by
+        their algebraic order of accuracy $p$ and the corresponding number
+        of points. Errors are maximum absolute deviations between the two
+        equivariance paths.
     }
     \label{tab:sm_s2_truncated_equivariance}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccc@{}}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccccc@{}}
         \toprule
         \textbf{$M$} &
         \textbf{$L$} &
-        \multicolumn{3}{c}{\textbf{Product grid}} &
-        \multicolumn{3}{c}{\textbf{Lebedev quadrature}} \\
-        \cmidrule(lr){3-5}\cmidrule(lr){6-8}
-        & & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error}
-        & \textbf{Rule} & \textbf{fp64 error} & \textbf{fp32 error} \\
+        \multicolumn{4}{c}{\textbf{Product grid}} &
+        \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
+        \cmidrule(lr){3-6}\cmidrule(lr){7-10}
+        & & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
+        & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
         \midrule
-        1 & 2 & $6\times8$   & $2.36\times10^{-7}$ & $3.58\times10^{-7}$ & $(7,26)$   & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        1 & 3 & $6\times12$  & $1.22\times10^{-7}$ & $5.96\times10^{-7}$ & $(9,38)$   & $3.55\times10^{-14}$ & $2.98\times10^{-7}$ \\
-        1 & 4 & $6\times14$  & $1.12\times10^{-6}$ & $9.54\times10^{-7}$ & $(13,74)$  & $1.04\times10^{-13}$ & $9.54\times10^{-7}$ \\
-        1 & 5 & $6\times18$  & $1.10\times10^{-7}$ & $1.43\times10^{-6}$ & $(15,86)$  & $9.34\times10^{-14}$ & $7.15\times10^{-7}$ \\
-        1 & 6 & $6\times20$  & $7.64\times10^{-7}$ & $1.91\times10^{-6}$ & $(19,146)$ & $8.56\times10^{-14}$ & $2.15\times10^{-6}$ \\
-        1 & 7 & $6\times24$  & $2.17\times10^{-7}$ & $1.91\times10^{-6}$ & $(21,170)$ & $2.08\times10^{-13}$ & $3.34\times10^{-6}$ \\
+        1 & 2 & $6\times8$   & 48  & $2.36\times10^{-7}$ & $3.58\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
+        1 & 3 & $6\times12$  & 72  & $1.22\times10^{-7}$ & $5.96\times10^{-7}$ & 9  & 38  & $3.55\times10^{-14}$ & $2.98\times10^{-7}$ \\
+        1 & 4 & $6\times14$  & 84  & $1.12\times10^{-6}$ & $9.54\times10^{-7}$ & 13 & 74  & $1.04\times10^{-13}$ & $9.54\times10^{-7}$ \\
+        1 & 5 & $6\times18$  & 108 & $1.10\times10^{-7}$ & $1.43\times10^{-6}$ & 15 & 86  & $9.34\times10^{-14}$ & $7.15\times10^{-7}$ \\
+        1 & 6 & $6\times20$  & 120 & $7.64\times10^{-7}$ & $1.91\times10^{-6}$ & 19 & 146 & $8.56\times10^{-14}$ & $2.15\times10^{-6}$ \\
+        1 & 7 & $6\times24$  & 144 & $2.17\times10^{-7}$ & $1.91\times10^{-6}$ & 21 & 170 & $2.08\times10^{-13}$ & $3.34\times10^{-6}$ \\
         \midrule
-        2 & 2 & $8\times8$   & $4.01\times10^{-7}$ & $8.34\times10^{-7}$ & $(7,26)$   & $1.50\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        2 & 3 & $8\times12$  & $5.99\times10^{-7}$ & $8.34\times10^{-7}$ & $(9,38)$   & $5.71\times10^{-14}$ & $3.58\times10^{-7}$ \\
-        2 & 4 & $8\times14$  & $6.02\times10^{-7}$ & $1.67\times10^{-6}$ & $(13,74)$  & $9.15\times10^{-14}$ & $5.96\times10^{-7}$ \\
-        2 & 5 & $8\times18$  & $1.19\times10^{-6}$ & $1.55\times10^{-6}$ & $(15,86)$  & $7.83\times10^{-14}$ & $4.77\times10^{-7}$ \\
-        2 & 6 & $8\times20$  & $1.33\times10^{-6}$ & $2.15\times10^{-6}$ & $(19,146)$ & $1.29\times10^{-13}$ & $9.54\times10^{-7}$ \\
-        2 & 7 & $8\times24$  & $1.41\times10^{-6}$ & $2.62\times10^{-6}$ & $(21,170)$ & $1.56\times10^{-13}$ & $1.43\times10^{-6}$ \\
+        2 & 2 & $8\times8$   & 64  & $4.01\times10^{-7}$ & $8.34\times10^{-7}$ & 7  & 26  & $1.50\times10^{-14}$ & $2.38\times10^{-7}$ \\
+        2 & 3 & $8\times12$  & 96  & $5.99\times10^{-7}$ & $8.34\times10^{-7}$ & 9  & 38  & $5.71\times10^{-14}$ & $3.58\times10^{-7}$ \\
+        2 & 4 & $8\times14$  & 112 & $6.02\times10^{-7}$ & $1.67\times10^{-6}$ & 13 & 74  & $9.15\times10^{-14}$ & $5.96\times10^{-7}$ \\
+        2 & 5 & $8\times18$  & 144 & $1.19\times10^{-6}$ & $1.55\times10^{-6}$ & 15 & 86  & $7.83\times10^{-14}$ & $4.77\times10^{-7}$ \\
+        2 & 6 & $8\times20$  & 160 & $1.33\times10^{-6}$ & $2.15\times10^{-6}$ & 19 & 146 & $1.29\times10^{-13}$ & $9.54\times10^{-7}$ \\
+        2 & 7 & $8\times24$  & 192 & $1.41\times10^{-6}$ & $2.62\times10^{-6}$ & 21 & 170 & $1.56\times10^{-13}$ & $1.43\times10^{-6}$ \\
         \bottomrule
     \end{tabular*}
 \end{table}
