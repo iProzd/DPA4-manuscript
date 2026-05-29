@@ -1,40 +1,63 @@
 \section{Results}
 \label{sec:results}
 
-% Figure ordering: the user-suggested layout puts the efficiency Pareto
-% plot as the headline figure (Fig. 1), since it encapsulates the
-% strongest message in one image. Architecture diagram follows as
-% Fig. 2.
-
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
 
-DPA4 is a conservative SO(3)-equivariant message-passing graph neural network for interatomic potentials, built around an SO(2) local-frame transformation and attention-based neighbour aggregation; see Section~\ref{sec:methods} for the full formulation.
+DPA4 is a conservative SO(3)-equivariant message-passing neural network built
+to meet three constraints simultaneously: it must carry directional information,
+train efficiently through an energy-conserving force path and remain well
+behaved at short interatomic distances. Figure~\ref{fig:arch} gives the
+architectural map. Panel (a) shows the full potential: an initial embedding
+stage, stacked equivariant interaction blocks and an atomic energy head define
+one differentiable scalar energy, from which forces and virials are obtained.
+Panel (b) shows how local environment information enters before message
+passing. Panel (c) shows the interaction block, where edge-local SO(2)
+operations construct equivariant messages and invariant attention weights
+aggregate them over the neighbourhood.
 
-Figure~\ref{fig:arch} summarizes the model at three levels.
-Panel (a) shows the overall energy model, in which Geometry-Aware Input Embedding (GIE), stacked equivariant interaction blocks and an atomic energy head form a single differentiable energy path.
-Panel (b) focuses on GIE, which injects local geometric information into the initial representation using cached neighbour geometry and radial features.
-Panel (c) shows the SO(2) multi-focus convolution, where local-frame equivariant messages are constructed and aggregated by Smooth Gated Attention during message passing.
+At the input stage, Environment Initial Embedding (FiLM) conditions the scalar
+backbone on a compact descriptor of the local environment. This gives the model
+chemical and geometric context before the first interaction block, rather than
+forcing all local-environment information to be discovered only through
+iterated message passing. Directional information is introduced at the same
+stage through neighbour geometry, so the scalar and higher-degree channels are
+initialised from consistent local structural information. The exact construction
+is given in Section~\ref{sec:gie}.
 
 The key architectural choice is to perform equivariant message passing in an edge-local SO(2) representation rather than through full SO(3) Clebsch--Gordan tensor products; see Section~\ref{sec:so2} and Supplementary Section~\ref{sec:sm-cg-trivialisation} for details.
 GIE is applied once at the input stage to initialise scalar and higher-degree node features from local geometry, as described in Section~\ref{sec:gie}.
 Each subsequent interaction block rotates source features into the edge-local SO(2) frame, applies multi-focus SO(2) convolution, lifts the resulting edge messages back to the global frame, and aggregates them with Smooth Gated Attention, implemented as the envelope-gated attention in Section~\ref{sec:attn}.
 After the interaction blocks, the invariant $l=0$ features are passed to the atomic energy head, while forces and virials are obtained by differentiating the total energy.
 
-Beyond the message-passing architecture, two design choices improve practical training efficiency and short-range robustness.
-First, the conservative force path is implemented in a compiler-friendly form compatible with \texttt{torch.compile}, as detailed in Section~\ref{sec:methods}.
-Second, DPA4 includes a native ZBL branch through a smooth Zone Bridging mechanism for close contacts; see Section~\ref{sec:zbl_method}.
-The optimisation procedure uses a WSD learning-rate schedule~\cite{wen2024wsd} and the HybridMuon optimiser: Muon updates are applied to matrix-valued hidden transformations~\cite{jordan2024muon,liu2025muon}, while scalar, normalisation and auxiliary parameters use Adam-family updates~\cite{kingma2014adam}.
-Further optimisation details are given in Supplementary Sections~\ref{sec:sm-wsd-schedule}--\ref{sec:sm-hybrid-muon}.
+Aggregation and nonlinear updates are designed to preserve the same symmetry
+structure. DPA4 computes envelope-gated softmax attention from invariant scalar
+channels, so neighbour weights adapt to local context without breaking
+equivariance of higher-degree features. The cutoff envelope drives edge
+contributions smoothly to zero, a requirement for stable molecular dynamics.
+After aggregation, DPA4 applies a spherical-grid feed-forward nonlinearity with
+Lebedev quadrature, reducing the quadrature cost of the $S^2$ activation while
+maintaining the numerical equivariance needed by higher-degree channels.
+
+The remaining two components address training and close-contact physics. The
+conservative energy-to-force path is implemented in a shape-stable,
+compiler-friendly form compatible with \texttt{torch.compile}, so DPA4 can
+accelerate energy-based force matching without using a direct-force surrogate.
+For close contacts, Native ZBL Zone Bridging embeds the analytical ZBL repulsion
+inside the scalar energy and suppresses the direct learned short-range pair
+channel through smooth bridging gates. The following sections evaluate these
+choices through benchmark accuracy, training and inference throughput,
+short-range force behaviour and controlled ablations; Section~\ref{sec:methods}
+gives the mathematical formulation.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\textwidth]{fig/fig2_simplified_wh.pdf}
     \caption{
         Overview of the DPA4 architecture.
-        (a) The full model combines a shared edge cache, geometry-aware input embedding, stacked equivariant interaction blocks, and an atomic energy head.
-        (b) Geometry-Aware Input Embedding injects cached local geometry and radial features into the initial representation.
-        (c) Each SO(2) multi-focus convolution rotates features to an edge-local frame, applies radial modulation and focus competition, and aggregates messages through Smooth Gated Attention after rotating them back.
+        (a) The full model combines a shared edge cache, an initial embedding stage, stacked equivariant interaction blocks, and an atomic energy head.
+        (b) Environment Initial Embedding injects local-environment information into the initial representation.
+        (c) Each multi-focus SO(2) convolution rotates features to an edge-local frame, applies radial degree coupling and focus competition, and aggregates messages through envelope-gated softmax attention after rotating them back.
     }
     \label{fig:arch}
 \end{figure}
@@ -52,28 +75,28 @@ Further optimisation details are given in Supplementary Sections~\ref{sec:sm-wsd
             \toprule
             \textbf{Model}       & \textbf{CPS}$\uparrow$ & \textbf{Acc}$\uparrow$ & \textbf{F1}$\uparrow$ & \textbf{DAF}$\uparrow$ & \textbf{Prec}$\uparrow$ & \textbf{MAE}$\downarrow$ & \textbf{R2}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$ & \textbf{RMSD}$\downarrow$ & \textbf{Params} & \textbf{Targets} \\
             \midrule
-            DPA4-Pro             & \textbf{0.833}         & \textbf{0.957}         & \underline{0.859}     & \textbf{5.635}         & \textbf{0.861}          & \underline{0.030}        & 0.775                 & \textbf{0.255}                    & \textbf{0.069}            & 20.91M                      & EFSG             \\
-            DPA4-Plus            & 0.822                  & 0.954                  & 0.851                 & \underline{5.583}      & \underline{0.854}       & 0.031                    & 0.748                 & 0.276                             & 0.072                     & 5.40M                       & EFSG             \\
-            DPA4-Air             & 0.804                  & 0.946                  & 0.828                 & 5.303                  & 0.811                   & 0.035                    & 0.743                 & 0.302                             & 0.075                     & 2.76M                       & EFSG             \\
-            DPA4-Neo             & 0.781                  & 0.941                  & 0.815                 & 5.189                  & 0.793                   & 0.036                    & 0.805                 & 0.367                             & 0.079                     & 1.60M                       & EFSG             \\
+            DPA4-Pro             & \textbf{0.833}         & \textbf{0.957}         & \underline{0.859}     & \textbf{5.635}         & \textbf{0.861}          & \underline{0.030}        & 0.775                 & \textbf{0.255}                    & \textbf{0.069}            & 20.91M          & EFSG             \\
+            DPA4-Plus            & 0.822                  & 0.954                  & 0.851                 & \underline{5.583}      & \underline{0.854}       & 0.031                    & 0.748                 & 0.276                             & 0.072                     & 5.40M           & EFSG             \\
+            DPA4-Air             & 0.804                  & 0.946                  & 0.828                 & 5.303                  & 0.811                   & 0.035                    & 0.743                 & 0.302                             & 0.075                     & 2.76M           & EFSG             \\
+            DPA4-Neo             & 0.781                  & 0.941                  & 0.815                 & 5.189                  & 0.793                   & 0.036                    & 0.805                 & 0.367                             & 0.079                     & 1.60M           & EFSG             \\
             \midrule
-            EquiformerV3+DeNS-MP & \underline{0.830}      & \underline{0.956}      & \textbf{0.863}        & 5.479                  & 0.838                   & \textbf{0.029}           & \textbf{0.840}        & \underline{0.275}                 & \underline{0.070}         & 30.3M                       & EFSG             \\
-            eSEN-30M-MP          & 0.797                  & 0.946                  & 0.831                 & 5.260                  & 0.804                   & 0.033                    & 0.822                 & 0.340                             & 0.075                     & 30.1M                       & EFSG             \\
-            MatRIS-10M-MP        & 0.778                  & 0.951                  & 0.847                 & 5.422                  & 0.829                   & 0.031                    & \underline{0.824}     & 0.489                             & 0.072                     & 10.4M                       & EFSGM            \\
-            Eqnorm MPtrj         & 0.756                  & 0.929                  & 0.786                 & 4.844                  & 0.741                   & 0.040                    & 0.799                 & 0.408                             & 0.084                     & 1.31M                       & EFSG             \\
-            Nequix MP PFT        & 0.755                  & 0.914                  & 0.748                 & 4.479                  & 0.685                   & 0.044                    & 0.784                 & 0.307                             & 0.087                     & 708k                        & EFSHG            \\
-            Nequip-MP-L          & 0.733                  & 0.921                  & 0.761                 & 4.704                  & 0.719                   & 0.043                    & 0.791                 & 0.452                             & 0.086                     & 9.6M                        & EFSG             \\
-            Nequix MP            & 0.729                  & 0.914                  & 0.751                 & 4.455                  & 0.681                   & 0.044                    & 0.782                 & 0.446                             & 0.085                     & 708k                        & EFSG             \\
-            Allegro-MP-L         & 0.720                  & 0.915                  & 0.751                 & 4.516                  & 0.690                   & 0.044                    & 0.778                 & 0.504                             & 0.082                     & 18.7M                       & EFSG             \\
-            DPA-3.1-MPtrj        & 0.718                  & 0.936                  & 0.803                 & 5.024                  & 0.768                   & 0.037                    & 0.812                 & 0.650                             & 0.080                     & 4.81M                       & EFSG             \\
-            SevenNet-l3i5        & 0.714                  & 0.920                  & 0.760                 & 4.629                  & 0.708                   & 0.044                    & 0.776                 & 0.550                             & 0.085                     & 1.17M                       & EFSG             \\
-            HIENet               & 0.707                  & 0.929                  & 0.777                 & 4.932                  & 0.754                   & 0.041                    & 0.793                 & 0.642                             & 0.080                     & 7.51M                       & EFSG             \\
-            GRACE-2L-MPtrj       & 0.681                  & 0.895                  & 0.691                 & 4.163                  & 0.636                   & 0.052                    & 0.741                 & 0.526                             & 0.090                     & 15.3M                       & EFSG             \\
-            MACE-MP-0            & 0.637                  & 0.878                  & 0.669                 & 3.777                  & 0.577                   & 0.057                    & 0.697                 & 0.682                             & 0.092                     & 4.69M                       & EFSG             \\
-            eqV2 S DeNS          & 0.522                  & 0.939                  & 0.815                 & 5.042                  & 0.771                   & 0.036                    & 0.788                 & 1.676                             & 0.076                     & 31.2M                       & EFSD             \\
-            ORB v2 MPtrj         & 0.470                  & 0.922                  & 0.765                 & 4.702                  & 0.719                   & 0.045                    & 0.756                 & 1.726                             & 0.101                     & 25.2M                       & EFSD             \\
-            CHGNet               & 0.343                  & 0.851                  & 0.613                 & 3.361                  & 0.514                   & 0.063                    & 0.689                 & 2.000                             & 0.095                     & 413k                        & EFSGM            \\
-            M3GNet               & 0.310                  & 0.812                  & 0.569                 & 2.882                  & 0.441                   & 0.075                    & 0.585                 & 2.000                             & 0.112                     & 228k                        & EFSG             \\
+            EquiformerV3+DeNS-MP & \underline{0.830}      & \underline{0.956}      & \textbf{0.863}        & 5.479                  & 0.838                   & \textbf{0.029}           & \textbf{0.840}        & \underline{0.275}                 & \underline{0.070}         & 30.3M           & EFSG             \\
+            eSEN-30M-MP          & 0.797                  & 0.946                  & 0.831                 & 5.260                  & 0.804                   & 0.033                    & 0.822                 & 0.340                             & 0.075                     & 30.1M           & EFSG             \\
+            MatRIS-10M-MP        & 0.778                  & 0.951                  & 0.847                 & 5.422                  & 0.829                   & 0.031                    & \underline{0.824}     & 0.489                             & 0.072                     & 10.4M           & EFSGM            \\
+            Eqnorm MPtrj         & 0.756                  & 0.929                  & 0.786                 & 4.844                  & 0.741                   & 0.040                    & 0.799                 & 0.408                             & 0.084                     & 1.31M           & EFSG             \\
+            Nequix MP PFT        & 0.755                  & 0.914                  & 0.748                 & 4.479                  & 0.685                   & 0.044                    & 0.784                 & 0.307                             & 0.087                     & 708k            & EFSHG            \\
+            Nequip-MP-L          & 0.733                  & 0.921                  & 0.761                 & 4.704                  & 0.719                   & 0.043                    & 0.791                 & 0.452                             & 0.086                     & 9.6M            & EFSG             \\
+            Nequix MP            & 0.729                  & 0.914                  & 0.751                 & 4.455                  & 0.681                   & 0.044                    & 0.782                 & 0.446                             & 0.085                     & 708k            & EFSG             \\
+            Allegro-MP-L         & 0.720                  & 0.915                  & 0.751                 & 4.516                  & 0.690                   & 0.044                    & 0.778                 & 0.504                             & 0.082                     & 18.7M           & EFSG             \\
+            DPA-3.1-MPtrj        & 0.718                  & 0.936                  & 0.803                 & 5.024                  & 0.768                   & 0.037                    & 0.812                 & 0.650                             & 0.080                     & 4.81M           & EFSG             \\
+            SevenNet-l3i5        & 0.714                  & 0.920                  & 0.760                 & 4.629                  & 0.708                   & 0.044                    & 0.776                 & 0.550                             & 0.085                     & 1.17M           & EFSG             \\
+            HIENet               & 0.707                  & 0.929                  & 0.777                 & 4.932                  & 0.754                   & 0.041                    & 0.793                 & 0.642                             & 0.080                     & 7.51M           & EFSG             \\
+            GRACE-2L-MPtrj       & 0.681                  & 0.895                  & 0.691                 & 4.163                  & 0.636                   & 0.052                    & 0.741                 & 0.526                             & 0.090                     & 15.3M           & EFSG             \\
+            MACE-MP-0            & 0.637                  & 0.878                  & 0.669                 & 3.777                  & 0.577                   & 0.057                    & 0.697                 & 0.682                             & 0.092                     & 4.69M           & EFSG             \\
+            eqV2 S DeNS          & 0.522                  & 0.939                  & 0.815                 & 5.042                  & 0.771                   & 0.036                    & 0.788                 & 1.676                             & 0.076                     & 31.2M           & EFSD             \\
+            ORB v2 MPtrj         & 0.470                  & 0.922                  & 0.765                 & 4.702                  & 0.719                   & 0.045                    & 0.756                 & 1.726                             & 0.101                     & 25.2M           & EFSD             \\
+            CHGNet               & 0.343                  & 0.851                  & 0.613                 & 3.361                  & 0.514                   & 0.063                    & 0.689                 & 2.000                             & 0.095                     & 413k            & EFSGM            \\
+            M3GNet               & 0.310                  & 0.812                  & 0.569                 & 2.882                  & 0.441                   & 0.075                    & 0.585                 & 2.000                             & 0.112                     & 228k            & EFSG             \\
             \bottomrule
         \end{tabular}%
     }
@@ -85,43 +108,82 @@ Further optimisation details are given in Supplementary Sections~\ref{sec:sm-wsd
     \end{minipage}
 \end{table}
 
-Matbench Discovery is a widely used benchmark for evaluating machine-learning models in high-throughput inorganic-crystal discovery~\cite{riebesell2025matbench}.
-In the compliant setting, models are trained on MPtrj~\cite{deng2023chgnet}, used to relax WBM candidate structures~\cite{WBM}, and then evaluated by their formation-energy predictions and derived convex-hull distances.
-The resulting scores combine classification, regression and structural-relaxation metrics, making the benchmark a stringent test of both energy accuracy and relaxation quality.
-Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
-Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
+Matbench Discovery is a widely used benchmark for evaluating machine-learning
+models in high-throughput inorganic-crystal
+discovery~\cite{riebesell2025matbench}. In the compliant setting, models are
+trained on MPtrj~\cite{deng2023chgnet}, used to relax WBM candidate
+structures~\cite{WBM}, and then evaluated by their formation-energy predictions
+and derived convex-hull distances. The resulting scores combine classification,
+regression and structural-relaxation metrics, making the benchmark a stringent
+test of both energy accuracy and relaxation quality. Here we focus on the
+compliant leaderboard to keep the training data fixed across models and more
+directly compare architectural differences. Non-compliant leaderboard entries
+may additionally involve different training datasets or fine-tuning strategies
+and are left for future comparison.
 
-Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} shows the corresponding accuracy--efficiency frontier in terms of CPS versus training cost.
-DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.833 with an F1 score of 0.859, a $\kappa$SRME of 0.255 and 20.91M parameters.
-Its CPS is slightly higher than EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} (0.833 versus 0.830) while using 31\% fewer parameters (20.91M versus 30.3M).
-As shown in Fig.~\ref{fig:cps}, DPA4-Pro also reaches this accuracy with a lower A100-equivalent training cost than EquiformerV3+DeNS-MP.
+Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics,
+while Fig.~\ref{fig:cps} shows the corresponding accuracy--efficiency frontier
+in terms of CPS versus training cost. DPA4-Pro establishes the best CPS in
+Table~\ref{tab:matbench}, reaching 0.833 with an F1 score of 0.859, a
+$\kappa$SRME of 0.255 and 20.91M parameters. Its CPS is slightly higher than
+EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} (0.833 versus
+0.830) while using 31\% fewer parameters (20.91M versus 30.3M). As shown in
+Fig.~\ref{fig:cps}, DPA4-Pro also reaches this accuracy with a lower
+A100-equivalent training cost than EquiformerV3+DeNS-MP.
 
-This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked by dashed marker outlines in Fig.~\ref{fig:cps}.
-DeNS~\cite{liao2024dens} has been shown to improve equivariant force fields by denoising non-equilibrium structures, and EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3} further combines this strategy with direct-force pretraining.
-DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
-This result suggests that the DPA4 architecture itself contributes to the improved accuracy rather than relying on an auxiliary denoising or direct-force objective.
+This comparison is notable because several high-ranking baselines use
+additional accuracy-enhancing training stages, marked by dashed marker outlines
+in Fig.~\ref{fig:cps}. DeNS~\cite{liao2024dens} has been shown to improve
+equivariant force fields by denoising non-equilibrium structures, and
+EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3} further combines this strategy
+with direct-force pretraining. DPA4-Pro uses neither DeNS nor direct-force
+training; it is trained through the conservative energy path and still
+surpasses the DeNS-assisted EquiformerV3 baseline in CPS. This result suggests
+that the DPA4 architecture itself contributes to the improved accuracy rather
+than relying on an auxiliary denoising or direct-force objective.
 
-The smaller DPA4 variants show that the same architecture remains effective in a lower-cost regime.
-DPA4-Plus reaches a CPS of 0.822 with only 5.40M parameters, reducing the gap to EquiformerV3+DeNS-MP to 0.008 CPS while using 82\% fewer parameters.
-DPA4-Air reaches a CPS of 0.804 with 2.76M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 10.9$\times$ smaller model.
-DPA4-Neo contains only 1.60M parameters but still reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model.
-Beyond parameter count, Fig.~\ref{fig:cps} compares the A100-equivalent training cost needed to reach each point on the leaderboard.
-On this scale, DPA4-Air requires only single-digit A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP while achieving a higher CPS.
-For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS peak FP32 throughput.
-Under an idealized peak-FLOP rescaling, the DPA4-Air training budget is therefore on the order of one day on such hardware.
-These compact variants are important for high-throughput workflows because they offer strong accuracy with lower training cost and faster deployment.
+The smaller DPA4 variants show that the same architecture remains effective in
+a lower-cost regime. DPA4-Plus reaches a CPS of 0.822 with only 5.40M
+parameters, reducing the gap to EquiformerV3+DeNS-MP to 0.008 CPS while using
+82\% fewer parameters. DPA4-Air reaches a CPS of 0.804 with 2.76M parameters,
+exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a
+10.9$\times$ smaller model. DPA4-Neo contains only 1.60M parameters but still
+reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris}
+(0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model. Beyond
+parameter count, Fig.~\ref{fig:cps} compares the A100-equivalent training cost
+needed to reach each point on the leaderboard. On this scale, DPA4-Air requires
+only single-digit A100 GPU-days, 42.9$\times$ less training compute than
+eSEN-30M-MP while achieving a higher CPS. For perspective, the A100 has a peak
+FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can
+exceed 100~TFLOPS peak FP32 throughput. Under an idealized peak-FLOP rescaling,
+the DPA4-Air training budget is therefore on the order of one day on such
+hardware. These compact variants are important for high-throughput workflows
+because they offer strong accuracy with lower training cost and faster
+deployment.
 
-As the leading compliant models are now separated by relatively small CPS differences, further optimisation of the fixed-MPtrj Matbench Discovery leaderboard may have limited practical value once models reach the present accuracy--efficiency frontier.
-This does not diminish the usefulness of the benchmark; rather, it suggests that future comparisons may be more informative when they also consider non-compliant settings with broader DFT training datasets, additional fine-tuning data or different deployment objectives.
+As the leading compliant models are now separated by relatively small CPS
+differences, further optimisation of the fixed-MPtrj Matbench Discovery
+leaderboard may have limited practical value once models reach the present
+accuracy--efficiency frontier. This does not diminish the usefulness of the
+benchmark; rather, it suggests that future comparisons may be more informative
+when they also consider non-compliant settings with broader DFT training
+datasets, additional fine-tuning data or different deployment objectives.
 
 \subsection{Small-molecule benchmarks}
 \label{sec:small_mol}
 
-DPA4 was next evaluated on SPICE-MACE-OFF~\cite{kovacs2023mace}, a small-molecule benchmark for transferable organic force fields.
-The benchmark spans PubChem molecules, DES370K~\cite{donchev2021des370k} monomers and dimers, dipeptides, solvated amino acids, water clusters and larger QMugs-derived molecules~\cite{eastman2023spice,isert2022qmugs}.
-Reference energies and forces were computed at the $\omega$B97M-D3(BJ)/def2-TZVPPD level~\cite{eastman2023spice,kovacs2023mace}.
-We use the same train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
-Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted average MAE (LWAMAE) with equal weights, equivalent to the geometric mean of subset MAEs.
+DPA4 was next evaluated on SPICE-MACE-OFF~\cite{kovacs2023mace}, a
+small-molecule benchmark for transferable organic force fields. The benchmark
+spans PubChem molecules, DES370K~\cite{donchev2021des370k} monomers and dimers,
+dipeptides, solvated amino acids, water clusters and larger QMugs-derived
+molecules~\cite{eastman2023spice,isert2022qmugs}. Reference energies and forces
+were computed at the $\omega$B97M-D3(BJ)/def2-TZVPPD
+level~\cite{eastman2023spice,kovacs2023mace}. We use the same
+train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and
+DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
+Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted
+average MAE (LWAMAE) with equal weights, equivalent to the geometric mean of
+subset MAEs.
 
 \begin{table}
     \scriptsize
@@ -157,57 +219,92 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
             \begin{tablenotes}
                 \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy (E) MAEs are in meV/atom and force (F) MAEs are in meV/\AA.
                 \item[] Boldface and underlining denote the best and second-best values for each dataset--target pair, respectively.
-                \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
+                \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the
+                DPA3 comparison protocol~\cite{zhang2025dpa3}.
             \end{tablenotes}
         \end{spacing}
     \end{threeparttable}
 \end{table}
 
-Table~\ref{table:spice} shows that DPA4 improves molecular energy and force accuracy across the chemically diverse SPICE-MACE-OFF subsets.
-DPA4-Plus attains the best energy and force MAEs in all seven subsets, with aggregate LWAMAEs of 0.09~meV/atom and 1.77~meV/\AA{}, respectively.
-Against the 6.5M-parameter eSEN baseline~\cite{fu2025esen}, this 5.3M-parameter model lowers the aggregate energy and force errors by 36\% and 31\%, respectively.
-Against DPA3-L24~\cite{zhang2025dpa3}, the corresponding reductions are 59\% and 69\%, showing that the gain extends well beyond the inorganic-crystal benchmark.
+Table~\ref{table:spice} shows that DPA4 improves molecular energy and force
+accuracy across the chemically diverse SPICE-MACE-OFF subsets. DPA4-Plus
+attains the best energy and force MAEs in all seven subsets, with aggregate
+LWAMAEs of 0.09~meV/atom and 1.77~meV/\AA{}, respectively. Against the
+6.5M-parameter eSEN baseline~\cite{fu2025esen}, this 5.3M-parameter model
+lowers the aggregate energy and force errors by 36\% and 31\%, respectively.
+Against DPA3-L24~\cite{zhang2025dpa3}, the corresponding reductions are 59\%
+and 69\%, showing that the gain extends well beyond the inorganic-crystal
+benchmark.
 
 The smaller DPA4-Air model preserves much of this accuracy at a lower cost.
-With 2.7M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.12~meV/atom and 2.44~meV/\AA{}, both lower than the 6.5M-parameter eSEN baseline~\cite{fu2025esen}.
-Against DPA3-L24~\cite{zhang2025dpa3}, DPA4-Air lowers the aggregate energy and force errors by 45\% and 58\%, respectively, while using 45\% fewer parameters.
-DPA4-Air is also the second-best model for most subset-level targets, including water, solvated amino acids and QMugs.
-Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the accuracy--parameter frontier across both inorganic crystals and organic molecules, rather than specialising to a single chemical domain.
+With 2.7M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.12~meV/atom and
+2.44~meV/\AA{}, both lower than the 6.5M-parameter eSEN
+baseline~\cite{fu2025esen}. Against DPA3-L24~\cite{zhang2025dpa3}, DPA4-Air
+lowers the aggregate energy and force errors by 45\% and 58\%, respectively,
+while using 45\% fewer parameters. DPA4-Air is also the second-best model for
+most subset-level targets, including water, solvated amino acids and QMugs.
+Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the
+accuracy--parameter frontier across both inorganic crystals and organic
+molecules, rather than specialising to a single chemical domain.
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{fig/lmp-inorganic_500.png}
+    \includegraphics[width=\textwidth]{fig/lmp-inorganic.pdf}
     \caption{
         LAMMPS inference throughput on the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} test.
         Each point reports molecular-dynamics throughput for periodic repetitions of the same inorganic seed structure, evaluated with the LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface after warm-up on an NVIDIA H20 GPU.
-        The four panels show complementary speed and cost measures; higher rates and lower time-per-ns or time-per-step values indicate faster simulation.
+        The three panels report complementary throughput measures---simulated time per day, time steps per second and atom-normalized step rate---where higher values indicate faster simulation.
     }
     \label{fig:lmp_inorganic_infer}
 \end{figure}
 
-Figure~\ref{fig:cps} complements the Matbench Discovery~\cite{riebesell2025matbench} leaderboard metrics by plotting CPS against A100-equivalent training cost.
-DPA4-Air reaches a CPS of 0.804 using 7.8 A100 GPU-days, whereas eSEN-30M-MP~\cite{fu2025esen} reaches a lower CPS of 0.797 using 335 A100 GPU-days.
-This corresponds to 42.9$\times$ less training compute for DPA4-Air at a slightly higher leaderboard score.
-DPA4-Pro remains below the training cost of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} while reaching a higher CPS.
-The dashed-outline baselines in Fig.~\ref{fig:cps} use DeNS~\cite{liao2024dens} or direct-force pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants are trained through the conservative energy path without either auxiliary stage.
+Figure~\ref{fig:cps} complements the Matbench
+Discovery~\cite{riebesell2025matbench} leaderboard metrics by plotting CPS
+against A100-equivalent training cost. DPA4-Air reaches a CPS of 0.804 using
+7.8 A100 GPU-days, whereas eSEN-30M-MP~\cite{fu2025esen} reaches a lower CPS of
+0.797 using 335 A100 GPU-days. This corresponds to 42.9$\times$ less training
+compute for DPA4-Air at a slightly higher leaderboard score. DPA4-Pro remains
+below the training cost of
+EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} while reaching a
+higher CPS. The dashed-outline baselines in Fig.~\ref{fig:cps} use
+DeNS~\cite{liao2024dens} or direct-force
+pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants
+are trained through the conservative energy path without either auxiliary
+stage.
 
-The lower training cost is supported by the compiled conservative-force implementation.
-In controlled ablations, \texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed precision gives a 3.1$\times$ wall-clock training speedup and reduces peak training memory to about 40\% of the FP32 baseline (Table~\ref{tab:dpa4_compile_ablation}).
-This systems-level gain is obtained without replacing energy-based force matching by a direct-force surrogate.
+The lower training cost is supported by the compiled conservative-force
+implementation. In controlled ablations,
+\texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed
+precision gives a 3.1$\times$ wall-clock training speedup and reduces peak
+training memory to about 40\% of the FP32 baseline
+(Table~\ref{tab:dpa4_compile_ablation}). This systems-level gain is obtained
+without replacing energy-based force matching by a direct-force surrogate.
 
-Deployment-oriented inference was evaluated through the LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface, which is the relevant path for production molecular dynamics.
-The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbour-list construction, force evaluation and simulation-driver overhead.
-The LAMMPS benchmarks were run with Kokkos acceleration~\cite{trott2022kokkos} on a single NVIDIA H20 GPU, with additional ASE and LAMMPS measurements reported in Supplementary Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
+Deployment-oriented inference was evaluated through the
+LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface,
+which is the relevant path for production molecular dynamics. The main
+comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500}
+system-size sweep and therefore includes neighbour-list construction, force
+evaluation and simulation-driver overhead. The LAMMPS benchmarks were run with
+Kokkos acceleration~\cite{trott2022kokkos} on a single NVIDIA H20 GPU, with
+additional ASE and LAMMPS measurements reported in Supplementary
+Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
 
-Figure~\ref{fig:lmp_inorganic_infer} shows that compact DPA4 models retain practical molecular-dynamics throughput despite the equivariant message-passing operations.
-The scalar DPA1-L0 baseline~\cite{zhang2022dpa} remains the fastest model, as expected for a less expressive descriptor.
-Among the more accurate neural potentials, DPA4-Neo and DPA4-Air maintain favourable atom-step throughput up to $10^4$ atoms.
-At the largest system size, DPA4-Neo is roughly twice as fast as MACE-S and several times faster than MACE-M~\cite{batatia2022mace,barroso2024open} in atom-step throughput.
-DPA4-Air is slower than DPA4-Neo but still remains consistently faster than the MACE baselines.
-Thus, the compact DPA4 variants reduce both training cost and deployment cost for large atomistic simulations.
+Figure~\ref{fig:lmp_inorganic_infer} shows that the compact DPA4 models retain
+practical molecular-dynamics throughput despite their equivariant message
+passing. The scalar DPA1-L0 baseline~\cite{zhang2022dpa} remains the fastest
+model, as expected for a less expressive descriptor. Among the more expressive
+potentials, DPA4-Neo and DPA4-Air sustain favourable atom-step throughput up to
+$10^4$ atoms, whereas the DPA3-L16 baseline~\cite{zhang2025dpa3} matches the
+atom-step rate of DPA4-Air only at intermediate system sizes. At the largest
+system size, DPA4-Neo is roughly twice as fast as MACE-S and several times
+faster than MACE-M~\cite{batatia2022mace,barroso2024open} in atom-step
+throughput, and DPA4-Air remains consistently faster than both MACE baselines.
+The compact DPA4 variants therefore reduce both the training and the deployment
+cost of large atomistic simulations.
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
@@ -223,15 +320,27 @@ Thus, the compact DPA4 variants reduce both training cost and deployment cost fo
     \label{fig:zbl}
 \end{figure}
 
-We test the short-range branch on a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
-This one-dimensional probe drives the model into the sub-\AA{} regime, where ordinary DFT training data are sparse and the repulsive screened Coulomb interaction should dominate.
-The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging enabled.
+We test the short-range branch on a C--Si dimer scan derived from an
+ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset. This one-dimensional probe
+drives the model into the sub-\AA{} regime, where ordinary DFT training data
+are sparse and the repulsive screened Coulomb interaction should dominate. The
+comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise
+correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging
+enabled.
 
-Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of the scan, but the force response separates the two short-range treatments.
-The DPA3 DP-ZBL baseline develops a sharp force excursion near the switching region, producing a local attractive impulse where the analytical ZBL force~\cite{ziegler1985} is strongly repulsive.
-DPA4 instead follows the analytical ZBL force in the inner region and joins smoothly to the learned force as the C--Si distance increases.
-This behaviour is consistent with Section~\ref{sec:zbl_method}: the analytical branch reads the true distance, the learned branch reads a $C^3$ clamped displacement, and the source-freeze gate suppresses the direct learned short-range pair channel.
-Native ZBL Zone Bridging therefore supplies the close-contact repulsion before differentiating the total scalar energy, avoiding the force-level switching artifact observed for the external pair correction.
+Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of
+the scan, but the force response separates the two short-range treatments. The
+DPA3 DP-ZBL baseline develops a sharp force excursion near the switching
+region, producing a local attractive impulse where the analytical ZBL
+force~\cite{ziegler1985} is strongly repulsive. DPA4 instead follows the
+analytical ZBL force in the inner region and joins smoothly to the learned
+force as the C--Si distance increases. This behaviour is consistent with
+Section~\ref{sec:zbl_method}: the analytical branch reads the true distance,
+the learned branch reads a $C^3$ clamped displacement, and the source-freeze
+gate suppresses the direct learned short-range pair channel. Native ZBL Zone
+Bridging therefore supplies the close-contact repulsion before differentiating
+the total scalar energy, avoiding the force-level switching artifact observed
+for the external pair correction.
 
 \input{chap/results_ablation}
 

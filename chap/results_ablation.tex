@@ -1,266 +1,48 @@
-\subsection{Architecture ablations}
+\subsection{Mechanism ablations}
 \label{sec:ablation}
 
-We evaluate the main architectural and implementation choices of DPA4 on the
-same WBM-subsampled test set and report energy and force MAEs under a shared
-evaluation protocol. Because the ablations isolate different factors only
-within their own controlled groups, each group is interpreted as evidence for
-the corresponding design choice rather than as part of a global ranking across
-unrelated runs. Efficiency metrics are reported as relative quantities under
-matched hardware, batch-size, data-loading, and precision settings. Unless
-otherwise noted, \textit{Train time (rel.)} denotes relative training
-wall-clock time, and \textit{Test time (rel.)} denotes the relative wall-clock
-time required to evaluate the full WBM-subsampled test set with the DeePMD-kit
-\texttt{dp test} command. Although the test set and hardware are matched, test
-time is retained as a secondary throughput reference because model size changes
-the feasible batch size, memory pressure, and kernel execution pattern.
-Normalized training time is therefore the primary efficiency metric. In tables
-where rank highlighting is used, boldface denotes the best value within the
-corresponding controlled comparison and underlining denotes the second-best
-value. We omit second-best underlining for metrics without an explicitly
-highlighted best value or when multiple rows are tied for the best value.
+To establish that the accuracy--efficiency gains originate from the proposed
+mechanisms rather than from confounding hyperparameter choices, we vary one
+component at a time under a matched training protocol and evaluate each variant
+on a subsample of the WBM test set~\cite{WBM}. We summarise the principal
+comparison for each mechanism below and report the complete sweeps, protocols
+and configurations in Supplementary Section~\ref{sec:sm-ablation}.
 
-\subsubsection{Compilation and training precision}
+Envelope-gated softmax attention improves neighbourhood aggregation without
+altering the equivariant feature space. In the deployed two-focus configuration,
+attention-weighted aggregation lowers the energy and force MAEs by 9.2\% and
+6.8\%, respectively, relative to scatter-sum aggregation, for a 6\% increase in
+training time (Supplementary Table~\ref{tab:dpa4_attention_ablation}). Because
+the weights are computed from rotationally invariant scalar channels, this gain
+reflects adaptive neighbour weighting rather than any relaxation of SO(3)
+equivariance.
 
-This ablation quantifies the systems-level benefit of graph compilation and
-reduced-precision tensor-core execution. Relative to the non-compiled FP32
-baseline, bf16 AMP alone gives a 1.43$\times$ training speedup and reduces peak
-training memory by 59\%. Graph compilation provides a larger and complementary
-gain: compiled FP32 training gives a 1.61$\times$ speedup, and enabling TF32 in
-this compiled path increases the speedup to 1.82$\times$. The largest practical
-improvement is obtained by combining compilation with bf16 AMP, which gives a
-3.1$\times$ speedup and reduces peak memory by 60\%. Thus, the compiled
-mixed-precision path makes conservative force training more than three times
-faster while using only about 40\% of the baseline peak GPU memory.
+Multi-focus SO(2) convolution separates expressivity from raw channel width. At
+a fixed SO(2) dimension of 192, the 96-channel two-focus model matches the
+accuracy of the 192-channel single-focus model (energy and force MAEs of
+26.994~meV/atom and 36.408~meV/\AA{} versus 27.286~meV/atom and 36.477~meV/\AA{})
+while using 56\% fewer parameters, 23\% less training time and 34\% less
+inference time. Widening the single stream beyond this point yields no further
+benefit: the 256-channel single-focus model carries about four times as many
+parameters yet attains higher errors (28.409~meV/atom and 36.670~meV/\AA{}),
+indicating that a single wide equivariant stream is harder to optimise to
+comparable quality under a shared training recipe
+(Supplementary Table~\ref{tab:dpa4_focus_ablation}). Allocating the same angular
+budget to focus channels that compete over distinct edge-local motifs therefore
+provides a more parameter-efficient and more readily optimised route for scaling
+the SO(2) representation than widening a single stream.
 
-The corresponding accuracy changes are small compared with the efficiency gain.
-Against the FP32 baseline (27.603~meV/atom and 34.246~meV/\AA{}), bf16 AMP
-changes the energy and force MAEs by 1.7\% and 2.0\%, respectively. The
-compiled-bf16 setting, which gives the strongest speed and memory improvement,
-changes them by 2.7\% and 1.8\%; when TF32 is also enabled, the energy MAE
-changes by 2.8\% and the force MAE by only 0.1\%. These differences are
-consistent with small numerical and stochastic variation rather than systematic
-accuracy degradation. Although the random seed is fixed and
-\texttt{torch.compile} preserves the mathematical computation graph,
-compilation can change kernel fusion, hardware-specific kernel selection,
-reduction ordering, and tensor-core dispatch; bf16 AMP and TF32 also change the
-effective arithmetic used by eligible matrix operations. DPA4 limits this
-sensitivity by keeping geometric preprocessing and normalization operations
-such as RMSNorm in FP32, while allowing large matrix operations to use bf16 or
-TF32 where appropriate. We therefore enable \texttt{torch.compile}, bf16 AMP,
-and TF32 in the following ablations and benchmark experiments unless otherwise
-specified.
+Radial degree coupling adds complementary expressivity inside the local SO(2)
+frame. A compact rank-1 per-channel degree-mixing kernel lowers the energy and
+force MAEs by 3.1\% and 6.9\%, respectively, relative to scalar radial scaling,
+at only 1.12$\times$ the training time
+(Supplementary Table~\ref{tab:dpa4_radial_degree_ablation}). This low-rank kernel
+provides the most favourable accuracy--throughput trade-off and serves as the
+default radial coupling.
 
-\begin{table}[t]
-    \centering
-    \scriptsize
-    \begin{threeparttable}
-        \caption{Ablation of graph compilation and training precision.\tnote{a}}
-        \label{tab:dpa4_compile_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
-            \toprule
-            \textbf{Compile}                       &
-            \textbf{bf16 AMP}                      &
-            \textbf{TF32}                          &
-            \textbf{E MAE}$\downarrow$             &
-            \textbf{F MAE}$\downarrow$             &
-            \textbf{Train time (rel.)}$\downarrow$ &
-            \makecell{\textbf{Peak train}\\\textbf{mem. (rel.)}$\downarrow$}                                         \\
-            \midrule
-            False                                  & False & N/A   & 27.603 & 34.246 & 1.00          & 1.00          \\
-            False                                  & True  & N/A   & 28.081 & 34.936 & 0.70          & 0.41          \\
-            True                                   & False & False & 28.217 & 34.787 & 0.62          & 0.77          \\
-            True                                   & False & True  & 28.190 & 34.860 & 0.55          & 1.00          \\
-            True                                   & True  & False & 28.355 & 34.864 & \textbf{0.32} & \textbf{0.40} \\
-            True                                   & True  & True  & 28.364 & 34.275 & \textbf{0.32} & \textbf{0.40} \\
-            \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
-            \item[a] Train time (rel.) and peak train memory are normalized to the non-compiled
-            FP32 baseline measured on NVIDIA H20 hardware. Peak train memory denotes peak
-            GPU memory during training. N/A indicates that TF32 tensor cores are not
-            applicable for the non-compiled execution path.
-        \end{tablenotes}
-    \end{threeparttable}
-\end{table}
-
-\subsubsection{Attention aggregation}
-
-The attention ablation isolates the aggregation rule while holding the feature
-dimension and focus count fixed within each pair of rows. Replacing scatter-sum
-aggregation with attention-weighted sum consistently reduces both energy and
-force MAEs across the 64-channel, 96-channel, and 96-channel 2-focus settings.
-The improvement is substantial and stable: energy MAE decreases by 8.3--9.3\%,
-and force MAE decreases by 4.7--6.8\% relative to the corresponding scatter-sum
-controls. The gain is obtained with a small computational cost, increasing
-training time by only 5--6\% and leaving test time within 1--5\% of the control
-models. This result supports the design choice of computing attention from
-rotationally invariant scalar channels: the model gains adaptive neighbour
-selection while preserving equivariance of the higher-order SO(2) features.
-
-\begin{table}[t]
-    \centering
-    \scriptsize
-    \begin{threeparttable}
-        \caption{Ablation of attention aggregation.\tnote{a}}
-        \label{tab:dpa4_attention_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
-            \toprule
-            \textbf{Feature dim.}                  &
-            \textbf{No. focuses}                   &
-            \textbf{Aggregation}                   &
-            \textbf{E MAE}$\downarrow$             &
-            \textbf{F MAE}$\downarrow$             &
-            \textbf{Train time (rel.)}$\downarrow$ &
-            \textbf{Test time (rel.)}$\downarrow$                                                                                 \\
-            \midrule
-            64                                     & 1 & Scatter sum            & 30.691          & 40.072          & 1.00 & 1.00 \\
-            64                                     & 1 & Attention-weighted sum & \textbf{27.839} & \textbf{38.184} & 1.05 & 1.01 \\
-            \midrule
-            96                                     & 1 & Scatter sum            & 30.068          & 38.407          & 1.00 & 1.00 \\
-            96                                     & 1 & Attention-weighted sum & \textbf{27.567} & \textbf{36.127} & 1.05 & 1.05 \\
-            \midrule
-            96                                     & 2 & Scatter sum            & 30.935          & 36.639          & 1.00 & 1.00 \\
-            96                                     & 2 & Attention-weighted sum & \textbf{28.083} & \textbf{34.158} & 1.06 & 1.02 \\
-            \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
-            \item[a] Within each feature-dimension and focus-count setting, Train time (rel.) and
-            Test time (rel.) are normalized to the corresponding scatter-sum aggregation.
-        \end{tablenotes}
-    \end{threeparttable}
-\end{table}
-
-\subsubsection{Multi-focus SO(2) convolution}
-
-The multi-focus comparison separates per-focus feature width from the number of
-parallel equivariant focus channels. Increasing the width of a single focus
-stream rapidly increases parameter count and inference cost, but the
-corresponding accuracy gains are uneven. By contrast, multi-focus variants
-increase the effective SO(2) convolution dimension through several narrower
-focus channels and often reach better accuracy--cost trade-offs. At an SO(2)
-dimension of 192, the 96-channel 2-focus model gives the best overall result,
-improving energy MAE from 29.418 to 26.994~meV/atom and force MAE from 39.529
-to 36.408~meV/\AA{} relative to the 64-channel 1-focus baseline. It also
-outperforms the 192-channel 1-focus model with more than 56\% fewer trainable
-parameters, approximately 23\% lower training time, and approximately 34\%
-lower inference time. All rows in this sweep use the same learning-rate
-setting; as larger-capacity variants often benefit from smaller tuned learning
-rates, the reported MAEs of the largest configurations may be mildly
-conservative. Under a shared training recipe, however, the 96-channel 2-focus
-configuration gives the most balanced point in this sweep. These trends are
-consistent with the intended role of focus competition, where parallel
-equivariant sub-channels specialize to different edge-local geometric motifs
-before the rotate-back step.
-
-\begin{table}[t]
-    \centering
-    \scriptsize
-    \begin{threeparttable}
-        \caption{Ablation of SO(2) feature width and focus count.\tnote{a}}
-        \label{tab:dpa4_focus_ablation}
-        \begin{tabular}{@{}cccccccc@{}}
-            \toprule
-            \textbf{Feature dim.}                  &
-            \textbf{No. focuses}                   &
-            \textbf{SO(2) dim.}                    &
-            \textbf{E MAE}$\downarrow$             &
-            \textbf{F MAE}$\downarrow$             &
-            \textbf{Train time (rel.)}$\downarrow$ &
-            \textbf{Test time (rel.)}$\downarrow$  &
-            \textbf{Params}                                                                                                  \\
-            \midrule
-            64                                     & 1 & 64  & 29.418             & 39.529             & 1.00 & 1.00 & 1.9M  \\
-            96                                     & 1 & 96  & 28.671             & 38.333             & 1.37 & 1.49 & 4.1M  \\
-            64                                     & 2 & 128 & 28.126             & 38.123             & 1.55 & 1.55 & 3.2M  \\
-            128                                    & 1 & 128 & 28.708             & 37.882             & 1.80 & 1.86 & 7.3M  \\
-            64                                     & 3 & 192 & 27.890             & 37.283             & 1.95 & 2.14 & 4.5M  \\
-            96                                     & 2 & 192 & \textbf{26.994}    & \textbf{36.408}    & 2.28 & 2.54 & 7.0M  \\
-            192                                    & 1 & 192 & 27.286             & 36.477             & 2.98 & 3.86 & 16.0M \\
-            64                                     & 4 & 256 & 27.821             & 37.605             & 2.43 & 2.65 & 5.7M  \\
-            256                                    & 1 & 256 & 28.409             & 36.670             & 4.50 & 5.17 & 28.4M \\
-            96                                     & 3 & 288 & \underline{27.168} & \underline{36.429} & 3.25 & 3.62 & 9.8M  \\
-            \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
-            \item[a] Train time (rel.) and Test time (rel.) are normalized to the 64-channel
-            1-focus baseline. Params denotes the number of trainable parameters. All rows
-            use the same learning-rate setting.
-        \end{tablenotes}
-    \end{threeparttable}
-\end{table}
-
-\subsubsection{Radial coupling}
-
-This ablation tests how radial features couple to local SO(2) edge features.
-The scalar-scaling baseline uses only the $l=0$ radial feature to scale edge
-features across angular orders, whereas degree mixing uses higher-order radial
-features to mix input and output angular degrees in the local SO(2) frame
-before modulating the edge features. The main gain comes from allowing this
-degree mixing to be channel dependent while keeping the modulation kernel
-compact. Even the rank-1 per-channel kernel captures most of the benefit: it
-reduces energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to
-35.689~meV/\AA{} relative to scalar scaling, corresponding to 3.1\% and 6.9\%
-improvements, respectively. This improvement is obtained at low additional
-cost, with training and test times increasing only to 1.12$\times$ and
-1.10$\times$ the scalar-scaling baseline. Low-rank radial degree coupling
-therefore provides a favourable accuracy--throughput trade-off before the
-kernel is made substantially more expressive.
-
-The remaining rank sweep shows that more expressive radial coupling is not
-monotonically better. Increasing the rank from 1 to 4 gives the best energy and
-force MAEs, but also raises the training cost to 1.86$\times$ the baseline; rank
-8, rank 16, and the full kernel are still more expensive yet give worse force
-MAEs. These results suggest that compact per-channel kernels act as a structural
-regularizer, providing enough channel-specific angular mixing without
-introducing many weakly constrained radial--angular interactions. We therefore
-use compact low-rank radial degree coupling rather than the most expressive full
-coupling.
-
-\begin{table}[t]
-    \centering
-    \scriptsize
-    \begin{threeparttable}
-        \caption{Ablation of radial coupling in SO(2) edge-feature modulation.\tnote{a}}
-        \label{tab:dpa4_radial_degree_ablation}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
-            \toprule
-            \textbf{Radial coupling} &
-            \textbf{Per-channel mod.} &
-            \textbf{Rank} &
-            \textbf{E MAE}$\downarrow$ &
-            \textbf{F MAE}$\downarrow$ &
-            \textbf{Train time (rel.)}$\downarrow$ &
-            \textbf{Test time (rel.)}$\downarrow$ \\
-            \midrule
-            Scalar scaling & False & N/A & 28.493 & 38.349 & 1.00 & 1.00 \\
-            Degree mixing & False & N/A & 28.494 & 37.212 & 1.09 & 1.06 \\
-            Degree mixing & True & 1 & 27.611 & \underline{35.689} & 1.12 & 1.10 \\
-            Degree mixing & True & 2 & \underline{26.983} & 36.127 & 1.66 & 1.13 \\
-            Degree mixing & True & 4 & \textbf{26.556} & \textbf{35.675} & 1.86 & 1.14 \\
-            Degree mixing & True & 8 & 27.106 & 36.662 & 2.27 & 1.19 \\
-            Degree mixing & True & 16 & 26.984 & 36.401 & 3.09 & 1.34 \\
-            Degree mixing & True & Full & 28.011 & 37.400 & 3.36 & 2.22 \\
-            \bottomrule
-        \end{tabular*}
-        \begin{tablenotes}
-            \item[a] Train time (rel.) and Test time (rel.) are normalized to the scalar-scaling
-            baseline. Scalar scaling uses only the $l=0$ radial feature, whereas degree
-            mixing uses higher-order radial features to mix angular degrees in the local
-            SO(2) frame.
-        \end{tablenotes}
-    \end{threeparttable}
-\end{table}
-
-\subsubsection{Supplementary ablation studies}
-
-Additional controlled studies are provided in the Supplementary Information to
-document model selection and robustness analyses beyond the main mechanisms
-tested above. These include model-depth scaling over the number of interaction
-blocks, SO(2) layers per block, and FFN layers per block, attention-aggregation
-design variants, normalization-placement variants, the learning-rate scheduler
-comparison, and the $S^2$ activation and quadrature comparison.
-These results support reproducibility and hyperparameter selection, whereas the
-main text focuses on ablations that directly test the principal architectural
-and implementation choices of DPA4.
-
+The remaining studies in Supplementary Section~\ref{sec:sm-ablation}---spanning
+compiled mixed-precision training, interaction depth, attention design variants,
+normalisation placement, the learning-rate schedule and the $S^2$ quadrature
+rule---corroborate this conclusion: the reported improvements arise from the
+targeted architectural mechanisms, while the other sweeps establish stable
+operating points for the released DPA4 variants.
