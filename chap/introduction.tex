@@ -37,18 +37,18 @@ Here we present DPA4, an equivariant interatomic-potential architecture designed
 DPA4 combines local-frame equivariant message passing, compiler-friendly conservative-force training and native analytical short-range coupling in one model family.
 Its main contributions are as follows.
 \WH{item 1 is not our contribution. should be entirely reframed.
-  novel architecture design: (0) GIE, (1) sparse edge equivariant irreps, enable edge-node equivariant product, high capacity. (2) multi-focus, lower cost higher capacity. (3) attention. (4) Lebedev SO(2) FFN.
+  novel architecture design: (1) sparse edge equivariant irreps, enable edge-node equivariant product, high capacity. (2) multi-focus, lower cost higher capacity. (3) attention. (4) Lebedev SO(2) FFN.
 }
 \begin{enumerate}
-    \item \textbf{SO(2)-equivariant local-frame architecture with attention.}
-          Inspired by eSCN~\cite{passaro2023reducing}, DPA4 represents directional information in an edge-local frame, where the residual symmetry is SO(2) and equivariant updates avoid full SO(3) Clebsch--Gordan tensor products.
-          Attention over invariant channels makes neighbourhood aggregation adaptive while preserving equivariance.
+    \item \textbf{Architectural innovations co-designed for efficiency and accuracy.}
+      DPA4 combines (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message non-linearity, (A3) envelope-gated attention for message aggregation, and (A4) a Lebedev-grid projection for SO(3)-equivariant non-linearity.
+      Together, A1--A3 raise the model's generalisation accuracy at low computational cost relative to standard SO(2)-equivariant baselines, and A4 maintains SO(3)-equivariance of the non-linearity to machine precision.
     \item \textbf{End-to-end \texttt{torch.compile} training.}
           DPA4 uses a shape-stable and compiler-friendly implementation of conservative force training.
           This makes the energy-to-force path compatible with \texttt{torch.compile} and provides a 2--3$\times$ wall-clock training speedup in controlled ablations.
-    \item \textbf{Native ZBL Zone Bridging.}
-          DPA4 incorporates the analytical ZBL repulsion inside the energy model instead of applying it as a post-hoc correction.
-          A smooth Zone Bridging mechanism suppresses the direct learned short-range pair channel, preserving conservative forces while assigning the singular close-contact interaction to the analytical branch.
+    % \item \textbf{Native ZBL Zone Bridging.}
+    %       DPA4 incorporates the analytical ZBL repulsion inside the energy model instead of applying it as a post-hoc correction.
+    %       A smooth Zone Bridging mechanism suppresses the direct learned short-range pair channel, preserving conservative forces while assigning the singular close-contact interaction to the analytical branch.
 \end{enumerate}
 DPA4 variants form a new accuracy--efficiency frontier on Matbench Discovery~\cite{riebesell2025matbench}, as summarized by the CPS-versus-training-cost comparison in Fig.~\ref{fig:cps}, and improve the molecular benchmark errors on SPICE-MACE-OFF~\cite{kovacs2023mace}.
 \WH{full name of CPS}

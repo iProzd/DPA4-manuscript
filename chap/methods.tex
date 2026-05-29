@@ -301,14 +301,17 @@ V_{\le L}\otimes\mathbb{R}^{C}$ obtained by aggregating information from the
 neighbours of atom $i$. The operator is built in six stages, developed below:
 (i) transport each source node feature into a per-edge SO(2) gauge aligning
 the bond direction with a fixed reference axis; (ii) construct an in-frame
-edge feature through radial degree coupling, a multi-focus split, and a
-multi-layer SO(2) stack; (iii) reweight the focus streams by a cross-focus
-competition; (iv) lift the in-frame feature back to the global frame as the
-per-edge equivariant message; (v) aggregate neighbour messages with
-envelope-gated attention modulated by a destination-side output gate; and
-(vi) project the result back to representation width through a channel
-post-mixer. The closed form of $\mathcal{C}_{\theta}$ collecting all six
-stages is given as Eq.~\eqref{eq:dpa4-conv} at the end of the subsection.
+edge feature through a \emph{low-rank edge--node SO(2)-equivariant product};
+(iii) introduce message non-linearity through a \emph{multi-focus design}
+combining a per-focus SO(2) stack and a cross-focus competition, whose
+gated activations and softmax over focuses act as two complementary
+non-linear elements; (iv) lift the in-frame feature back to the
+global frame as the per-edge equivariant message; (v) aggregate neighbour
+messages with envelope-gated attention modulated by a destination-side
+output gate; and (vi) project the result back to representation width
+through a channel post-mixer. The closed form of $\mathcal{C}_{\theta}$
+collecting all six stages is given as Eq.~\eqref{eq:dpa4-conv} at the end
+of the subsection.
 
 \paragraph{Edge-local frame.}
 Full SO(3)-equivariant tensor products require Clebsch--Gordan expansions
@@ -345,24 +348,29 @@ $\widetilde{\rho}_{ij}\in\mathbb{R}^{(L+1)\times H}$ be the radial-species
 feature $\rho_{ij}$ of Eq.~\eqref{eq:dpa4-rho} lifted from representation
 width $C$ to hidden width $H$ by a degree-wise channel map
 $L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H}$ applied
-independently at each degree $l$. In the local frame the edge angular feature
-$Y_l(\widehat{\mathbf{r}}_{ij})$ collapses to its $m=0$ component for every
-degree $l$, so $\widetilde{\rho}_{ij}$ serves as the radial-modulated $m=0$
-slice of the per-degree edge SO(2) irreps. A multiplication between these
-edge-side and the node-side SO(2)-equivariant irreps $\mathbf{x}_{ij}$ then
-yields, at each fixed $|m|$-stratum, a linear map that mixes the different
-angular degrees $l$ without coupling different $|m|$,
+independently at each degree $l$.
+
+\paragraph{Low-rank edge--node SO(2)-equivariant product.}
+This stage is the central message-construction primitive of DPA4. In the
+local frame, the edge angular feature $Y_l(\widehat{\mathbf{r}}_{ij})$
+collapses to its $m=0$ component for every degree $l$, so
+$\widetilde{\rho}_{ij}$ serves as the radial-modulated $m=0$ slice of the
+per-degree edge SO(2) irreps. The edge--node product takes these edge-side
+SO(2) irreps and multiplies them with the node-side SO(2)-equivariant irreps
+$\mathbf{x}_{ij}$ via a learnable linear map that, at each fixed
+$|m|$-stratum, mixes the different angular degrees $l$ without coupling
+different $|m|$,
 \begin{equation}
     \mathbf{x}_{ij,l,m,c}\;\leftarrow\;
     \sum_{l'\geq |m|}
     \mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\,\mathbf{x}_{ij,l',m,c},
     \label{eq:dpa4-radial-coupling}
 \end{equation}
-where, for each $(l,l',|m|,c)$ with $c\in\{1,\dots,H\}$,
-$\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\in\mathbb{R}$ is a scalar
-coefficient and is a learnable linear function of $\widetilde{\rho}_{ij}$. To
+where each kernel entry $\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\in
+\mathbb{R}$ is a learnable linear functional of $\widetilde{\rho}_{ij}$. To
 keep the parameter count tractable when the hidden width $H$ is large,
-$\mathcal{K}$ is parameterised by a low-rank factorisation across $c$,
+$\mathcal{K}$ is parameterised by a low-rank factorisation across the
+channel index $c$,
 \begin{equation}
     \mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})
     =
@@ -376,19 +384,27 @@ functional of $\widetilde{\rho}_{ij}$), and a learnable channel basis
 $B\in\mathbb{R}^{R\times H}$. The diagonal special case
 $\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})=\widetilde{\rho}_{ij,l,c}\,
 \delta_{l,l'}$ reduces to per-degree scalar radial modulation. Because
-$\mathcal{K}$ depends only on rotation-invariant radial-species information and
-never mixes different $|m|$, the $(-m,+m)$ pair continues to transform as a
-single two-dimensional real SO(2) representation.
+$\mathcal{K}$ depends only on rotation-invariant radial-species information
+and never mixes different $|m|$, the $(-m,+m)$ pair continues to transform as
+a single two-dimensional real SO(2) representation. Equations
+\eqref{eq:dpa4-radial-coupling}--\eqref{eq:dpa4-K-lowrank} together realise a
+direct edge--node SO(2)-equivariant multiplication at low parameter and
+compute cost, replacing the Clebsch--Gordan tensor product of a standard
+SO(3)-equivariant convolution while retaining the same expressive capacity
+for cross-$l$ coupling at fixed $|m|$.
 
-The hidden width factorises as $\mathbb{R}^{H}=\mathbb{R}^{F}\otimes
+\paragraph{Multi-focus design for message non-linearity.}
+The in-frame edge feature is processed by two distinct non-linear mechanisms
+that together constitute the second key innovation of DPA4. First, the
+hidden width factorises as $\mathbb{R}^{H}=\mathbb{R}^{F}\otimes
 \mathbb{R}^{C_f}$, so $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times F\times C_f}$
-splits into $F$ \emph{focus streams}. A multi-layer SO(2) stack
-$\mathcal{S}_{\Theta}$ acts in parallel on each focus,
+splits into $F$ \emph{focus streams}, on each of which a multi-layer SO(2)
+stack $\mathcal{S}_{\Theta}$ acts in parallel,
 \begin{equation}
     \mathbf{x}_{ij}\;\leftarrow\;\mathcal{S}_{\Theta}(\mathbf{x}_{ij}).
     \label{eq:dpa4-so2-stack}
 \end{equation}
-The stack is a composition of $S$ residual layers, each of the form
+The stack is a composition of $S$ residual layers,
 \begin{equation}
     \mathbf{x}_{ij}\;\leftarrow\;
     \mathbf{x}_{ij}+\Lambda_s\odot
@@ -398,17 +414,21 @@ The stack is a composition of $S$ residual layers, each of the form
 \end{equation}
 where $N_s$ is an equivariant RMS norm, $L^{\mathrm{SO2}}_s$ is an
 edge-independent SO(2)-equivariant linear map (unrestricted on $m=0$, the
-real form of complex multiplication on each $|m|>0$ subspace) that supplies
+real form of complex multiplication on each $|m|>0$ subspace) supplying
 cross-$l$ mixing at fixed $|m|$, $\Gamma_s$ is a gated activation acting on
 the scalar slice, and $\Lambda_s\in\mathbb{R}^{F\times C_f}$ is a learnable
-per-(focus,\,channel) residual scale initialised at $10^{-3}$. The parameter tuple
+per-(focus,\,channel) residual scale initialised at $10^{-3}$. The gated
+activations $\{\Gamma_s\}$ provide the \emph{first non-linearity} in the
+message-construction pipeline. The parameter tuple
 $\Theta=(L^{\mathrm{SO2}}_s,N_s,\Gamma_s,\Lambda_s)_{s=1}^{S}$ collects all
 learnable weights of the stack.
 
-\paragraph{Cross-focus competition.}
-The focus streams compete through a softmax over the SO(2)-invariant $l=0$
-slice. Let $\mathbf{x}^{(0)}_{ij}\in\mathbb{R}^{F\times C_f}$ be the
-$(l,m)=(0,0)$ component of $\mathbf{x}_{ij}$ at the entry of the stack
+The \emph{second non-linearity} is an edge-conditioned cross-focus
+competition that reweights the streams by a softmax computed from their own
+SO(2)-invariant $l=0$ content, turning the multi-focus split into a learnable
+non-linear gating mechanism on top of the per-focus SO(2) stack. Let
+$\mathbf{x}^{(0)}_{ij}\in\mathbb{R}^{F\times C_f}$ be the $(l,m)=(0,0)$
+component of $\mathbf{x}_{ij}$ at the entry of the stack
 \eqref{eq:dpa4-so2-stack}, and let
 $N_0:\mathbb{R}^{C_f}\to\mathbb{R}^{C_f}$ be a focus-wise scalar RMS norm
 applied independently to each of the $F$ stream rows. The per-focus
