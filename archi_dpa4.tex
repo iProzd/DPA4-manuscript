@@ -829,6 +829,48 @@ L^{\mathrm{ch}}_{\bW_{\mathrm{r}}}\brho_{ij}\in\R^{(\lmax+1)\times H}$ be the
         \bx_{ij,(l,m),c}\;\leftarrow\;\widetilde\rho_{ij,l,c}\cdot\bx_{ij,(l,m),c},\qquad (l,m)\in\Idx_{\mmax},\ c=1,\dots,H.
     \end{equation}
 
+    \paragraph{Stage 3$'$ (optional): edge-conditioned radial degree coupling.}
+    Equation~\eqref{eq:radmod} is diagonal in $l$. A strictly more expressive
+    edge-conditioned $\SO(2)$-equivariant kernel can be inserted in its place
+    (or, in the implementation, applied immediately after it as a separate
+    submodule), allowing different angular degrees within the same
+    $|m|$-stratum to mix:
+    \begin{equation}\label{eq:radmod-kernel}
+        \bx_{ij,(l,m),c}\;\leftarrow\;\sum_{l'\geq |m|}\mathcal{K}^{(l,l',|m|,c)}(\widetilde\brho_{ij})\,\bx_{ij,(l',m),c},
+    \end{equation}
+    where, for each quadruple $(l,l',|m|,c)$,
+    $\mathcal{K}^{(l,l',|m|,c)}(\widetilde\brho_{ij})\in\R$ is a learnable
+    linear functional of $\widetilde\brho_{ij}$. The kernel
+    $\mathcal{K}^{(l,l',|m|,c)}$ is $|m|$-stratified, never couples different
+    $|m|$, and (by the local-frame trivialisation of \S\ref{sec:II-to-III})
+    encompasses exactly the per-channel $\bm{W}^{(l_1,l_3,|m|)}_c$ family of
+    \eqref{eq:regIII-loc-x}; the diagonal special case
+    \begin{equation}\label{eq:radmod-kernel-diag}
+        \mathcal{K}^{(l,l',|m|,c)}(\widetilde\brho_{ij})\;=\;\widetilde\rho_{ij,l,c}\,\delta_{l,l'}
+    \end{equation}
+    reduces \eqref{eq:radmod-kernel} to \eqref{eq:radmod}.
+
+    For wide hidden widths $H$, parametrising every channel slot independently
+    is expensive. DPA4 therefore admits a low-rank-across-channels
+    factorisation,
+    \begin{equation}\label{eq:radmod-kernel-lowrank}
+        \mathcal{K}^{(l,l',|m|,c)}(\widetilde\brho_{ij})
+        \;=\;\sum_{r=1}^{R}\mathcal{K}^{(l,l',|m|,r)}_{\star}(\widetilde\brho_{ij})\,\bm{B}_{r,c},
+    \end{equation}
+    with rank $R\le H$, learnable scalar coefficients
+    $\mathcal{K}^{(l,l',|m|,r)}_{\star}(\widetilde\brho_{ij})\in\R$ (each a
+    linear functional of $\widetilde\brho_{ij}$), and a learnable channel basis
+    $\bm{B}\in\R^{R\times H}$. The full-rank case is recovered at $R=H$ with
+    $\bm{B}=I_H$, in which case each $(l,l',|m|,c)$ has its own independent
+    radial. The parameter count per edge drops from
+    $\mathcal{O}(D_m^2\cdot H\cdot\dim\widetilde\brho)$ in the full-rank case
+    to $\mathcal{O}(D_m^2\cdot R\cdot\dim\widetilde\brho + R\cdot H)$ under
+    \eqref{eq:radmod-kernel-lowrank}, which is a substantial saving when
+    $R\ll H$. The rank-shared variant
+    $\mathcal{K}^{(l,l',|m|)}(\widetilde\brho_{ij})$ (no channel index $c$,
+    same kernel applied to every channel) is the further special case where
+    the channel basis $\bm{B}$ collapses to a constant row.
+
     \paragraph{Stage 4: multi-focus split.}
     View $\R^{H}=\R^{F}\otimes\R^{C_f}$ and write $\bx_{ij}\in\R^{D_m\times F\times
     C_f}$.

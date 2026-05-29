@@ -17,8 +17,8 @@ Panel (b) focuses on GIE, which injects local geometric information into the ini
 Panel (c) shows the SO(2) multi-focus convolution, where local-frame equivariant messages are constructed and aggregated by Smooth Gated Attention during message passing.
 
 The key architectural choice is to perform equivariant message passing in an edge-local SO(2) representation rather than through full SO(3) Clebsch--Gordan tensor products; see Section~\ref{sec:so2} and Supplementary Section~\ref{sec:sm-cg-trivialisation} for details.
-GIE is applied once at the input stage to initialise scalar and higher-degree node features from local geometry, as described in Section~\ref{sec:initial-representation}.
-Each subsequent interaction block rotates source features into the edge-local SO(2) frame, applies multi-focus SO(2) convolution, lifts the resulting edge messages back to the global frame, and aggregates them with Smooth Gated Attention, implemented as the envelope-gated softmax attention in Section~\ref{sec:attn}.
+GIE is applied once at the input stage to initialise scalar and higher-degree node features from local geometry, as described in Section~\ref{sec:gie}.
+Each subsequent interaction block rotates source features into the edge-local SO(2) frame, applies multi-focus SO(2) convolution, lifts the resulting edge messages back to the global frame, and aggregates them with Smooth Gated Attention, implemented as the envelope-gated attention in Section~\ref{sec:attn}.
 After the interaction blocks, the invariant $l=0$ features are passed to the atomic energy head, while forces and virials are obtained by differentiating the total energy.
 
 Beyond the message-passing architecture, two design choices improve practical training efficiency and short-range robustness.

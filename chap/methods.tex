@@ -46,7 +46,7 @@ consists of a multi-focus SO(2) convolution in an edge-local gauge and an
 equivariant feed-forward network. The architecture combines an Environment
 Initial Embedding that injects a scalar local-environment prior at layer 0,
 edge-conditioned radial degree coupling inside the local SO(2) frame,
-envelope-gated softmax attention for smooth aggregation, a Lebedev $S^2$
+envelope-gated attention for smooth aggregation, a Lebedev $S^2$
 activation in the feed-forward branch and Native ZBL Zone Bridging for
 short-range repulsion. Geometry-dependent quantities, including radial basis
 functions, cutoff envelopes, local gauges and bridging gates, are constructed
@@ -222,25 +222,21 @@ $D^l(R)$ under a rotation $R$.
 \label{sec:so2}
 
 Each interaction block applies an SO(3)-equivariant convolution
-$\mathcal{C}_{\theta}:(V_{\le L}\otimes\mathbb{R}^{C})^{N}\to(V_{\le L}\otimes
-\mathbb{R}^{C})^{N}$ that aggregates information from neighbours into a
-per-atom update. For atom $i$, the convolution takes the form
-\begin{equation}
-    \bigl(\mathcal{C}_{\theta}\mathbf{h}\bigr)_i
-    =
-    n_i \sum_{j:r_{ij}<r_{\mathrm{c}}} s_5(r_{ij})\,\eta_j\,\mathbf{m}_{ij}
-    \in V_{\le L}\otimes\mathbb{R}^{C},
-    \label{eq:dpa4-conv}
-\end{equation}
-with the same smooth degree normalisation $n_i$ and source-freeze gate $\eta_j$
-as before and $\mathbf{m}_{ij}\in V_{\le L}\otimes\mathbb{R}^{C}$ the per-edge
-equivariant message built below. The combined edge weight
-$s_5(r_{ij})\,\eta_j$ is an SO(3)-invariant scalar that multiplies every
-$(l,m)$ component uniformly, so the message-level equivariance carries through
-to $(\mathcal{C}_\theta\mathbf{h})_i$. Equation~\eqref{eq:dpa4-conv} is the
-``plain'' aggregation; a softmax-attention variant that replaces
-$s_5(r_{ij})\eta_j$ by an envelope-gated attention weight is introduced in
-Sec.~\ref{sec:attn}.
+$\mathcal{C}_{\theta}$ that takes the per-atom node features
+$\mathbf{h}_j\in V_{\le L}\otimes\mathbb{R}^{C}$, $j=1,\dots,N$, and returns
+a per-atom update $(\mathcal{C}_{\theta}\mathbf{h})_i\in
+V_{\le L}\otimes\mathbb{R}^{C}$ obtained by aggregating information from the
+neighbours of atom $i$. The operator is built in six stages, developed below:
+(i) transport each source node feature into a per-edge SO(2) gauge aligning
+the bond direction with a fixed reference axis; (ii) construct an in-frame
+edge feature through radial degree coupling, a multi-focus split, and a
+multi-layer SO(2) stack; (iii) reweight the focus streams by a cross-focus
+competition; (iv) lift the in-frame feature back to the global frame as the
+per-edge equivariant message; (v) aggregate neighbour messages with
+envelope-gated attention modulated by a destination-side output gate; and
+(vi) project the result back to representation width through a channel
+post-mixer. The closed form of $\mathcal{C}_{\theta}$ collecting all six
+stages is given as Eq.~\eqref{eq:dpa4-conv} at the end of the subsection.
 
 \paragraph{Edge-local frame.}
 Full SO(3)-equivariant tensor products require Clebsch--Gordan expansions
@@ -258,48 +254,93 @@ $|m|\leq M\leq L$ inside the convolution and applies a degree-dependent lift
 factor $\Xi_M$ after rotating back to compensate the norm loss from truncation.
 
 \paragraph{Per-edge equivariant message.}
-For a source feature $\mathbf{h}_j$ the edge-local tensor is
+For each directed edge $(i,j)$, the source node feature $\mathbf{h}_j$ is
+transported into the edge-local frame and yields
 \begin{equation}
-    \mathbf{x}_{ij}=P_M\,D(R_{ij})\,L^{\mathrm{pre}}_{\mathrm{deg}}\mathbf{h}_j
-    \in\mathbb{R}^{D_M\times H},
+    \mathbf{x}_{ij}=P_M\,D(R_{ij})\,\mathbf{h}_j',
+    \qquad
+    \mathbf{h}_j'\;\coloneqq\;L^{\mathrm{pre}}_{\mathrm{deg}}\mathbf{h}_j
+    \in V_{\le L}\otimes\mathbb{R}^{H},
     \label{eq:dpa4-local-projection}
 \end{equation}
-where $L^{\mathrm{pre}}_{\mathrm{deg}}$ is a degree-wise channel pre-mixer that
-lifts the descriptor width from $C$ to a hidden width $H=F\,C_f$ (with focus
-count $F$ and per-focus width $C_f$), $D(R_{ij})$ is block diagonal in $l$, and
-$P_M$ selects the retained $m$-strata to dimension $D_M$. Edge-conditioned
-radial degree coupling then mixes across angular degrees at fixed $|m|$ using a
-scalar kernel built from the same radial-species features $\rho_{ij,l,c}$ as
-Eq.~\eqref{eq:dpa4-rho},
+with $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times H}$, where
+$L^{\mathrm{pre}}_{\mathrm{deg}}$ is a degree-wise channel pre-mixer that
+lifts the representation width from $C$ to a hidden width $H=F\,C_f$ (with
+focus count $F$ and per-focus width $C_f$), $\mathbf{h}_j'$ is the pre-mixed
+node feature at hidden width, $D(R_{ij})$ is block diagonal in $l$, and
+$P_M$ selects the retained $m$-strata to dimension $D_M$. Let
+$\widetilde{\rho}_{ij}\in\mathbb{R}^{(L+1)\times H}$ be the radial-species
+feature $\rho_{ij}$ of Eq.~\eqref{eq:dpa4-rho} lifted from representation
+width $C$ to hidden width $H$ by a degree-wise channel map
+$L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H}$ applied
+independently at each degree $l$. In the local frame the edge angular feature
+$Y_l(\widehat{\mathbf{r}}_{ij})$ collapses to its $m=0$ component for every
+degree $l$, so $\widetilde{\rho}_{ij}$ serves as the radial-modulated $m=0$
+slice of the per-degree edge SO(2) irreps. A multiplication between these
+edge-side and the node-side SO(2)-equivariant irreps $\mathbf{x}_{ij}$ then
+yields, at each fixed $|m|$-stratum, a linear map that mixes the different
+angular degrees $l$ without coupling different $|m|$,
 \begin{equation}
     \mathbf{x}_{ij,l,m,c}\;\leftarrow\;
     \sum_{l'\geq |m|}
-    \mathcal{K}_{l,l',|m|,c}(\rho_{ij})\,\mathbf{x}_{ij,l',m,c}.
+    \mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\,\mathbf{x}_{ij,l',m,c},
     \label{eq:dpa4-radial-coupling}
 \end{equation}
-Because $\mathcal{K}$ depends only on rotation-invariant radial-species
-information and never mixes different $|m|$, the $(-m,+m)$ pair continues to
-transform as a single two-dimensional real SO(2) representation.
+where, for each $(l,l',|m|,c)$ with $c\in\{1,\dots,H\}$,
+$\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\in\mathbb{R}$ is a scalar
+coefficient and is a learnable linear function of $\widetilde{\rho}_{ij}$. To
+keep the parameter count tractable when the hidden width $H$ is large,
+$\mathcal{K}$ is parameterised by a low-rank factorisation across $c$,
+\begin{equation}
+    \mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})
+    =
+    \sum_{r=1}^{R}
+    K^{(r)}_{l,l',|m|}(\widetilde{\rho}_{ij})\,B_{r,c},
+    \label{eq:dpa4-K-lowrank}
+\end{equation}
+with rank $R\leq H$, learnable scalar coefficients
+$K^{(r)}_{l,l',|m|}(\widetilde{\rho}_{ij})\in\mathbb{R}$ (each a linear
+functional of $\widetilde{\rho}_{ij}$), and a learnable channel basis
+$B\in\mathbb{R}^{R\times H}$. The diagonal special case
+$\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})=\widetilde{\rho}_{ij,l,c}\,
+\delta_{l,l'}$ reduces to per-degree scalar radial modulation. Because
+$\mathcal{K}$ depends only on rotation-invariant radial-species information and
+never mixes different $|m|$, the $(-m,+m)$ pair continues to transform as a
+single two-dimensional real SO(2) representation.
 
 The hidden width factorises as $\mathbb{R}^{H}=\mathbb{R}^{F}\otimes
 \mathbb{R}^{C_f}$, so $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times F\times C_f}$
 splits into $F$ \emph{focus streams}. A multi-layer SO(2) stack
 $\mathcal{S}_{\Theta}$ acts in parallel on each focus,
 \begin{equation}
-    \mathbf{x}_{ij}\;\leftarrow\;\mathcal{S}_{\Theta}(\mathbf{x}_{ij}),
+    \mathbf{x}_{ij}\;\leftarrow\;\mathcal{S}_{\Theta}(\mathbf{x}_{ij}).
     \label{eq:dpa4-so2-stack}
 \end{equation}
-composed of SO(2)-equivariant linear maps (unrestricted on $m=0$, the real
-form of complex multiplication on each $|m|>0$ subspace), equivariant
-RMS norms, and gated activations with zero-initialised residual scales.
+The stack is a composition of $S$ residual layers, each of the form
+\begin{equation}
+    \mathbf{x}_{ij}\;\leftarrow\;
+    \mathbf{x}_{ij}+\Lambda_s\odot
+    \Gamma_s\!\bigl(L^{\mathrm{SO2}}_s\,N_s(\mathbf{x}_{ij})\bigr),
+    \qquad s=1,\dots,S,
+    \label{eq:dpa4-so2-layer}
+\end{equation}
+where $N_s$ is an equivariant RMS norm, $L^{\mathrm{SO2}}_s$ is an
+edge-independent SO(2)-equivariant linear map (unrestricted on $m=0$, the
+real form of complex multiplication on each $|m|>0$ subspace) that supplies
+cross-$l$ mixing at fixed $|m|$, $\Gamma_s$ is a gated activation acting on
+the scalar slice, and $\Lambda_s\in\mathbb{R}^{F\times C_f}$ is a learnable
+per-(focus,\,channel) residual scale initialised at $10^{-3}$. The parameter tuple
+$\Theta=(L^{\mathrm{SO2}}_s,N_s,\Gamma_s,\Lambda_s)_{s=1}^{S}$ collects all
+learnable weights of the stack.
 
 \paragraph{Cross-focus competition.}
 The focus streams compete through a softmax over the SO(2)-invariant $l=0$
-slice. Let $\mathbf{x}^{(0)}_{ij}\in\mathbb{R}^{F\times C_f}$ be the $(l,m)=(0,0)$
-component of $\mathbf{x}_{ij}$ at the entry of the stack
-\eqref{eq:dpa4-so2-stack}; with learnable weights
-$W^{\mathrm{cf}}\in\mathbb{R}^{C_f\times F}$, temperature $\tau>0$, and
-label-smoothing parameter $\epsilon\in[0,1)$, set
+slice. Let $\mathbf{x}^{(0)}_{ij}\in\mathbb{R}^{F\times C_f}$ be the
+$(l,m)=(0,0)$ component of $\mathbf{x}_{ij}$ at the entry of the stack
+\eqref{eq:dpa4-so2-stack}, and let
+$N_0:\mathbb{R}^{C_f}\to\mathbb{R}^{C_f}$ be a focus-wise scalar RMS norm
+applied independently to each of the $F$ stream rows. The per-focus
+competition weight is
 \begin{equation}
     \alpha_{ij,f}
     =
@@ -310,53 +351,157 @@ label-smoothing parameter $\epsilon\in[0,1)$, set
     +\frac{\epsilon}{F},
     \label{eq:dpa4-focus-compete}
 \end{equation}
-and reweight the stream features by
-$\mathbf{x}_{ij}\leftarrow\alpha_{ij}\odot\mathbf{x}_{ij}$ (with $\alpha_{ij}$
-broadcast across the $(l,m)$ and $c$ axes). Equivariance is preserved because
-$\alpha_{ij,f}$ is constructed from an SO(2)-invariant $l=0$ slice.
+where $W^{\mathrm{cf}}\in\mathbb{R}^{C_f\times F}$ is a learnable
+channel-to-focus scoring matrix, $\tau>0$ is a softmax temperature that
+sharpens ($\tau\to 0$) or flattens ($\tau\to\infty$) the competition between
+streams, and $\epsilon\in[0,1)$ is a label-smoothing strength that mixes the
+softmax with the uniform distribution $1/F$ over focuses to prevent any
+single stream from being driven to zero focus weight. The weights then reweight
+the focus streams,
+\begin{equation}
+    \mathbf{x}_{ij}\;\leftarrow\;\alpha_{ij}\odot\mathbf{x}_{ij},
+    \label{eq:dpa4-focus-reweight}
+\end{equation}
+with $\alpha_{ij}\in\mathbb{R}^{F}$ broadcast across the $(l,m)$ and $c$
+axes. Equivariance is preserved because $\alpha_{ij,f}$ is constructed from
+an SO(2)-invariant $l=0$ slice.
 
 \paragraph{Lift back to the global frame.}
-The equivariant edge message is recovered by inverting the local gauge,
+The equivariant edge message in the global frame is recovered by inverting
+the local gauge,
 \begin{equation}
     \mathbf{m}_{ij}
     =
-    L^{\mathrm{post}}_{\mathrm{deg}}\bigl[\,
-    \Xi_M\,D(R_{ij})^{\top}P_M^{\top}\,\mathbf{x}_{ij}\,\bigr]
-    \in V_{\le L}\otimes\mathbb{R}^{C},
+    \Xi_M\,D(R_{ij})^{\top}P_M^{\top}\,\mathbf{x}_{ij}
+    \in V_{\le L}\otimes\mathbb{R}^{H},
     \label{eq:dpa4-edge-message}
 \end{equation}
-where $L^{\mathrm{post}}_{\mathrm{deg}}$ is a degree-wise channel post-mixer
-that projects $H$ back down to $C$. The post-mixer is zero-initialised so
-$\mathcal{C}_{\theta}\equiv 0$ at the start of training; substituting
-$\mathbf{m}_{ij}$ into Eq.~\eqref{eq:dpa4-conv} closes the definition of the
-multi-focus convolution.
+with $D(R_{ij})^{\top}$ the inverse gauge rotation, $P_M^{\top}$ the
+re-embedding of the truncated $m$-strata back into the full $(L+1)^2$ layout,
+and $\Xi_M$ a degree-dependent rescale that compensates for the norm loss
+from the $|m|\le M$ truncation. At this point $\mathbf{m}_{ij}$ still carries
+the hidden width $H$; channel post-mixing back to representation width is
+deferred to after neighbour aggregation.
 
-\subsubsection{Envelope-gated softmax attention}
+\paragraph{Envelope-gated attention.}
 \label{sec:attn}
-
-Neighbour aggregation is performed either by a smooth envelope-weighted sum or
-by envelope-gated softmax attention. Attention logits are scalar functions of
-the invariant $l=0$ destination and source features, plus a radial bias. For
-focus $f$ and head $a$, let $\ell_{ij}^{(f,a)}$ be this invariant logit and
-$\mu_i^{(f,a)}=\max_{k}\ell_{ik}^{(f,a)}$ over active neighbours. DPA4 uses
+The aggregation of $\mathbf{m}_{ij}$ over neighbours uses an envelope-gated
+attention weight $w_{ij}^{(f,a)}$: a destination-wise normalised softmax over
+neighbours whose logits are scalar functions of the invariant $l=0$
+destination and source features plus a radial bias. Each focus $f\in\{1,\dots,F\}$
+is split into $H_a$ heads of width $d_a=C_f/H_a$, indexed by
+$a\in\{1,\dots,H_a\}$. Let $\mathbf{h}_n'$ be the pre-mixed hidden-width node
+feature from Eq.~\eqref{eq:dpa4-local-projection}, whose $l=0$ slice
+$\mathbf{h}_n'|_{l=0}\in\mathbb{R}^{H}$ can be reshaped along the
+factorisation $H=F\cdot H_a\cdot d_a$ into
+$\mathbb{R}^{F\times H_a\times d_a}$.
+Applying a focus-wise scalar RMS norm $N_0$ in this reshaped layout gives
+$N_0\bigl(\mathbf{h}_n'|_{l=0}\bigr)\in\mathbb{R}^{F\times H_a\times d_a}$,
+from which we define per-edge per-(focus, head) queries and keys
 \begin{equation}
-    \alpha_{ij}^{(f,a)}
+    \mathbf{q}_i^{(f,a)}
+    = Q^{(f)}\,N_0\bigl(\mathbf{h}_i'|_{l=0}\bigr)_{f,a,:},\qquad
+    \mathbf{k}_j^{(f,a)}
+    = K^{(f)}\,N_0\bigl(\mathbf{h}_j'|_{l=0}\bigr)_{f,a,:}
+    \in\mathbb{R}^{d_a},
+    \label{eq:dpa4-attn-qk}
+\end{equation}
+with learnable per-focus query/key matrices $Q^{(f)},K^{(f)}\in
+\mathbb{R}^{d_a\times d_a}$. The attention logit for edge $(i,j)$ at focus
+$f$, head $a$ combines a scaled dot product with a radial bias linear in the
+$l=0$ lifted radial-species feature $\widetilde{\rho}_{ij,0,c}$,
+\begin{equation}
+    \ell_{ij}^{(f,a)}
     =
-    \frac{s(r_{ij})^2\eta_j
-        \exp\!\left(\ell_{ij}^{(f,a)}-\mu_i^{(f,a)}\right)}
+    \frac{\langle\mathbf{q}_i^{(f,a)},\mathbf{k}_j^{(f,a)}\rangle}{\sqrt{d_a}}
+    + \sum_{c=1}^{C_f}W^{\mathrm{rb}}_{c,f,a}\,\widetilde{\rho}_{ij,0,c},
+    \label{eq:dpa4-attn-logit}
+\end{equation}
+where $W^{\mathrm{rb}}\in\mathbb{R}^{C_f\times F\times H_a}$ is a learnable
+radial-bias tensor. The attention weight is
+\begin{equation}
+    w_{ij}^{(f,a)}
+    =
+    \frac{s_5(r_{ij})^2\,\eta_j\,\exp\!\bigl(\ell_{ij}^{(f,a)}\bigr)}
     {\operatorname{softplus}(\zeta_{f,a})
-        \exp\!\left(-\mu_i^{(f,a)}\right)
         +\sum_{k:r_{ik}<r_{\mathrm{c}}}
-        s(r_{ik})^2\eta_k
-        \exp\!\left(\ell_{ik}^{(f,a)}-\mu_i^{(f,a)}\right)}.
+        s_5(r_{ik})^2\,\eta_k\,\exp\!\bigl(\ell_{ik}^{(f,a)}\bigr)},
     \label{eq:dpa4-attention}
 \end{equation}
-The factor $s(r)^2$ sends the weight smoothly to zero at the cutoff, while the
-positive denominator term prevents $0/0$ limits when all incident edges are
-silenced by cutoff or bridging gates. Since all attention weights are invariant
-scalars, multiplying them into $\mathbf{m}_{ij}$ preserves equivariance of every
-higher-degree channel. A destination-side scalar gate further modulates each
-attention head after aggregation.
+with the $C^3$ envelope $s_5$ of Eq.~\eqref{eq:dpa4-envelope}, the
+source-freeze gate $\eta_j$ of Eq.~\eqref{eq:dpa4-source-freeze}, and a
+learnable null-logit $\zeta_{f,a}\in\mathbb{R}$. (In the implementation the
+standard max-subtraction stabilisation is applied to the exponents.) Two
+mechanisms make $w_{ij}^{(f,a)}$ smooth at the cutoff: the numerator factor
+$s_5(r_{ij})^2$ drives the weight $C^3$-smoothly to zero as
+$r_{ij}\to r_{\mathrm{c}}$, and the
+$\operatorname{softplus}(\zeta_{f,a})$ term in the denominator keeps the
+denominator strictly positive even when every incident edge of atom $i$ is
+silenced ($s_5\to 0$ or $\eta\to 0$), removing $0/0$ indeterminacies. The
+weight $w_{ij}^{(f,a)}$ is SO(3)-invariant by construction, so its use as a
+per-(focus, head) reweighting preserves equivariance.
+
+Reshaping the channel axis of the edge message
+$\mathbf m_{ij}\in V_{\le L}\otimes\mathbb{R}^{H}$ along the focus/head
+factorisation $H=F\cdot H_a\cdot d_a$ yields per-(focus,\,head) slices
+$\mathbf m_{ij}^{(f,a)}\in V_{\le L}\otimes\mathbb{R}^{d_a}$, and aggregation
+under the attention weights gives
+\begin{equation}
+    \mathbf A_i^{(f,a)}
+    =\sum_{j:r_{ij}<r_{\mathrm{c}}}w_{ij}^{(f,a)}\,\mathbf m_{ij}^{(f,a)}
+    \in V_{\le L}\otimes\mathbb{R}^{d_a}.
+    \label{eq:dpa4-attn-agg}
+\end{equation}
+A destination-side scalar output gate then modulates each $(f,a)$ slice
+multiplicatively,
+\begin{equation}
+    \widetilde{\mathbf A}_i^{(f,a)}
+    = G_i^{(f,a)}\,\mathbf A_i^{(f,a)},
+    \qquad
+    G_i^{(f,a)}
+    = \sigma\!\Bigl(
+        \textstyle\sum_{c=1}^{C_f} W^{\mathrm{og}}_{c,f,a}\,
+        N_0\bigl(\mathbf h_i'|_{l=0}\bigr)_{f,c}
+    \Bigr)\in(0,1),
+    \label{eq:dpa4-attn-gate}
+\end{equation}
+where $\sigma(t)=(1+e^{-t})^{-1}$ is the logistic sigmoid and
+$W^{\mathrm{og}}\in\mathbb{R}^{C_f\times F\times H_a}$ is a learnable output-gate
+tensor. Concatenating the gated slices
+$\widetilde{\mathbf A}_i^{(f,a)}$ back along the channel axis recovers a
+single hidden-width tensor in $V_{\le L}\otimes\mathbb{R}^{H}$ (the inverse
+of the focus/head split used above eq.~\eqref{eq:dpa4-attn-agg}), which is
+then fed into a degree-wise channel post-mixer
+$L^{\mathrm{post}}_{\mathrm{deg}}:V_{\le L}\otimes\mathbb{R}^{H}\to
+V_{\le L}\otimes\mathbb{R}^{C}$ projecting from hidden width back to
+representation width.
+
+\paragraph{The convolution in closed form.}
+Combining the per-edge message $\mathbf{m}_{ij}$ from
+Eq.~\eqref{eq:dpa4-edge-message}, the envelope-gated attention weight
+$w_{ij}^{(f,a)}$ of Eq.~\eqref{eq:dpa4-attention}, the destination-side
+output gate $G_i^{(f,a)}$ of Eq.~\eqref{eq:dpa4-attn-gate}, and the channel
+post-mixer $L^{\mathrm{post}}_{\mathrm{deg}}$, the SO(2) multi-focus
+convolution at atom $i$ is
+\begin{equation}
+    \bigl(\mathcal{C}_{\theta}\mathbf{h}\bigr)_i
+    =
+    L^{\mathrm{post}}_{\mathrm{deg}}\!\biggl[
+        \operatorname{concat}_{(f,a)}\!\Bigl(
+            G_i^{(f,a)}\!\!\sum_{j:r_{ij}<r_{\mathrm{c}}}
+            w_{ij}^{(f,a)}\,\mathbf{m}_{ij}^{(f,a)}
+        \Bigr)
+    \biggr]
+    \in V_{\le L}\otimes\mathbb{R}^{C},
+    \label{eq:dpa4-conv}
+\end{equation}
+where the concatenation $\operatorname{concat}_{(f,a)}$ stacks the gated
+per-$(f,a)$ aggregations along the channel axis according to the inverse of
+the $H=F\cdot H_a\cdot d_a$ focus/head split. Equivariance follows because
+$w_{ij}^{(f,a)}$ and $G_i^{(f,a)}$ are SO(3)-invariant scalars and every
+other operation is either degree-wise or acts inside an
+SO(2)-equivariant local frame. The post-mixer is zero-initialised so
+$\mathcal{C}_{\theta}\equiv 0$ at the start of training.
 
 \subsubsection{Equivariant feed-forward update and Lebedev \texorpdfstring{$S^2$}{S2} activation}
 \label{sec:s2-method}
