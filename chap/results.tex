@@ -255,6 +255,7 @@ molecules, rather than specialising to a single chemical domain.
     \includegraphics[width=\textwidth]{fig/lmp-inorganic.pdf}
     \caption{
         LAMMPS inference throughput on the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} test.
+        \WH{perhaps we do not need 4 subplots, only 3 and 4 are enough.}
         Each point reports molecular-dynamics throughput for periodic repetitions of the same inorganic seed structure, evaluated with the LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface after warm-up on an NVIDIA H20 GPU.
         The three panels report complementary throughput measures---simulated time per day, time steps per second and atom-normalized step rate---where higher values indicate faster simulation.
     }
@@ -314,6 +315,7 @@ cost of large atomistic simulations.
     \includegraphics[width=0.9\textwidth]{fig/dimer_c_si.pdf}
     \caption{
         Short-range C--Si dimer response for models trained on an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+        \WH{the dimer energy should be plotted with the energy at infty aligned.}
         The DPA3 baseline uses the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas DPA4 uses the Native ZBL Zone Bridging branch described in Section~\ref{sec:zbl_method}.
         The analytical reference is the ZBL screened Coulomb potential~\cite{ziegler1985}.
     }

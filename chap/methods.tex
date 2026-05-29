@@ -59,28 +59,100 @@ Throughout Section~\ref{sec:methods}, every geometric quantity entering the
 learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff
 envelopes, real spherical harmonics $Y_l^m(\widehat{\mathbf{r}}_{ij})$, the
 per-edge local-frame rotation $\mathbf{D}_{ij}$, and the local-environment
-descriptor $\mathcal{D}_i$ -- is evaluated on the \emph{clamped distance}
-$\widetilde{r}(r_{ij})$ in place of the raw $r_{ij}$. The unit direction
+descriptor $\mathcal{D}_i$ -- is evaluated on a \emph{clamped distance}
+$\widetilde{r}(r_{ij})$ in place of the raw distance
+$r_{ij}=\|\mathbf{R}_j-\mathbf{R}_i\|$. The unit direction
 $\widehat{\mathbf{r}}_{ij}=\mathbf{r}_{ij}/r_{ij}$ is preserved exactly,
 because the clamp acts purely on the radial magnitude. With this convention
 the symbol $r_{ij}$ in every downstream equation should be read as
-$\widetilde{r}(r_{ij})$ whenever it feeds the learned branch.
+$\widetilde{r}(r_{ij})$ whenever it feeds the learned branch. Edge messages
+sourced from atom $j$ are additionally weighted by a smooth
+\emph{source-freeze gate} $\eta_j\in[0,1]$ that vanishes whenever $j$ has any
+neighbour inside the inner zone. The two ingredients
+$\widetilde{r}(\cdot)$ and $\eta_j$ are the technical core of \emph{Native ZBL
+Zone Bridging} (the design rationale and how they couple to the analytical
+ZBL branch are taken up in Sec.~\ref{sec:zbl_method}); their formal
+definitions follow here so that every later equation can use them without
+forward reference.
 
-The map $\widetilde{r}:\mathbb{R}_{\geq 0}\to\mathbb{R}_{\geq 0}$ is a $C^3$
-piecewise function on a bridging window $[r_{\mathrm{in}},r_{\mathrm{out}}]$:
-$\widetilde{r}(r)=r_{\mathrm{in}}$ for $r\leq r_{\mathrm{in}}$,
-$\widetilde{r}(r)=r$ for $r\geq r_{\mathrm{out}}$, and a septic Hermite
-interpolant connects the two on the window. The formal definition together
-with the companion source-freeze gate is given in
-Section~\ref{sec:zbl_method}.
+\paragraph{Bridging window and septic Hermite polynomials.}
+Choose $0<r_{\mathrm{in}}<r_{\mathrm{out}}\le r_{\mathrm{c}}$ defining a
+bridging window $[r_{\mathrm{in}},r_{\mathrm{out}}]$ inside the neighbour
+cutoff $r_{\mathrm{c}}$. Two septic Hermite polynomials
+$h_{\mathrm{c}},h_{\mathrm{w}}:[0,1]\to[0,1]$ control the clamp and the gate
+respectively,
+\begin{equation}
+    h_{\mathrm{c}}(t)\coloneqq 20t^4-45t^5+36t^6-10t^7,
+    \qquad
+    h_{\mathrm{w}}(t)\coloneqq 35t^4-84t^5+70t^6-20t^7,
+    \label{eq:dpa4-hermite}
+\end{equation}
+chosen so that $h_{\mathrm{c}}$ glues a constant on the left to the identity
+on the right with matching first three derivatives ($h_{\mathrm{c}}(0)=0$,
+$h_{\mathrm{c}}(1)=1$, $h_{\mathrm{c}}'(0)=0$, $h_{\mathrm{c}}'(1)=1$,
+$h_{\mathrm{c}}''(0)=h_{\mathrm{c}}''(1)=h_{\mathrm{c}}'''(0)=h_{\mathrm{c}}'''(1)=0$)
+and $h_{\mathrm{w}}$ glues the constants $0$ on the left and $1$ on the right
+with all first three derivatives vanishing at both endpoints
+($h_{\mathrm{w}}(0)=0$, $h_{\mathrm{w}}(1)=1$,
+$h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0$, $k=1,2,3$). The
+eight $\,+\,$ eight boundary conditions determine each interpolant uniquely.
 
-Two consequences are used implicitly in the rest of Section~\ref{sec:methods}.
-First, on the inner zone $r_{ij}\leq r_{\mathrm{in}}$ every NN-side geometric
-quantity is constant in $r_{ij}$, so the learned branch contributes zero
-gradient there and the short-range repulsion is handled exclusively by
-$E^{\mathrm{ZBL}}$. Second, outside the bridging window
-($r_{ij}\geq r_{\mathrm{out}}$) the clamp is the identity, so the learned
-branch sees the true geometry.
+\paragraph{Clamped distance map and bridging amplitude.}
+With $t(r)\coloneqq(r-r_{\mathrm{in}})/(r_{\mathrm{out}}-r_{\mathrm{in}})$,
+define the clamped distance map and the bridging amplitude
+\begin{equation}
+    \widetilde{r}(r) =
+    \begin{cases}
+        r_{\mathrm{in}}, & r\le r_{\mathrm{in}}, \\
+        r_{\mathrm{in}}+(r_{\mathrm{out}}-r_{\mathrm{in}})\,h_{\mathrm{c}}\!\bigl(t(r)\bigr),
+        & r_{\mathrm{in}}<r<r_{\mathrm{out}}, \\
+        r, & r\ge r_{\mathrm{out}},
+    \end{cases}
+    \qquad
+    w(r) =
+    \begin{cases}
+        0, & r\le r_{\mathrm{in}}, \\
+        h_{\mathrm{w}}\!\bigl(t(r)\bigr), & r_{\mathrm{in}}<r<r_{\mathrm{out}}, \\
+        1, & r\ge r_{\mathrm{out}}.
+    \end{cases}
+    \label{eq:dpa4-clamp}
+\end{equation}
+Both $\widetilde{r}$ and $w$ are $C^3$ on $\mathbb{R}_{>0}$ by the Hermite
+boundary conditions. The associated \emph{clamped displacement} is
+\begin{equation}
+    \widetilde{\mathbf{r}}_{ij} = \widetilde{r}(r_{ij})\,\widehat{\mathbf{r}}_{ij},
+    \qquad \|\widetilde{\mathbf{r}}_{ij}\|=\widetilde{r}(r_{ij}),
+    \label{eq:dpa4-rvec-tilde}
+\end{equation}
+which preserves the direction $\widehat{\mathbf{r}}_{ij}$ exactly and
+replaces $r_{ij}$ by $\widetilde{r}(r_{ij})$ in the scalar magnitude.
+
+\paragraph{Source-freeze gate.}
+For each atom $j$, let $\mathcal N_{\mathrm{out}}(j)\coloneqq
+\{i:r_{ji}<r_{\mathrm{c}},\,i\neq j\}$ denote its set of forward neighbours.
+The source-freeze gate is
+\begin{equation}
+    \eta_j \;\coloneqq\; \prod_{i\in\mathcal N_{\mathrm{out}}(j)} w(r_{ji})
+    \;\in\;[0,1].
+    \label{eq:dpa4-source-freeze}
+\end{equation}
+$\eta_j$ is $C^3$ in the atomic positions on the open set $\{\mathbf{R}_i
+\neq\mathbf{R}_j\}$ (as a finite product of $C^3$ functions) and satisfies
+$\eta_j=0$ whenever any forward neighbour of $j$ lies in the inner zone
+($r_{ji}\le r_{\mathrm{in}}$ for some $i\in\mathcal N_{\mathrm{out}}(j)$).
+
+\paragraph{Consequences used later.}
+Two properties of \eqref{eq:dpa4-clamp}--\eqref{eq:dpa4-source-freeze} are
+used implicitly in the rest of Section~\ref{sec:methods}. First, on the
+inner zone $r_{ij}\le r_{\mathrm{in}}$ every NN-side geometric quantity is
+constant in $r_{ij}$ (since $\widetilde r$ is constant there) and every
+message sourced from a $j$ whose own neighbourhood penetrates the inner
+zone is silenced (since $\eta_j=0$), so the learned branch contributes
+zero gradient there and the short-range repulsion is handled exclusively
+by $E^{\mathrm{ZBL}}$. Second, outside the bridging window
+($r_{ij}\ge r_{\mathrm{out}}$ and similarly for $w$) the clamp is the
+identity and the gate is one, so the learned branch sees the true
+geometry.
 
 \subsubsection{Geometric initial embedding (GIE)}
 \label{sec:gie}
@@ -673,48 +745,34 @@ potential~\cite{ziegler1985},
     a_{ij}=\frac{0.88534\,a_0}{Z_i^{0.23}+Z_j^{0.23}},
     \label{eq:dpa4-zbl}
 \end{equation}
-with the universal screening function $\Phi$ given in Supplementary
-Section~\ref{sec:sm-zone-bridging}. DPA4 does not treat this term as a
+where the universal screening function $\Phi(x)$ takes the standard
+four-exponential ZBL form
+$\Phi(x)=\sum_{k=1}^{4}c_k\,e^{-d_k x}$ with the original
+Ziegler--Biersack--Littmark coefficients $(c_k,d_k)_{k=1}^{4}$ (closed
+form in Supplementary Section~\ref{sec:sm-zone-bridging}). DPA4 does not treat this term as a
 post-hoc wrapper. Instead, the learned branch and analytical branch are coupled
 through Native ZBL Zone Bridging, which removes the direct learned short-range
 pair channel while assigning the corresponding inner-zone pair interaction to
 the analytical branch.
 
-First, a $C^3$ clamped distance map $\widetilde{r}(r)$ connects a constant
-inner zone to the identity outside the bridging window:
-\begin{equation}
-    \widetilde{r}(r)=
-    \begin{cases}
-        r_{\mathrm{in}}, & r\leq r_{\mathrm{in}},              \\
-        r_{\mathrm{in}}+(r_{\mathrm{out}}-r_{\mathrm{in}})h_{\mathrm{c}}(t),
-                         & r_{\mathrm{in}}<r<r_{\mathrm{out}}, \\
-        r,               & r\geq r_{\mathrm{out}},
-    \end{cases}
-    \qquad
-    t=\frac{r-r_{\mathrm{in}}}{r_{\mathrm{out}}-r_{\mathrm{in}}}.
-    \label{eq:dpa4-clamp}
-\end{equation}
-The associated clamped displacement is
-$\widetilde{\mathbf{r}}_{ij}=\widetilde{r}(r_{ij})\widehat{\mathbf{r}}_{ij}$.
-The polynomial $h_{\mathrm{c}}$ is chosen to match a constant function at
-$r_{\mathrm{in}}$ and the identity map at $r_{\mathrm{out}}$, including first
-through third derivatives required for $C^3$ gluing.
-
-Second, a source-freeze gate
-\begin{equation}
-    \eta_j=\prod_{i:r_{ji}<r_{\mathrm{c}}} w(r_{ji})
-    \label{eq:dpa4-source-freeze}
-\end{equation}
-uses a separate $C^3$ switching amplitude $w$ that is exactly zero in the inner
-zone and exactly one outside the bridging window. If atom $j$ has any neighbour
-inside the frozen zone, then $\eta_j=0$ and all information sourced from $j$ is
-removed from the geometric initial embedding, Environment Initial Embedding,
-plain aggregation and attention aggregation. The clamp closes the scalar
-distance channel, while the gate closes the direction and multi-hop propagation
-channels. Thus the direct learned contribution associated with an inner-zone
-pair has zero derivative with respect to that pair channel, while learned
-many-body contributions from non-frozen neighbours remain part of the neural
-potential.
+Native ZBL Zone Bridging couples the two branches through the two
+ingredients introduced in Sec.~\ref{sec:geom-inputs}: the clamped distance
+$\widetilde{r}(r_{ij})$ of Eq.~\eqref{eq:dpa4-clamp} and the source-freeze
+gate $\eta_j$ of Eq.~\eqref{eq:dpa4-source-freeze}. The clamp closes the
+scalar distance channel that the learned branch would see for inner-zone
+pairs: on $r_{ij}\le r_{\mathrm{in}}$, $\widetilde{r}$ is constant in
+$r_{ij}$, so every radial function in $E_{\Theta}^{\mathrm{NN}}$ has zero
+derivative with respect to that pair channel. The source-freeze gate
+closes the direction and multi-hop propagation channels: when $\eta_j=0$,
+all information sourced from $j$ is removed from the geometric initial
+embedding (Eq.~\eqref{eq:dpa4-gie}), the FiLM update on the $l=0$ slice
+(through Eq.~\eqref{eq:dpa4-env-matrix} feeding $\mathcal D_i$ into
+Eq.~\eqref{eq:dpa4-film}), and the envelope-gated attention aggregation
+(Eq.~\eqref{eq:dpa4-attention}). Together, the direct learned contribution
+associated with an inner-zone pair has zero derivative with respect to
+that pair channel and the inner-zone pair interaction is assigned
+exclusively to $E^{\mathrm{ZBL}}$; learned many-body contributions from
+non-frozen neighbours remain part of the neural potential.
 
 \subsubsection{Symmetry guarantees}
 \label{sec:symmetry}
