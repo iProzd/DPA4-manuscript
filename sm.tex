@@ -37,7 +37,7 @@
 This section provides the complete ablation evidence behind
 Section~\ref{sec:ablation}. The first five subsections give the full
 mechanism-level sweeps for graph compilation, attention aggregation,
-multi-focus SO(2) convolution, radial coupling and $S^2$ activation. The
+multi-focus SO(2) convolution, radial coupling and $\Sph$ activation. The
 remaining subsections report model-selection and robustness studies. All ablations use the same
 WBM-subsampled evaluation protocol. Relative efficiency metrics are normalized
 within each controlled group under matched H20 hardware, batch-size,
@@ -290,12 +290,12 @@ expressive full coupling.
 
 \FloatBarrier
 
-\subsection{\texorpdfstring{$S^2$}{S2} activation and quadrature}
+\subsection{\texorpdfstring{$\Sph$}{S2} activation and quadrature}
 
 This ablation separates two coupled design choices in the spherical-grid
-nonlinearity: the model component to which $S^2$ activation is applied and the
+nonlinearity: the model component to which $\Sph$ activation is applied and the
 quadrature rule used to project grid features back to equivariant coefficients.
-When $S^2$ activation is restricted to the FFN component, replacing the e3nn
+When $\Sph$ activation is restricted to the FFN component, replacing the e3nn
 product grid with the Lebedev rule slightly reduces the energy MAE while
 leaving the force MAE and computational cost essentially unchanged. Applying S2
 activation additionally inside the SO(2) convolution component does not improve
@@ -305,7 +305,7 @@ than double. In this expanded activation configuration, Lebedev quadrature
 reduces the energy error and lowers the relative training and inference costs
 compared with the e3nn product grid, although the force MAE remains higher than
 in the FFN-only configuration. These results indicate that the main benefit
-comes from retaining $S^2$ activation in the FFN component, while Lebedev
+comes from retaining $\Sph$ activation in the FFN component, while Lebedev
 quadrature provides a more favorable projection rule when spherical-grid
 nonlinearities are used in equivariant branches.
 
@@ -313,7 +313,7 @@ nonlinearities are used in equivariant branches.
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of $S^2$ activation placement and quadrature rule.\tnote{a}}
+        \caption{Ablation of $\Sph$ activation placement and quadrature rule.\tnote{a}}
         \label{tab:sm_quadrature_ablation}
         \begin{tabular}{@{}ccccccc@{}}
             \toprule
@@ -693,7 +693,7 @@ This section specifies the model and training configurations used in the
 ablation and benchmark experiments. Table~\ref{tab:sm_main_ablation_config}
 gives the configurations for the mechanism ablations---graph compilation,
 attention aggregation, multi-focus SO(2) convolution, radial coupling and
-$S^2$ activation---and Table~\ref{tab:sm_supplementary_ablation_config} those
+$\Sph$ activation---and Table~\ref{tab:sm_supplementary_ablation_config} those
 for the model-selection and robustness ablations. Entries marked by ``--'' are
 the controlled variables within the corresponding experiment family; all other
 entries define the shared reference setting. Horizontal rules separate related
@@ -715,7 +715,7 @@ groups of hyperparameters without adding category labels to the table body.
             \textbf{Attention} &
             \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} &
             \makecell{\textbf{Radial}\\\textbf{coupling}} &
-            \makecell{\textbf{$S^2$/}\\\textbf{quad.}} \\
+            \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} \\
             \midrule
             Feature dim. & 64 & 64/96/96 & -- & 64 & 64 \\
             No. focuses & 1 & 1/1/2 & -- & 1 & 1 \\

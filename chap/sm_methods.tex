@@ -69,7 +69,7 @@ gauge choice. The equivariant message does not depend on this choice because the
 local operator commutes with the residual SO(2) action.
 
 \paragraph{Two quaternion charts.}
-Let $\widehat{\mathbf{r}}=(x,y,z)\in S^2$. DPA4 uses two smooth unit-quaternion
+Let $\widehat{\mathbf{r}}=(x,y,z)\in \Sph$. DPA4 uses two smooth unit-quaternion
 charts,
 \begin{equation}
     \mathbf{q}^{+}(\widehat{\mathbf{r}})
@@ -343,46 +343,15 @@ which is $C^3$ and vanishes at the cutoff. This correction is only needed
 at the first SO(2) layer because subsequent layers operate on already
 modulated local features.
 
+\subsection{Numerical equivariance of truncated local layouts}
+\label{sec:sm-truncated-equivariance}
 
 \begin{table}[p]
     \centering
     \scriptsize
     \setlength{\tabcolsep}{3pt}
     \caption{
-        Full-coefficient $S^2$ activation equivariance under random SO(3)
-        rotations. Product-grid rules are reported as
-        $(R_{\phi},R_{\theta})$ after the square-grid lift, with the
-        total number of grid points $R_{\phi}R_{\theta}$ given alongside.
-        Lebedev rules are reported by their algebraic order of accuracy
-        $p$ and the corresponding number of points. Errors are maximum absolute
-        deviations between the two equivariance paths.
-    }
-    \label{tab:sm_s2_full_equivariance}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccccc@{}}
-        \toprule
-        \textbf{$L$} &
-        \multicolumn{4}{c}{\textbf{Product grid}} &
-        \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
-        \cmidrule(lr){2-5}\cmidrule(lr){6-9}
-        & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
-        & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
-        \midrule
-        2 & $8\times8$   & 64  & $3.62\times10^{-7}$ & $4.77\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        3 & $12\times12$ & 144 & $7.04\times10^{-7}$ & $6.86\times10^{-7}$ & 9  & 38  & $3.58\times10^{-14}$ & $3.58\times10^{-7}$ \\
-        4 & $14\times14$ & 196 & $7.97\times10^{-7}$ & $1.55\times10^{-6}$ & 13 & 74  & $5.82\times10^{-14}$ & $6.56\times10^{-7}$ \\
-        5 & $18\times18$ & 324 & $1.48\times10^{-6}$ & $1.49\times10^{-6}$ & 15 & 86  & $3.22\times10^{-14}$ & $6.56\times10^{-7}$ \\
-        6 & $20\times20$ & 400 & $4.14\times10^{-6}$ & $2.27\times10^{-6}$ & 19 & 146 & $7.99\times10^{-14}$ & $8.35\times10^{-7}$ \\
-        7 & $24\times24$ & 576 & $3.19\times10^{-6}$ & $2.03\times10^{-6}$ & 21 & 170 & $6.86\times10^{-14}$ & $8.79\times10^{-7}$ \\
-        \bottomrule
-    \end{tabular*}
-\end{table}
-
-\begin{table}[p]
-    \centering
-    \scriptsize
-    \setlength{\tabcolsep}{3pt}
-    \caption{
-        $m$-truncated $S^2$ activation equivariance under random local
+        $m$-truncated \texorpdfstring{$\Sph$}{S2} activation equivariance under random local
         $z$-axis rotations. These cases test the reduced local layout used in
         SO(2) convolution. Product-grid rules are
         $(R_{\phi},R_{\theta})$ with the total number of grid points
@@ -435,23 +404,25 @@ $b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the objective is
     =
     \lambda_E
     \frac{1}{B}\sum_{b=1}^{B}
-    \frac{|E_b-\widehat{E}_b|}{N_b}
+    \frac{|E_{\Theta,b}-E_b|}{N_b}
     +
     \lambda_F
-    \frac{1}{\sum_b N_b}
+    \frac{1}{\sum_{b=1}^{B} N_b}
     \sum_{b=1}^{B}\sum_{i=1}^{N_b}
     \left\|
-    \mathbf{F}_{bi}-\widehat{\mathbf{F}}_{bi}
+    \mathbf{F}_{\Theta,bi}-\mathbf{F}_{bi}
     \right\|_2
     +
     \lambda_{\Pi}
-    \frac{1}{9B}\sum_{b=1}^{B}
-    \frac{\left\|\Pi_b-\widehat{\Pi}_b\right\|_1}{N_b}.
+    \frac{1}{B}\sum_{b=1}^{B}
+    \frac{\left\|\Pi_{\Theta,b}-\Pi_b\right\|_1}{9N_b}.
     \label{eq:sm-loss}
 \end{equation}
-The force residual is therefore treated as a three-dimensional vector for each
-atom: the Euclidean norm is taken before averaging over atoms. Energy and virial
-residuals use the MAE form with the usual per-atom normalisation.
+Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Pi_{\Theta,b}$ denote DPA4
+predictions, while $E_b$, $\mathbf{F}_{bi}$ and $\Pi_b$ denote reference DFT
+labels. The force residual is treated as a three-dimensional vector for each
+atom: the Euclidean norm is taken before averaging over atoms. Energy and
+virial residuals use the MAE form with per-atom normalisation.
 The benchmark-specific weights, batch sizes and training lengths are listed in
 Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
@@ -536,7 +507,14 @@ optimiser constructs
 \end{equation}
 This choice is important for SO(2)-structured equivariant weights: degree and
 order-indexed blocks are updated independently, rather than being flattened
-into one large matrix that would mix unrelated representation strata.
+into one large matrix that would mix unrelated representation strata. In the
+degree-wise SO(3) channel maps used by the SO(2) pre- and post-projections and
+by the equivariant FFN, the weight tensor has shape
+$(L+1,C_{\mathrm{in}},F C_{\mathrm{out}})$; slice mode therefore applies Muon
+separately to the $(C_{\mathrm{in}},F C_{\mathrm{out}})$ matrix of each
+degree $l$. Local SO(2) linear maps keep separate matrix parameters for the
+$m=0$ block and the constrained $|m|>0$ blocks, so the optimiser acts on these
+structured matrix blocks without collapsing distinct equivariant subspaces.
 
 \paragraph{Muon update.}
 For each Muon-routed block, the optimiser maintains a momentum buffer and forms
