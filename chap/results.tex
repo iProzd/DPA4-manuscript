@@ -30,7 +30,7 @@ This attention-weighted aggregation improves accuracy at small additional traini
 The cutoff envelope drives edge contributions smoothly to zero as $r_{ij}\to r_{\mathrm{c}}$, a requirement for stable molecular dynamics.
 
 The equivariant FFN that follows the convolution applies a spherical-grid SwiGLU non-linearity through a Lebedev-quadrature grid projection (A4).
-Relative to the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, the Lebedev rule reaches the same algebraic order of accuracy with substantially fewer sample points and reduces the residual numerical equivariance error of the non-linearity to machine precision (Section~\ref{sec:s2-method}, Supplementary Section~\ref{sec:sm-s2}).
+Relative to the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, the Lebedev rule reaches the same algebraic order of accuracy with substantially fewer sample points and reduces the residual numerical equivariance error of the non-linearity to machine precision (Section~\ref{sec:s2-method}, Supplementary Tables~\ref{tab:sm_s2_full_equivariance} and \ref{tab:sm_s2_truncated_equivariance}).
 
 
 The remaining architectural component addresses close-contact physics.
