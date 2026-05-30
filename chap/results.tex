@@ -99,7 +99,7 @@ Both branches contribute to the same scalar total energy and are differentiated 
 Matbench Discovery is a widely used benchmark for evaluating machine-learning models in high-throughput inorganic-crystal discovery~\cite{riebesell2025matbench}.
 In the compliant setting, models are trained on MPtrj~\cite{deng2023chgnet}, used to relax WBM candidate structures~\cite{WBM}, and then evaluated by their formation-energy predictions and derived convex-hull distances.
 The resulting scores combine classification, regression and structural-relaxation metrics, making the benchmark a stringent test of both energy accuracy and relaxation quality.
-The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric that probes property prediction accuracy related to the smoothness and conservativeness of the learned potential.
+The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric that probes property prediction accuracy related to the smoothness and conservativeness of the learned potential~\cite{pota2024thermal}.
 Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
 Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
 
