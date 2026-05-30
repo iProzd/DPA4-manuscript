@@ -50,7 +50,7 @@ Both branches contribute to the same scalar total energy and are differentiated 
     \label{fig:arch}
 \end{figure}
 
-\subsection{Matbench Discovery}
+\subsection{Matbench Discovery materials benchmark}
 \label{sec:matbench}
 
 \begin{table}
@@ -158,7 +158,7 @@ benchmark; rather, it suggests that future comparisons may be more informative
 when they also consider non-compliant settings with broader DFT training
 datasets, additional fine-tuning data or different deployment objectives.
 
-\subsection{Small-molecule benchmarks}
+\subsection{SPICE-MACE-OFF molecular benchmark}
 \label{sec:small_mol}
 
 DPA4 was next evaluated on SPICE-MACE-OFF~\cite{kovacs2023mace}, a
@@ -273,10 +273,8 @@ training memory to about 40\% of the FP32 baseline
 (Table~\ref{tab:dpa4_compile_ablation}). This systems-level gain is obtained
 without replacing energy-based force matching by a direct-force surrogate.
 
-Deployment-oriented inference was evaluated through the
-LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface,
-\WH{lammps interfaced with DeePMD-kit ...}
-which is the relevant path for production molecular dynamics. The main
+Deployment-oriented inference was evaluated through LAMMPS~\cite{thompson2022lammps} driving the molecular-dynamics simulation, with per-step energy and force evaluations delegated to DPA4 through the DeePMD-kit~\cite{zeng2025deepmdv3} interface.
+This is the relevant path for production molecular dynamics. The main
 comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500}
 system-size sweep and therefore includes neighbour-list construction, force
 evaluation and simulation-driver overhead. The LAMMPS benchmarks were run with
