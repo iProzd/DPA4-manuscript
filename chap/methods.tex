@@ -326,16 +326,18 @@ transported into the edge-local frame and yields
     \label{eq:dpa4-local-projection}
 \end{equation}
 with $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times H}$, where
-$L^{\mathrm{pre}}_{\mathrm{deg}}$ is a degree-wise channel pre-mixer that
-lifts the representation width from $C$ to a hidden width $H=F\,C_f$ (with
-focus count $F$ and per-focus width $C_f$), $\mathbf{h}_j'$ is the pre-mixed
-node feature at hidden width, $D(R_{ij})$ is block diagonal in $l$, and
-$P_M$ selects the retained $m$-strata to dimension $D_M$. Let
+$L^{\mathrm{pre}}_{\mathrm{deg}}$ is a degree-wise channel pre-mixer
+(Eq.~\eqref{eq:sm-degree-linear}) that lifts the representation width from
+$C$ to a hidden width $H=F\,C_f$ (with focus count $F$ and per-focus width
+$C_f$), $\mathbf{h}_j'$ is the pre-mixed node feature at hidden width,
+$D(R_{ij})$ is block-diagonal in $l$ (Eq.~\eqref{eq:sm-direct-sum}), and
+$P_M$ selects the retained $m$-strata to dimension $D_M$
+(Eq.~\eqref{eq:sm-trunc-index}). Let
 $\widetilde{\rho}_{ij}\in\mathbb{R}^{(L+1)\times H}$ be the radial-species
 feature $\rho_{ij}$ of Eq.~\eqref{eq:dpa4-rho} lifted from representation
 width $C$ to hidden width $H$ by a degree-wise channel map
 $L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H}$ applied
-independently at each degree $l$.
+independently at each degree $l$ (Eq.~\eqref{eq:sm-degree-linear}).
 
 \paragraph{Low-rank edge--node SO(2)-equivariant product.}
 This stage realises the architectural design A1. In the
@@ -399,13 +401,16 @@ The stack is a composition of $S$ residual layers,
     \qquad s=1,\dots,S,
     \label{eq:dpa4-so2-layer}
 \end{equation}
-where $N_s$ is an equivariant RMS norm, $L^{\mathrm{SO2}}_s$ is an
-edge-independent SO(2)-equivariant linear map (unrestricted on $m=0$, the
-real form of complex multiplication on each $|m|>0$ subspace) supplying
+where $N_s$ is an equivariant RMS norm
+(Eq.~\eqref{eq:sm-rmsnorm}), $L^{\mathrm{SO2}}_s$ is an
+edge-independent SO(2)-equivariant linear map
+(Eqs.~\eqref{eq:sm-so2-m0}, \eqref{eq:sm-so2-mn}; unrestricted on $m=0$,
+the real form of complex multiplication on each $|m|>0$ subspace) supplying
 cross-$l$ mixing at fixed $|m|$ that complements the edge-dependent
 cross-$l$ mixing realised by $\mathcal{K}$ in
 Eq.~\eqref{eq:dpa4-radial-coupling}, $\Gamma_s$ is a gated activation acting on
-the scalar slice, and $\Lambda_s\in\mathbb{R}^{F\times C_f}$ is a learnable
+the scalar slice (Eq.~\eqref{eq:sm-gated}), and
+$\Lambda_s\in\mathbb{R}^{F\times C_f}$ is a learnable
 per-(focus,\,channel) residual scale initialised at $10^{-3}$. The gated
 activations $\{\Gamma_s\}$ provide the \emph{first non-linearity} in the
 message-construction pipeline. The parameter tuple
@@ -460,7 +465,7 @@ the local gauge,
 with $D(R_{ij})^{\top}$ the inverse gauge rotation, $P_M^{\top}$ the
 re-embedding of the truncated $m$-strata back into the full $(L+1)^2$ layout,
 and $\Xi_M$ a degree-dependent rescale that compensates for the norm loss
-from the $|m|\le M$ truncation. At this point $\mathbf{m}_{ij}$ still carries
+from the $|m|\le M$ truncation (Eq.~\eqref{eq:sm-rescale}). At this point $\mathbf{m}_{ij}$ still carries
 the hidden width $H$; channel post-mixing back to representation width is
 deferred to after neighbour aggregation.
 
@@ -554,7 +559,7 @@ of the focus/head split used above eq.~\eqref{eq:dpa4-attn-agg}), which is
 then fed into a degree-wise channel post-mixer
 $L^{\mathrm{post}}_{\mathrm{deg}}:V_{\le L}\otimes\mathbb{R}^{H}\to
 V_{\le L}\otimes\mathbb{R}^{C}$ projecting from hidden width back to
-representation width.
+representation width (Eq.~\eqref{eq:sm-degree-linear}).
 
 \paragraph{The convolution in closed form.}
 Combining the per-edge message $\mathbf{m}_{ij}$ from
@@ -607,7 +612,8 @@ sample points than tensor-product latitude--longitude grids.
 Let $L^{\mathrm{ch}}_{\mathrm{in}}:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}
 \otimes\mathbb{R}^{H_{\mathrm{FFN}}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}:
 V_{\le L}\otimes\mathbb{R}^{H_{\mathrm{FFN}}}\to V_{\le L}\otimes\mathbb{R}^{C}$
-be degree-wise channel-mixing maps at FFN hidden width $H_{\mathrm{FFN}}$.
+be degree-wise channel-mixing maps (Eq.~\eqref{eq:sm-degree-linear}) at
+FFN hidden width $H_{\mathrm{FFN}}$.
 Writing $\mathbf{u}\coloneqq L^{\mathrm{ch}}_{\mathrm{in}}\mathbf{h}_i\in
 V_{\le L}\otimes\mathbb{R}^{H_{\mathrm{FFN}}}$ for the lifted node feature,
 the FFN update is
