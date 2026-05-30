@@ -149,6 +149,7 @@ models = {
     "SevenNet-l3i5": dict(x=381, y=0.714, params_m=1.17, color=COLORS["yellow"], marker="o"),
     "DPA3": dict(x=104, y=0.718, params_m=4.81, color=COLORS["blue"], marker="o"),
     "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=COLORS["teal"], marker="o"),
+    "DPA4-neo": dict(x=6.5, y=0.781, params_m=1.60, color=DPA4_COLOR, marker="o"),
     "DPA4-air": dict(x=7.8, y=0.804, params_m=2.76, color=DPA4_COLOR, marker="o"),
     "DPA4-plus": dict(x=41, y=0.822, params_m=5.40, color=DPA4_COLOR, marker="o"),
     "DPA4-pro": dict(x=106.6, y=0.833, params_m=20.91, color=DPA4_COLOR, marker="o"),
@@ -207,6 +208,7 @@ def plot_model_points(ax):
 
 def draw_dpa4_trend(ax):
     dpa4_xy = [
+        (models["DPA4-neo"]["x"], models["DPA4-neo"]["y"]),
         (models["DPA4-air"]["x"], models["DPA4-air"]["y"]),
         (models["DPA4-plus"]["x"], models["DPA4-plus"]["y"]),
         (models["DPA4-pro"]["x"], models["DPA4-pro"]["y"]),
@@ -260,6 +262,15 @@ def main():
     draw_axis_break(ax_top, ax_bottom)
     draw_dpa4_trend(ax_top)
 
+    ax_top.annotate(
+        "Neo",
+        xy=(models["DPA4-neo"]["x"], models["DPA4-neo"]["y"]),
+        xytext=(4, -15),
+        textcoords="offset points",
+        fontsize=10.5,
+        fontweight="bold",
+        color=DPA4_COLOR,
+    )
     ax_top.annotate(
         "Air",
         xy=(models["DPA4-air"]["x"], models["DPA4-air"]["y"]),

@@ -8,7 +8,7 @@ The recent emergence of pretrained large atomistic models (LAMs), such as M3GNet
 
 The next challenge is no longer accuracy alone, but the joint optimisation of accuracy, efficiency and physical robustness.
 Equivariant architectures address the accuracy side of this problem by carrying directional information as first-class features instead of compressing it immediately into invariant scalars.
-NequIP~\cite{batzner2022nequip}, Allegro~\cite{musaelian2022learning}, MACE~\cite{batatia2022mace}, Equiformer-family models~\cite{liao2023equiformerv2,liao2026equiformerv3} and eSEN~\cite{fu2025esen} have demonstrated that equivariance can substantially improve data efficiency and benchmark accuracy.
+NequIP~\cite{batzner2022nequip}, Allegro~\cite{musaelian2022learning}, MACE~\cite{batatia2022mace}, Equiformer-family models~\cite{liao2022equiformer,liao2023equiformerv2,liao2026equiformerv3} and eSEN~\cite{fu2025esen} have demonstrated that equivariance can substantially improve data efficiency and benchmark accuracy.
 However, the most expressive SO(3)-equivariant models rely on Clebsch--Gordan tensor products or dense spherical-grid operations whose cost grows rapidly with angular order, model width and neighbour count.
 This cost becomes a bottleneck when the target is not a single specialised potential, but an MLIP architecture that can scale to broad training sets and serve as the backbone of future LAMs.
 Reducing SO(3) convolutions to edge-local SO(2) operations provides one route to this trade-off~\cite{passaro2023reducing}, and recent high-performing models such as eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3} also exploit SO(2)-structured local-frame operations.
