@@ -745,62 +745,68 @@ equivariance of $\mathcal{F}_{\theta_{\mathrm{FFN}}}$.
 \subsubsection{Native ZBL Zone Bridging}
 \label{sec:zbl_method}
 
-The analytical branch uses the ZBL screened Coulomb pair
-potential~\cite{ziegler1985},
+The analytical branch is the pairwise sum
 \begin{equation}
+    E^{\mathrm{ZBL}}(Z,R) = \tfrac{1}{2}\sum_{i\neq j}E_{ij}^{\mathrm{ZBL}}(r_{ij}),
+    \qquad
     E_{ij}^{\mathrm{ZBL}}(r)=
     \frac{k_{\mathrm{e}}Z_iZ_j}{r}\,
     \Phi\!\left(\frac{r}{a_{ij}}\right),
-    \qquad
+    \quad
     a_{ij}=\frac{0.88534\,a_0}{Z_i^{0.23}+Z_j^{0.23}},
     \label{eq:dpa4-zbl}
 \end{equation}
-where the universal screening function $\Phi(x)$ takes the standard
-four-exponential ZBL form
-$\Phi(x)=\sum_{k=1}^{4}c_k\,e^{-d_k x}$ with the original
-Ziegler--Biersack--Littmark coefficients $(c_k,d_k)_{k=1}^{4}$ (closed
-form in Supplementary Section~\ref{sec:sm-zone-bridging}). DPA4 does not treat this term as a
-post-hoc wrapper. Instead, the learned branch and analytical branch are coupled
-through Native ZBL Zone Bridging, which removes the direct learned short-range
-pair channel while assigning the corresponding inner-zone pair interaction to
-the analytical branch.
+of the Ziegler--Biersack--Littmark screened Coulomb potential~\cite{ziegler1985},
+where the universal screening function takes the standard four-exponential form
+\begin{equation}
+    \Phi(x)=0.18175\,e^{-3.1998\,x}
+    +0.50986\,e^{-0.94229\,x}
+    +0.28022\,e^{-0.4029\,x}
+    +0.028171\,e^{-0.20162\,x}.
+    \label{eq:dpa4-zbl-phi}
+\end{equation}
+Crucially,
+$E^{\mathrm{ZBL}}$ is evaluated on the raw pair distances $r_{ij}$, in
+contrast with the learned branch $E_{\Theta}^{\mathrm{NN}}$ which consumes
+only the clamped distance $\widetilde{r}(r_{ij})$
+(Sec.~\ref{sec:geom-inputs}). Native ZBL Zone Bridging couples the two
+branches inside the energy model rather than as a post-hoc additive
+correction.
 
-Native ZBL Zone Bridging couples the two branches through the two
-ingredients introduced in Sec.~\ref{sec:geom-inputs}: the clamped distance
-$\widetilde{r}(r_{ij})$ of Eq.~\eqref{eq:dpa4-clamp} and the source-freeze
-gate $\eta_j$ of Eq.~\eqref{eq:dpa4-source-freeze}. The clamp closes the
-scalar distance channel that the learned branch would see for inner-zone
-pairs: on $r_{ij}\le r_{\mathrm{in}}$, $\widetilde{r}$ is constant in
-$r_{ij}$, so every radial function in $E_{\Theta}^{\mathrm{NN}}$ has zero
-derivative with respect to that pair channel. The source-freeze gate
-closes the direction and multi-hop propagation channels: when $\eta_j=0$,
-all information sourced from $j$ is removed from the geometric initial
-embedding (Eq.~\eqref{eq:dpa4-gie}), the FiLM update on the $l=0$ slice
-(through Eq.~\eqref{eq:dpa4-env-matrix} feeding $\mathcal D_i$ into
-Eq.~\eqref{eq:dpa4-film}), and the envelope-gated attention aggregation
-(Eq.~\eqref{eq:dpa4-attention}). Together, the direct learned contribution
-associated with an inner-zone pair has zero derivative with respect to
-that pair channel and the inner-zone pair interaction is assigned
-exclusively to $E^{\mathrm{ZBL}}$; learned many-body contributions from
-non-frozen neighbours remain part of the neural potential.
+By construction of the clamped distance and the source-freeze gate
+(Sec.~\ref{sec:geom-inputs}), $E_{\Theta}^{\mathrm{NN}}$ is independent of
+$r_{jk}$ for every pair with $r_{jk}\le r_{\mathrm{in}}$, so the force on
+such a frozen pair coincides exactly with the ZBL pair force;
+many-body contributions involving non-frozen neighbours are unaffected.
 
 \subsubsection{Symmetry guarantees}
 \label{sec:symmetry}
 
-DPA4 is invariant to translations because all geometric inputs are built from
-relative displacements. It is permutation-equivariant at the feature level and
-permutation-invariant at the energy level because all edge and node maps are
-shared across atoms of the same species and neighbour aggregation is by
-summation or scalar softmax aggregation. Rotational invariance follows because
-the local-frame convolution, equivariant feed-forward network and initial
-embedding all intertwine the SO(3) action on $V_{\leq L}$; the readout acts
-only on the final $l=0$ invariant slice. Smoothness follows from the $C^3$
-cutoff envelope, the $C^3$ bridging maps and the positive denominator in
-Eq.~\eqref{eq:dpa4-attention}. Conservativeness follows from differentiating
-the single scalar energy in Eq.~\eqref{eq:dpa4-total-energy}.
+The total energy $E(Z,R)$ in Eq.~\eqref{eq:dpa4-total-energy} is invariant
+under translations, atom permutations of the same chemical species and
+global rotations, is $C^3$-smooth
+in $R$, and gives strictly conservative forces. Translation invariance
+follows because every geometric input is built from relative displacements. Permutation invariance follows
+because all edge and node operators are globally shared and depend on
+species only through learned embeddings of $Z_i$, and neighbour aggregation
+is by summation or softmax-weighted summation. Rotational invariance of
+$E$ follows because the Geometry-Informed Embedding (Sec.~\ref{sec:gie}),
+the SO(2) multi-focus convolution (Sec.~\ref{sec:so2}), the equivariant
+feed-forward network (Sec.~\ref{sec:s2-method}) and the equivariant RMS
+norm are SO(3)-equivariant on $V_{\leq L}\otimes\mathbb{R}^{C}$, while the
+atomic energy head reads out only the $l=0$ invariant slice; the analytical
+ZBL branch depends only on scalar distances $r_{ij}$. Smoothness follows
+from the $C^3$ cutoff envelope $s_5$, the $C^3$ clamped distance
+$\widetilde{r}$ and source-freeze gate $\eta_j$
+(Sec.~\ref{sec:geom-inputs}), and the softplus stabiliser in the attention
+denominator (Eq.~\eqref{eq:dpa4-attention}). Forces and virials are
+obtained by automatic differentiation of the single scalar energy in
+Eq.~\eqref{eq:dpa4-total-energy}, so the resulting force field is
+conservative by construction.
 
 \subsection{Training}
 
+\WH{not yet editted.}
 DPA4 is trained by minimising a weighted sum of mean absolute errors in energy
 and virials, together with the mean Euclidean norm of the atomic force-vector
 residual:
@@ -836,6 +842,7 @@ Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
 \subsection{Compiled conservative-force training}
 
+\WH{not yet editted.}
 DPA4 supports compiled conservative-force training. In conventional MLIP
 training, force matching differentiates through the conservative force
 $\mathbf{F}=-\partial E_{\Theta}/\partial\mathbf{R}$ and therefore requires the
