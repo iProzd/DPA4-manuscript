@@ -19,27 +19,24 @@ This gives the model chemical and geometric context from the outset, rather than
 The construction details are given in Section~\ref{sec:gie}.
 
 The SO(2) multi-focus convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbours to update the node features.
-In the local frame, the block applies the low-rank edge--node SO(2)-equivariant product (A1) that mixes angular degrees at fixed $|m|$ in place of an SO(3) Clebsch--Gordan tensor product (Section~\ref{sec:so2}, Supplementary Section~\ref{sec:sm-cg-trivialisation}).
-This design introduces higher-order ($l\ge 1$) equivariant edge features into the product, in contrast to similar SO(2)-equivariant constructions in eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3} that combine node features with invariant ($l=0$) edge features only.
-The low-rank parameterisation of the edge equivariant features improves accuracy at modest additional training cost (Section~\ref{sec:ablation}).
+Mathematical details are given in Section~\ref{sec:so2} and Supplementary Section~\ref{sec:sm-cg-trivialisation}.
+In the local frame, the convolution applies the low-rank edge--node SO(2)-equivariant product (A1), which exploits the simpler SO(2) Clebsch--Gordan structure to replace the costly SO(3) Clebsch--Gordan tensor product.
+The product depends on the full set of per-edge equivariant features at degrees $l=0,\dots,L$, in contrast to similar SO(2)-equivariant constructions in eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3} where the product depends only on invariant ($l=0$) edge features.
+The product of the SO(2) Clebsch--Gordan coefficients and the edge equivariant features uses a low-rank parameterisation, improving accuracy at modest additional training cost (Section~\ref{sec:ablation}).
 The multi-focus design (A2) splits the hidden width into $F$ parallel focus streams processed by an SO(2) stack and a cross-focus softmax competition, introducing message non-linearity.
-At fixed hidden width, this parallel-focus structure substantially reduces the model parameter count while improving accuracy relative to a single-focus architecture (Section~\ref{sec:ablation}).
+At fixed hidden width, this parallel-focus structure substantially reduces the model parameter count while improving accuracy relative to the $F=1$ single-focus baseline (Section~\ref{sec:ablation}).
 Aggregation over neighbours uses an envelope-gated attention (A3) computed from the SO(3)-invariant $l=0$ slice, with a destination-side output gate (Section~\ref{sec:attn}).
+This attention-weighted aggregation improves accuracy at small additional training cost relative to a plain envelope-weighted scatter sum (Section~\ref{sec:ablation}).
 The cutoff envelope drives edge contributions smoothly to zero as $r_{ij}\to r_{\mathrm{c}}$, a requirement for stable molecular dynamics.
 
 The equivariant FFN that follows the convolution applies a spherical-grid SwiGLU non-linearity through a Lebedev-quadrature grid projection (A4).
 Relative to the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, the Lebedev rule reaches the same algebraic order of accuracy with substantially fewer sample points and reduces the residual numerical equivariance error of the non-linearity to machine precision (Section~\ref{sec:s2-method}, Supplementary Section~\ref{sec:sm-s2}).
 
-The remaining two components address training and close-contact physics. The
-conservative energy-to-force path is implemented in a shape-stable,
-compiler-friendly form compatible with \texttt{torch.compile}, so DPA4 can
-accelerate energy-based force matching without using a direct-force surrogate.
-For close contacts, Native ZBL Zone Bridging embeds the analytical ZBL repulsion
-inside the scalar energy and suppresses the direct learned short-range pair
-channel through smooth bridging gates. The following sections evaluate these
-choices through benchmark accuracy, training and inference throughput,
-short-range force behaviour and controlled ablations; Section~\ref{sec:methods}
-gives the mathematical formulation.
+
+The remaining architectural component addresses close-contact physics.
+DPA4 decomposes the potential energy as a sum of a learned equivariant branch and an analytical short-range branch, $E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R)+E^{\mathrm{ZBL}}(Z,R)$, with the analytical branch given by the Ziegler--Biersack--Littmark (ZBL) screened-Coulomb pair potential~\cite{ziegler1985}.
+Rather than applying the ZBL term as a post-hoc correction, DPA4 couples the two branches through Native ZBL Zone Bridging: smooth bridging gates suppress the direct learned short-range pair channel so that the inner-zone pair interaction is handled exclusively by the analytical branch.
+Both branches contribute to the same scalar total energy and are differentiated jointly, giving conservative forces with a smooth transition at close approach (Section~\ref{sec:zbl_method}).
 
 \begin{figure}[t]
     \centering
@@ -151,6 +148,7 @@ the DPA4-Air training budget is therefore on the order of one day on such
 hardware. These compact variants are important for high-throughput workflows
 because they offer strong accuracy with lower training cost and faster
 deployment.
+\WH{in fig.1 we do not have neo model, why do we have it here ? }
 
 As the leading compliant models are now separated by relatively small CPS
 differences, further optimisation of the fixed-MPtrj Matbench Discovery
@@ -277,6 +275,7 @@ without replacing energy-based force matching by a direct-force surrogate.
 
 Deployment-oriented inference was evaluated through the
 LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface,
+\WH{lammps interfaced with DeePMD-kit ...}
 which is the relevant path for production molecular dynamics. The main
 comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500}
 system-size sweep and therefore includes neighbour-list construction, force
@@ -287,7 +286,9 @@ Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
 
 Figure~\ref{fig:lmp_inorganic_infer} shows that the compact DPA4 models retain
 practical molecular-dynamics throughput despite their equivariant message
-passing. The scalar DPA1-L0 baseline~\cite{zhang2022dpa} remains the fastest
+passing.
+\WH{where is Pro?}
+The scalar DPA1-L0 baseline~\cite{zhang2022dpa} remains the fastest
 model, as expected for a less expressive descriptor. Among the more expressive
 potentials, DPA4-Neo and DPA4-Air sustain favourable atom-step throughput up to
 $10^4$ atoms, whereas the DPA3-L16 baseline~\cite{zhang2025dpa3} matches the
@@ -297,6 +298,7 @@ faster than MACE-M~\cite{batatia2022mace,barroso2024open} in atom-step
 throughput, and DPA4-Air remains consistently faster than both MACE baselines.
 The compact DPA4 variants therefore reduce both the training and the deployment
 cost of large atomistic simulations.
+\WH{in training dpa4 much faster than dpa3, while at converged system size inference, the trend is not preserved. discuss the possible reason.}
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}
