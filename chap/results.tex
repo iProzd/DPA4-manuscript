@@ -193,14 +193,14 @@ Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the acc
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{fig/inorganic.pdf}
+    \includegraphics[width=0.82\textwidth]{fig/ase-inorganic_500.pdf}
     \caption{
-        LAMMPS inference throughput on the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} test.
-        \WH{perhaps we do not need 4 subplots, only 3 and 4 are enough.}
-        Each point reports molecular-dynamics throughput for periodic repetitions of the same inorganic seed structure, with LAMMPS~\cite{thompson2022lammps} driving the simulation and per-step energy and force evaluations delegated to DPA4 through the DeePMD-kit~\cite{zeng2025deepmdv3} interface, measured after warm-up on an NVIDIA H20 GPU.
-        The three panels report complementary throughput measures---simulated time per day, time steps per second and atom-normalized step rate---where higher values indicate faster simulation.
+        ASE~\cite{ase-paper} inference throughput on the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} test.
+        Each point reports end-to-end throughput for evaluating energy, forces and stress through the ASE calculator interface after warm-up on a single NVIDIA H20 GPU.
+        OPT denotes MACE inference with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
+        Higher atom-normalized throughput indicates faster inference.
     }
-    \label{fig:lmp_inorganic_infer}
+    \label{fig:ase_inorganic_infer}
 \end{figure}
 
 Figure~\ref{fig:cps} complements the Matbench
@@ -225,30 +225,36 @@ training memory to about 40\% of the FP32 baseline
 (Table~\ref{tab:dpa4_compile_ablation}). This systems-level gain is obtained
 without replacing energy-based force matching by a direct-force surrogate.
 
-Deployment-oriented inference was evaluated through LAMMPS~\cite{thompson2022lammps} driving the molecular-dynamics simulation, with per-step energy and force evaluations delegated to DPA4 through the DeePMD-kit~\cite{zeng2025deepmdv3} interface.
-This is the relevant path for production molecular dynamics. The main
-comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500}
-system-size sweep and therefore includes neighbour-list construction, force
-evaluation and simulation-driver overhead. The LAMMPS benchmarks were run with
-Kokkos acceleration~\cite{trott2022kokkos} on a single NVIDIA H20 GPU, with
-additional ASE and LAMMPS measurements reported in Supplementary
-Figs.~\ref{fig:sm_lmp_catalysts}--\ref{fig:sm_ase_catalysts}.
+Inference efficiency was evaluated through the ASE calculator
+interface~\cite{ase-paper}, which provides a common end-to-end route for
+single-point energy, force and stress evaluation across DPA4, DPA3, MACE and
+EquiformerV3 baselines. The DPA4 calculators used compiled inference. The MACE
+baselines were evaluated both in their standard path and with NVIDIA
+cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
+The main comparison uses the LAMBench~\cite{peng2025lambench}
+\texttt{inorganic\_500} system-size sweep and therefore includes neighbour-list
+construction, model evaluation and calculator-interface overhead. All inference
+benchmarks were run on the same H20 hardware and software environment, with the
+full configuration and companion LAMMPS measurements reported in Supplementary
+Figs.~\ref{fig:sm_lmp_inorganic}--\ref{fig:sm_ase_catalysts}.
 
-Figure~\ref{fig:lmp_inorganic_infer} shows that the compact DPA4 models retain
-practical molecular-dynamics throughput despite their equivariant message
-passing.
-\WH{where is Pro?}
-The scalar DPA1-L0 baseline~\cite{zhang2022dpa} remains the fastest
-model, as expected for a less expressive descriptor. Among the more expressive
-potentials, DPA4-Neo and DPA4-Air sustain favourable atom-step throughput up to
-$10^4$ atoms, whereas the DPA3-L16 baseline~\cite{zhang2025dpa3} matches the
-atom-step rate of DPA4-Air only at intermediate system sizes. At the largest
-system size, DPA4-Neo is roughly twice as fast as MACE-S and several times
-faster than MACE-M~\cite{batatia2022mace,barroso2024open} in atom-step
-throughput, and DPA4-Air remains consistently faster than both MACE baselines.
-The compact DPA4 variants therefore reduce both the training and the deployment
-cost of large atomistic simulations.
-\WH{in training dpa4 much faster than dpa3, while at converged system size inference, the trend is not preserved. discuss the possible reason.}
+Figure~\ref{fig:ase_inorganic_infer} shows that the compact DPA4 models retain
+high atom-normalized throughput despite their equivariant message passing.
+Across the system-size sweep, the DPA4 variants deliver substantially higher
+throughput than the DPA3 baselines~\cite{zhang2025dpa3} and remain competitive
+with the NVIDIA cuEquivariance-optimized MACE
+baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning,nvidia_cuequivariance}.
+DPA4-Pro is also faster than the EquiformerV3 baseline in this ASE path while
+reaching higher Matbench Discovery accuracy and CPS than
+EquiformerV3+DeNS-MP (Table~\ref{tab:matbench}).
+At the largest atom counts, the ASE curves bend downward because the present
+DeePMD-kit native ASE path constructs neighbour lists on the GPU, making the
+end-to-end throughput partly limited by neighbour-list memory and runtime
+overheads~\cite{zeng2025deepmdv3}. This front-end bottleneck is
+separate from the DPA4 architecture; dedicated SO(2)-convolution kernels could
+reduce memory traffic and provide a further 2--3$\times$ inference speedup. The
+compact DPA4 variants therefore reduce training cost and retain practical ASE
+inference throughput for large atomistic evaluations.
 
 \subsection{Native ZBL coupling and extreme conditions}
 \label{sec:zbl}

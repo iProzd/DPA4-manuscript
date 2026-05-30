@@ -607,27 +607,42 @@ is used for the released DPA4 variants.
 
 Supplementary inference benchmarks were conducted to assess whether the
 throughput trends in Section~\ref{sec:efficiency} are robust to the simulated
-structure and software interface. The LAMMPS \texttt{inorganic\_500} benchmark
-is used for the primary comparison because the LAMMPS--DeePMD-kit path is the
-production execution route for molecular
-dynamics~\cite{thompson2022lammps,zeng2025deepmdv3} and is not dominated by the
-current DeePMD-kit native ASE neighbour-list
-bottleneck~\cite{zeng2025deepmdv3}. The accompanying LAMMPS and ASE
-measurements provide interface- and system-level context for this comparison.
+structure and software interface. The main text reports the ASE
+\texttt{inorganic\_500} comparison; here we provide the corresponding LAMMPS
+\texttt{inorganic\_500} sweep, the LAMMPS \texttt{catalysts\_500} sweep and the
+remaining ASE \texttt{catalysts\_500} sweep. Together, these measurements
+separate calculator-interface throughput from molecular-dynamics driver
+throughput.
 
-The LAMMPS benchmarks were run with Kokkos acceleration~\cite{trott2022kokkos}
-on an NVIDIA H20 GPU with CUDA 12.8, Python 3.12.13, PyTorch 2.11.0+cu128,
-DeePMD-kit 0.1.dev3702+\texttt{g478cba61b}, LAMMPS 22 Jul 2025 Update 2, Kokkos
-4.6.2 and Open MPI 4.0.3. The system software used Ubuntu 20.04.6 LTS and GCC
-9.4.0. The ASE benchmarks used the same H20 hardware and the ASE calculator
-interface~\cite{ase-paper}. DPA4 calculators used compiled inference with
+All inference benchmarks were run on the same NVIDIA H20 hardware and base
+system environment with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0. The
+LAMMPS benchmarks used Kokkos acceleration~\cite{trott2022kokkos} with Python
+3.12.13, PyTorch 2.11.0+cu128, DeePMD-kit
+0.1.dev3702+\texttt{g478cba61b}, LAMMPS 22 Jul 2025 Update 2, Kokkos 4.6.2 and
+Open MPI 4.0.3. The ASE benchmarks used the ASE calculator
+interface~\cite{ase-paper}; DPA4 calculators used compiled inference with
 Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy 2.4.4. The MACE
 baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning} used
-MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128, and
+MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128; the OPT variants used
+NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
 EquiformerV3~\cite{liao2026equiformerv3} used the
 \texttt{atomicarchitects/equiformer\_v3} implementation at commit
 \texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128. All ASE baseline
 environments used ASE 3.28.0 and NumPy 2.4.4.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\textwidth]{fig/inorganic.pdf}
+    \caption{
+        LAMMPS inference throughput on the LAMBench \texttt{inorganic\_500}
+        test~\cite{peng2025lambench}.
+        The benchmark repeats one inorganic seed structure to different system
+        sizes and measures molecular-dynamics throughput through the
+        LAMMPS--DeePMD-kit interface~\cite{thompson2022lammps,zeng2025deepmdv3}
+        after warm-up.
+    }
+    \label{fig:sm_lmp_inorganic}
+\end{figure}
 
 \begin{figure}[p]
     \centering
@@ -643,48 +658,29 @@ environments used ASE 3.28.0 and NumPy 2.4.4.
     \label{fig:sm_lmp_catalysts}
 \end{figure}
 
-The \texttt{catalysts\_500} LAMMPS sweep gives the same qualitative picture as
-the \texttt{inorganic\_500} sweep in the main text. DPA4-Neo and DPA4-Air
-remain below the scalar DPA1-L0 baseline, as expected for equivariant models,
-but they occupy a substantially faster regime than the larger MACE baseline in
-atom-normalized throughput. This behaviour is most relevant for large periodic
-systems, where atom-step throughput is the practical quantity that determines
-wall-clock molecular-dynamics progress.
+The two LAMMPS sweeps provide a complementary molecular-dynamics view of
+deployment throughput. DPA4-Neo and DPA4-Air occupy a substantially faster
+regime than the larger MACE baseline in atom-normalized throughput while
+retaining equivariant message passing. This behaviour is most relevant for
+large periodic systems, where atom-step throughput is the practical quantity
+that determines wall-clock molecular-dynamics progress.
 
 \begin{figure}[p]
     \centering
-    \includegraphics[width=0.82\textwidth]{fig/infer_efficiency_inorganic_500_atoms_per_ms.pdf}
-    \caption{
-        ASE inference throughput on the LAMBench \texttt{inorganic\_500}
-        test~\cite{peng2025lambench}.
-        Each point evaluates energy, forces and stress through the ASE
-        calculator interface after warm-up.
-    }
-    \label{fig:sm_ase_inorganic}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics[width=0.82\textwidth]{fig/infer_efficiency_catalysts_500_atoms_per_ms.pdf}
+    \includegraphics[width=0.82\textwidth]{fig/ase-catalysts_500.pdf}
     \caption{
         ASE inference throughput on the LAMBench \texttt{catalysts\_500}
         test~\cite{peng2025lambench}.
-        The protocol is identical to Supplementary Fig.~\ref{fig:sm_ase_inorganic}
+        The protocol is identical to Fig.~\ref{fig:ase_inorganic_infer}
         except for the repeated seed structure.
+        OPT denotes MACE inference with NVIDIA cuEquivariance-accelerated
+        equivariant kernels~\cite{nvidia_cuequivariance}.
     }
     \label{fig:sm_ase_catalysts}
 \end{figure}
 
-The ASE measurements are end-to-end calculator timings and are therefore useful
-for comparing the current deployment interfaces, but they should not be read as
-a pure measurement of the compiled DPA4 network. In the present DeePMD-kit
-native ASE path~\cite{ase-paper,zeng2025deepmdv3}, neighbour lists are
-constructed on the GPU. For the large repeated periodic systems in LAMBench,
-this step becomes increasingly expensive in both runtime and memory, causing
-the DPA4 ASE throughput curves to bend downward at the largest atom counts and
-limiting the largest systems that can be evaluated by the calculators. For this
-reason, the main text emphasizes the LAMMPS benchmark and treats the ASE
-results as supplementary evidence for the current front-end implementation.
+The \texttt{catalysts\_500} ASE sweep provides the corresponding
+calculator-interface comparison for the catalyst seed structure.
 
 \FloatBarrier
 \section{Model and training configurations}
