@@ -33,25 +33,16 @@ DPA4 decomposes the potential energy as the sum of a learned equivariant message
 where $\Theta$ collects all learnable parameters of the learned branch.
 Forces and virials are obtained by differentiating the scalar energy in Eq.~\eqref{eq:dpa4-total-energy} with respect to atomic positions and the cell, so the learned and analytical branches together define a single conservative potential.
 
-DPA4 carries node features in the real irreducible representation space
-$V_{\leq L}\otimes\mathbb{R}^{C}$, where $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$
-and $V_l$ is the $(2l+1)$-dimensional irreducible representation of SO(3). The
-$l=0$ subspace is invariant and is used for scalar readout; $l>0$ subspaces
-transform equivariantly and carry angular information. Each interaction block
-consists of a multi-focus SO(2) convolution in an edge-local gauge and an
-equivariant feed-forward network. The architecture combines an Environment
-Initial Embedding that injects a scalar local-environment prior at layer 0,
-edge-conditioned radial degree coupling inside the local SO(2) frame,
-envelope-gated attention for smooth aggregation, a Lebedev $S^2$
-activation in the feed-forward branch and Native ZBL Zone Bridging for
-short-range repulsion. Geometry-dependent quantities, including radial basis
-functions, cutoff envelopes, local gauges and bridging gates, are constructed
-once per neighbour graph and reused across blocks.
+In the learned branch $E_{\Theta}^{\mathrm{NN}}$, the atomic species $Z$ and positions $R$ are encoded into per-atom irreducible representations in the real space $V_{\leq L}\otimes\mathbb{R}^{C}$ by a Geometry-Informed Embedding (GIE) stage (Sec.~\ref{sec:gie}), updated through $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and read out as a scalar energy by an atomic energy head.
+Here $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$ with $V_l$ the $(2l+1)$-dimensional irreducible representation of SO(3); the $l=0$ subspace is invariant and is used for scalar readout, while $l>0$ subspaces transform equivariantly and carry angular information.
+Each interaction block is a residual stack of an SO(2) multi-focus convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms.
+The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant product (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the SO(2) MF convolution (Sec.~\ref{sec:so2}); the Lebedev-grid spherical-grid SwiGLU non-linearity (A4) acts inside the FFN (Sec.~\ref{sec:s2-method}).
+Short-range repulsion couples the learned and analytical branches through Native ZBL Zone Bridging (Sec.~\ref{sec:zbl_method}).
 
 \subsubsection{Geometric inputs to the learned branch}
 \label{sec:geom-inputs}
 
-Throughout Section~\ref{sec:methods}, every geometric quantity entering the
+Throughout Sections~\ref{sec:geom-inputs}--\ref{sec:s2-method}, every geometric quantity entering the
 learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff
 envelopes, real spherical harmonics $Y_l^m(\widehat{\mathbf{r}}_{ij})$, the
 per-edge local-frame rotation $\mathbf{D}_{ij}$, and the local-environment
@@ -90,8 +81,8 @@ $h_{\mathrm{c}}''(0)=h_{\mathrm{c}}''(1)=h_{\mathrm{c}}'''(0)=h_{\mathrm{c}}'''(
 and $h_{\mathrm{w}}$ glues the constants $0$ on the left and $1$ on the right
 with all first three derivatives vanishing at both endpoints
 ($h_{\mathrm{w}}(0)=0$, $h_{\mathrm{w}}(1)=1$,
-$h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0$, $k=1,2,3$). The
-eight $\,+\,$ eight boundary conditions determine each interpolant uniquely.
+$h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0$, $k=1,2,3$). Each set of
+eight boundary conditions determines the corresponding septic interpolant uniquely.
 
 \paragraph{Clamped distance map and bridging amplitude.}
 With $t(r)\coloneqq(r-r_{\mathrm{in}})/(r_{\mathrm{out}}-r_{\mathrm{in}})$,
