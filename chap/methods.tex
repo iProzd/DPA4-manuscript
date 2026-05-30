@@ -285,18 +285,18 @@ $\mathcal{C}_{\theta}$ that takes the per-atom node features
 $\mathbf{h}_j\in V_{\le L}\otimes\mathbb{R}^{C}$, $j=1,\dots,N$, and returns
 a per-atom update $(\mathcal{C}_{\theta}\mathbf{h})_i\in
 V_{\le L}\otimes\mathbb{R}^{C}$ obtained by aggregating information from the
-neighbours of atom $i$. The operator is built in six stages, developed below:
+neighbours of atom $i$. The operator is built in six stages:
 (i) transport each source node feature into a per-edge SO(2) gauge aligning
 the bond direction with a fixed reference axis; (ii) construct an in-frame
-edge feature through a \emph{low-rank edge--node SO(2)-equivariant product};
-(iii) introduce message non-linearity through a \emph{multi-focus design}
-combining a per-focus SO(2) stack and a cross-focus competition, whose
-gated activations and softmax over focuses act as two complementary
-non-linear elements; (iv) lift the in-frame feature back to the
-global frame as the per-edge equivariant message; (v) aggregate neighbour
-messages with envelope-gated attention modulated by a destination-side
-output gate; and (vi) project the result back to representation width
-through a channel post-mixer. The closed form of $\mathcal{C}_{\theta}$
+edge feature through a \emph{low-rank edge--node SO(2)-equivariant product}
+(A1); (iii) introduce message non-linearity through a \emph{multi-focus
+design} (A2) combining a per-focus SO(2) stack and a cross-focus
+competition, whose gated activations and softmax over focuses act as two
+complementary non-linear elements; (iv) lift the in-frame feature back to
+the global frame as the per-edge equivariant message; (v) aggregate
+neighbour messages with envelope-gated attention (A3) modulated by a
+destination-side output gate; and (vi) project the result back to
+representation width through a channel post-mixer. The closed form of $\mathcal{C}_{\theta}$
 collecting all six stages is given as Eq.~\eqref{eq:dpa4-conv} at the end
 of the subsection.
 
@@ -338,7 +338,7 @@ $L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H}$ applied
 independently at each degree $l$.
 
 \paragraph{Low-rank edge--node SO(2)-equivariant product.}
-This stage is the central message-construction primitive of DPA4. In the
+This stage realises the architectural design A1. In the
 local frame, the edge angular feature $Y_l(\widehat{\mathbf{r}}_{ij})$
 collapses to its $m=0$ component for every degree $l$, so
 $\widetilde{\rho}_{ij}$ serves as the radial-modulated $m=0$ slice of the
@@ -382,7 +382,7 @@ for cross-$l$ coupling at fixed $|m|$.
 
 \paragraph{Multi-focus design for message non-linearity.}
 The in-frame edge feature is processed by two distinct non-linear mechanisms
-that together constitute the second key innovation of DPA4. First, the
+that together realise the architectural design A2. First, the
 hidden width factorises as $\mathbb{R}^{H}=\mathbb{R}^{F}\otimes
 \mathbb{R}^{C_f}$, so $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times F\times C_f}$
 splits into $F$ \emph{focus streams}, on each of which a multi-layer SO(2)
@@ -402,7 +402,9 @@ The stack is a composition of $S$ residual layers,
 where $N_s$ is an equivariant RMS norm, $L^{\mathrm{SO2}}_s$ is an
 edge-independent SO(2)-equivariant linear map (unrestricted on $m=0$, the
 real form of complex multiplication on each $|m|>0$ subspace) supplying
-cross-$l$ mixing at fixed $|m|$, $\Gamma_s$ is a gated activation acting on
+cross-$l$ mixing at fixed $|m|$ that complements the edge-dependent
+cross-$l$ mixing realised by $\mathcal{K}$ in
+Eq.~\eqref{eq:dpa4-radial-coupling}, $\Gamma_s$ is a gated activation acting on
 the scalar slice, and $\Lambda_s\in\mathbb{R}^{F\times C_f}$ is a learnable
 per-(focus,\,channel) residual scale initialised at $10^{-3}$. The gated
 activations $\{\Gamma_s\}$ provide the \emph{first non-linearity} in the
@@ -410,10 +412,10 @@ message-construction pipeline. The parameter tuple
 $\Theta=(L^{\mathrm{SO2}}_s,N_s,\Gamma_s,\Lambda_s)_{s=1}^{S}$ collects all
 learnable weights of the stack.
 
-The \emph{second non-linearity} is an edge-conditioned cross-focus
-competition that reweights the streams by a softmax computed from their own
-SO(2)-invariant $l=0$ content, turning the multi-focus split into a learnable
-non-linear gating mechanism on top of the per-focus SO(2) stack. Let
+The \emph{second non-linearity} is a cross-focus competition that depends on
+the edge's own SO(2)-invariant $l=0$ content through a softmax, turning the
+multi-focus split into a learnable non-linear gating mechanism on top of the
+per-focus SO(2) stack. Let
 $\mathbf{x}^{(0)}_{ij}\in\mathbb{R}^{F\times C_f}$ be the $(l,m)=(0,0)$
 component of $\mathbf{x}_{ij}$ at the entry of the stack
 \eqref{eq:dpa4-so2-stack}, and let
@@ -509,8 +511,7 @@ radial-bias tensor. The attention weight is
 \end{equation}
 with the $C^3$ envelope $s_5$ of Eq.~\eqref{eq:dpa4-envelope}, the
 source-freeze gate $\eta_j$ of Eq.~\eqref{eq:dpa4-source-freeze}, and a
-learnable null-logit $\zeta_{f,a}\in\mathbb{R}$. (In the implementation the
-standard max-subtraction stabilisation is applied to the exponents.) Two
+learnable null-logit $\zeta_{f,a}\in\mathbb{R}$. Two
 mechanisms make $w_{ij}^{(f,a)}$ smooth at the cutoff: the numerator factor
 $s_5(r_{ij})^2$ drives the weight $C^3$-smoothly to zero as
 $r_{ij}\to r_{\mathrm{c}}$, and the
@@ -576,7 +577,10 @@ convolution at atom $i$ is
 \end{equation}
 where the concatenation $\operatorname{concat}_{(f,a)}$ stacks the gated
 per-$(f,a)$ aggregations along the channel axis according to the inverse of
-the $H=F\cdot H_a\cdot d_a$ focus/head split. Equivariance follows because
+the $H=F\cdot H_a\cdot d_a$ focus/head split. The architectural designs
+A1 and A2 are absorbed into the per-edge message $\mathbf{m}_{ij}$, while
+A3 appears explicitly through the attention weight $w_{ij}^{(f,a)}$ and the
+destination-side output gate $G_i^{(f,a)}$. Equivariance follows because
 $w_{ij}^{(f,a)}$ and $G_i^{(f,a)}$ are SO(3)-invariant scalars and every
 other operation is either degree-wise or acts inside an
 SO(2)-equivariant local frame. The post-mixer is zero-initialised so
@@ -589,12 +593,15 @@ After each SO(2) convolution, DPA4 applies an equivariant feed-forward network
 (FFN) $\mathcal{F}_{\theta_{\mathrm{FFN}}}$ with residual connection. The FFN
 acts independently on every atom and respects SO(3)-equivariance by
 sandwiching a nonlinearity between two degree-wise SO(3)-linear maps. The
-nonlinearity is realised as a \emph{spherical-grid SwiGLU}: the $l\geq 1$
-slice is projected from spherical-harmonic coefficients to function values on
-a discrete set of points on $S^2$, processed by a point-wise SwiGLU MLP on
-those points, and projected back to spherical-harmonic coefficients; the
-$l=0$ slice is processed in parallel by an ordinary scalar SwiGLU. The
-spherical grid is chosen as a Lebedev quadrature rule.
+nonlinearity realises the architectural design A4 as a \emph{spherical-grid
+SwiGLU}: the full lifted feature (all degrees $l=0,\dots,L$) is projected
+from spherical-harmonic coefficients to function values on a Lebedev
+quadrature grid on $S^2$, processed by a point-wise SwiGLU MLP at each grid
+point, and projected back to spherical-harmonic coefficients. An auxiliary
+scalar SwiGLU acts on the $l=0$ slice in parallel and is summed into the
+$l=0$ slot. The Lebedev rule is chosen because it provides exact discrete
+orthogonality on the band-limited space $V_{\le L}$ with substantially fewer
+sample points than tensor-product latitude--longitude grids.
 
 \paragraph{Architecture.}
 Let $L^{\mathrm{ch}}_{\mathrm{in}}:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}
@@ -617,13 +624,12 @@ where $\Phi^{\mathrm{grid}}$ is the spherical-grid SwiGLU nonlinearity acting
 on the full lifted feature $\mathbf{u}$ (all degrees $l=0,\dots,L$), and
 $\Psi^{\mathrm{scalar}}$ is an auxiliary scalar SwiGLU that consumes the
 original $l=0$ slice $\mathbf{h}_i|_{l=0}\in\mathbb{R}^{C}$ and contributes
-only to the $l=0$ slot of the sum inside the brackets. The output linear
+only to the $l=0$ slot of the bracketed sum. The output linear
 $L^{\mathrm{ch}}_{\mathrm{out}}$ is zero-initialised so the residual update
 starts at the identity at training time zero.
 
 \paragraph{Lebedev quadrature on \texorpdfstring{$S^2$}{S2}.}
-A Lebedev rule of algebraic order of accuracy $p\geq 2L$ (also referred to
-as algebraic precision) is a finite set of points
+A Lebedev rule of algebraic order of accuracy $p\geq 2L$ is a finite set of points
 $\{\mathbf{q}_a\}_{a=1}^{A}\subset S^2$ together with positive weights
 $\{w_a\}_{a=1}^{A}$, normalised so that $\sum_{a}w_a=1$. The defining
 property is that, for every spherical-harmonic product of total degree at most
@@ -717,10 +723,7 @@ and produces a width-$H_{\mathrm{FFN}}$ scalar output via
     \in\mathbb{R}^{H_{\mathrm{FFN}}},
     \label{eq:dpa4-ffn-scalar}
 \end{equation}
-with $W_3\in\mathbb{R}^{2H_{\mathrm{FFN}}\times C}$; the scalar output
-contributes only to the $l=0$ slot of the sum
-$\Phi^{\mathrm{grid}}(\mathbf{u})+\Psi^{\mathrm{scalar}}(\mathbf{h}_i|_{l=0})$
-inside the brackets of Eq.~\eqref{eq:dpa4-ffn}.
+with $W_3\in\mathbb{R}^{2H_{\mathrm{FFN}}\times C}$.
 
 \paragraph{Equivariance.}
 The projection \eqref{eq:dpa4-s2-to-grid} is the evaluation of a band-limited
