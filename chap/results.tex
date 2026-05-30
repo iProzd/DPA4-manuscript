@@ -103,11 +103,14 @@ trained on MPtrj~\cite{deng2023chgnet}, used to relax WBM candidate
 structures~\cite{WBM}, and then evaluated by their formation-energy predictions
 and derived convex-hull distances. The resulting scores combine classification,
 regression and structural-relaxation metrics, making the benchmark a stringent
-test of both energy accuracy and relaxation quality. Here we focus on the
-compliant leaderboard to keep the training data fixed across models and more
-directly compare architectural differences. Non-compliant leaderboard entries
-may additionally involve different training datasets or fine-tuning strategies
-and are left for future comparison.
+test of both energy accuracy and relaxation quality. The leaderboard also
+reports $\kappa$SRME, a thermal-conductivity metric that probes property
+prediction accuracy related to the smoothness and conservativeness of the
+learned potential. Here we focus on the compliant leaderboard to keep the
+training data fixed across models and more directly compare architectural
+differences. Non-compliant leaderboard entries may additionally involve
+different training datasets or fine-tuning strategies and are left for future
+comparison.
 
 Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics,
 while Fig.~\ref{fig:cps} shows the corresponding accuracy--efficiency frontier
@@ -137,18 +140,22 @@ parameters, reducing the gap to EquiformerV3+DeNS-MP to 0.008 CPS while using
 exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a
 10.9$\times$ smaller model. DPA4-Neo contains only 1.60M parameters but still
 reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris}
-(0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model. Beyond
-parameter count, Fig.~\ref{fig:cps} compares the A100-equivalent training cost
-needed to reach each point on the leaderboard. On this scale, DPA4-Air requires
-only single-digit A100 GPU-days, 42.9$\times$ less training compute than
-eSEN-30M-MP while achieving a higher CPS. For perspective, the A100 has a peak
-FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can
+(0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model. The Air--Neo
+segment in Fig.~\ref{fig:cps} has a steeper CPS drop per saved training cost
+than the Pro--Plus--Air segment, with CPS decreasing from 0.804 to 0.781 as the
+parameter count decreases from 2.76M to 1.60M. This suggests that further
+compression below the Air scale begins to trade accuracy more visibly for
+reduced parameter count and training cost. Beyond parameter count,
+Fig.~\ref{fig:cps} compares the A100-equivalent training cost needed to reach
+each point on the leaderboard. On this scale, DPA4-Air requires only
+single-digit A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP
+while achieving a higher CPS. For perspective, the A100 has a peak FP32
+throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can
 exceed 100~TFLOPS peak FP32 throughput. Under an idealized peak-FLOP rescaling,
 the DPA4-Air training budget is therefore on the order of one day on such
 hardware. These compact variants are important for high-throughput workflows
 because they offer strong accuracy with lower training cost and faster
 deployment.
-\WH{in fig.1 we do not have neo model, why do we have it here ? }
 
 As the leading compliant models are now separated by relatively small CPS
 differences, further optimisation of the fixed-MPtrj Matbench Discovery
