@@ -24,18 +24,14 @@ PSI4~\cite{kovacs2023mace,
 
 \subsection{DPA4 model architecture}
 
-Consider a system of $N$ atoms with atomic numbers $\{Z_i\}$ and positions
-$R=\{\mathbf{R}_i\}_{i=1}^{N}$. DPA4 represents the potential energy as the sum
-of a learned equivariant message-passing branch and an analytical
-Ziegler--Biersack--Littmark (ZBL) short-range branch:
+Consider a system of $N$ atoms with atomic numbers $Z=\{Z_i\}_{i=1}^{N}$ and positions $R=\{\mathbf{R}_i\}_{i=1}^{N}$.
+DPA4 decomposes the potential energy as the sum of a learned equivariant message-passing branch and an analytical Ziegler--Biersack--Littmark (ZBL) short-range branch,
 \begin{equation}
     E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R) + E^{\mathrm{ZBL}}(Z,R),
     \label{eq:dpa4-total-energy}
 \end{equation}
-where $r_{ij}=|\mathbf{R}_j-\mathbf{R}_i|$ denotes the interatomic distance.
-Forces and virials are obtained by differentiating the scalar energy in
-Eq.~\eqref{eq:dpa4-total-energy} with respect to atomic positions and the
-cell, so the neural and analytical branches define one conservative potential.
+where $\Theta$ collects all learnable parameters of the learned branch.
+Forces and virials are obtained by differentiating the scalar energy in Eq.~\eqref{eq:dpa4-total-energy} with respect to atomic positions and the cell, so the learned and analytical branches together define a single conservative potential.
 
 DPA4 carries node features in the real irreducible representation space
 $V_{\leq L}\otimes\mathbb{R}^{C}$, where $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$

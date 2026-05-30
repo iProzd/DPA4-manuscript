@@ -43,9 +43,9 @@ Both branches contribute to the same scalar total energy and are differentiated 
     \includegraphics[width=\textwidth]{fig/fig2_simplified_wh.pdf}
     \caption{
         Overview of the DPA4 architecture.
-        (a) The full model combines a shared edge cache, an initial embedding stage, stacked equivariant interaction blocks, and an atomic energy head.
-        (b) Environment Initial Embedding injects local-environment information into the initial representation.
-        (c) Each multi-focus SO(2) convolution rotates features to an edge-local frame, applies radial degree coupling and focus competition, and aggregates messages through envelope-gated softmax attention after rotating them back.
+        (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an SO(2) multi-focus (MF) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head. Architectural designs A1--A3 act inside the SO(2) MF convolution and A4 (Lebedev-grid $S^2$ non-linearity) inside the equivariant FFN.
+        (b) The shared edge cache precomputes per-edge quantities; the GIE stage initialises the $l=0$ slice through FiLM modulation by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbour directions onto real spherical harmonics weighted by a radial-species profile.
+        (c) The SO(2) multi-focus convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant product (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbours through envelope-gated attention (A3).
     }
     \label{fig:arch}
 \end{figure}
@@ -245,7 +245,7 @@ molecules, rather than specialising to a single chemical domain.
     \caption{
         LAMMPS inference throughput on the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} test.
         \WH{perhaps we do not need 4 subplots, only 3 and 4 are enough.}
-        Each point reports molecular-dynamics throughput for periodic repetitions of the same inorganic seed structure, evaluated with the LAMMPS~\cite{thompson2022lammps}--DeePMD-kit~\cite{zeng2025deepmdv3} interface after warm-up on an NVIDIA H20 GPU.
+        Each point reports molecular-dynamics throughput for periodic repetitions of the same inorganic seed structure, with LAMMPS~\cite{thompson2022lammps} driving the simulation and per-step energy and force evaluations delegated to DPA4 through the DeePMD-kit~\cite{zeng2025deepmdv3} interface, measured after warm-up on an NVIDIA H20 GPU.
         The three panels report complementary throughput measures---simulated time per day, time steps per second and atom-normalized step rate---where higher values indicate faster simulation.
     }
     \label{fig:lmp_inorganic_infer}

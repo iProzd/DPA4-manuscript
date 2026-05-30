@@ -34,9 +34,6 @@ These considerations motivate an architecture that treats directional expressive
 Here we present DPA4, an equivariant interatomic-potential architecture designed around these three requirements.
 DPA4 combines local-frame equivariant message passing, compiler-friendly conservative-force training and native analytical short-range coupling in one model family.
 Its main contributions are as follows.
-\WH{item 1 is not our contribution. should be entirely reframed.
-  novel architecture design: (1) sparse edge equivariant irreps, enable edge-node equivariant product, high capacity. (2) multi-focus, lower cost higher capacity. (3) attention. (4) Lebedev SO(2) FFN.
-}
 \begin{enumerate}
     \item \textbf{Architectural innovations co-designed for efficiency and accuracy.}
       DPA4 combines (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message non-linearity, (A3) envelope-gated attention for message aggregation, and (A4) a Lebedev-grid projection for SO(3)-equivariant non-linearity.
