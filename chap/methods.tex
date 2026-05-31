@@ -3,24 +3,20 @@
 
 \subsection{Datasets}
 
-The inorganic-crystal benchmark trains DPA4 on MPtrj, the Materials Project
-trajectory dataset introduced with CHGNet. MPtrj contains relaxation and static
-calculations for inorganic crystals across 89 elements, with energies, forces,
-stresses and magnetic moments computed at the GGA or GGA+$U$
-level~\cite{deng2023chgnet,jain2013materials}. Generalisation to metastability
-ranking is evaluated on the Matbench Discovery benchmark and its WBM test
-set~\cite{riebesell2025matbench,WBM}. The architectural ablations use the same
-WBM-subsampled protocol as the main inorganic-crystal experiments so that
-changes in accuracy and throughput reflect the controlled model component.
+The inorganic-crystal benchmark trains DPA4 on MPtrj, the Materials Project trajectory dataset introduced with CHGNet~\cite{deng2023chgnet,jain2013materials}.
+MPtrj contains relaxation and static calculations for inorganic crystals across 89 elements, with energies, forces, stresses and magnetic moments computed at the GGA or GGA+$U$ level.
+Generalisation is evaluated on the Matbench Discovery benchmark, in which MPtrj-trained models relax the WBM candidate structures and are scored by their formation-energy predictions and derived convex-hull distances~\cite{riebesell2025matbench,WBM}.
+The leaderboard additionally reports the $\kappa$SRME thermal-conductivity metric, which probes property-prediction accuracy related to the smoothness and conservativeness of the learned potential~\cite{pota2024thermal}.
+The architectural ablations use the same WBM-subsampled protocol as the main inorganic-crystal experiments, so that changes in accuracy and throughput reflect the controlled model component.
 
-The molecular benchmark uses SPICE-MACE-OFF, the organic-molecule data set used
-for MACE-OFF. It combines SPICE, molecular-dynamics conformations,
-QMugs-derived larger molecules and water clusters; reference energies and
-forces are evaluated at the $\omega$B97M-D3(BJ)/def2-TZVPPD level with
-PSI4~\cite{kovacs2023mace,
-    eastman2023spice,eastman2024nutmeg,isert2022qmugs,najibi2018nonlocal,
-    grimme2010consistent,grimme2011effect,weigend2005balanced,rappoport2010property,
-    smith2020psi4}.
+The molecular benchmark uses SPICE-MACE-OFF, the organic-molecule dataset introduced for MACE-OFF~\cite{kovacs2023mace}.
+It spans PubChem molecules, DES370K monomers and dimers~\cite{donchev2021des370k}, dipeptides, solvated amino acids, water clusters and larger QMugs-derived molecules~\cite{eastman2023spice,isert2022qmugs}.
+Reference energies and forces are evaluated at the $\omega$B97M-D3(BJ)/def2-TZVPPD level with PSI4~\cite{najibi2018nonlocal,grimme2010consistent,grimme2011effect,weigend2005balanced,rappoport2010property,smith2020psi4}.
+We use the same train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
+
+The short-range coupling experiment uses a 3C-SiC (cubic silicon carbide) dataset computed with the ABACUS DFT package~\cite{li2016abacus}.
+Both a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging are trained on this dataset.
+The learned short-range response is then probed by the C--Si dimer scan into the sub-\AA{} regime reported in Section~\ref{sec:zbl}, where ordinary DFT training data are sparse and the screened nuclear repulsion dominates.
 
 \subsection{DPA4 model architecture}
 
@@ -928,9 +924,7 @@ differentiates the force residual with respect to model parameters.
 The neighbour representation is kept shape-stable, and inactive neighbours are
 represented by exactly silent contributions. The compiled path therefore
 preserves the scalar energy-to-force relation of the uncompiled model, rather
-than replacing conservative force matching with a direct-force surrogate. In
-controlled ablations, compiled mixed-precision training gives a 2--3$\times$
-wall-clock speedup with no systematic accuracy degradation
-(Table~\ref{tab:dpa4_compile_ablation}).
+than replacing conservative force matching with a direct-force surrogate.
+In controlled ablations, compiled mixed-precision training gives up to a 3.1$\times$ wall-clock speedup with no systematic accuracy degradation (Table~\ref{tab:dpa4_compile_ablation}).
 
 % =============================================================

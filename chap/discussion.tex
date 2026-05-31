@@ -1,60 +1,20 @@
 \section{Discussion}
 \label{sec:discussion}
 
-DPA4 shows that the deployability gap of equivariant MLIPs can be narrowed when
-representation, aggregation, training and short-range physics are designed as
-one energy-conservative system. The local-frame SO(2) construction retains
-directional information in the message-passing pathway without the full cost of
-SO(3) Clebsch--Gordan tensor products. The low-rank edge--node product,
-multi-focus competition and envelope-gated attention then use this
-representation efficiently, while the geometry-informed embedding, Lebedev-grid
-nonlinearity and compiled conservative-force path reduce the optimisation and
-systems overheads that often limit expressive equivariant models. This
-co-design explains why DPA4 moves both the accuracy--parameter frontier across
-inorganic crystals and organic molecules and the accuracy--cost frontier on
-Matbench Discovery.
+DPA4 shows that the deployability gap of equivariant MLIPs narrows when representation, aggregation, training and short-range physics are co-designed as one energy-conservative system rather than assembled as independent components.
+Carrying directional information through a local-frame SO(2) pathway avoids the full cost of SO(3) Clebsch--Gordan tensor products, while a compiler-friendly conservative-force path removes much of the optimisation and systems overhead that usually limits expressive equivariant models.
+It is this co-design, rather than any single component, that moves DPA4 onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules and a better accuracy--cost frontier on Matbench Discovery.
 
-The practical implication is that high-accuracy MLIP development no longer has
-to be a large-scale training exercise. DPA4-Pro reaches the leading compliant
-Matbench Discovery CPS without DeNS or direct-force pretraining and at lower
-A100-equivalent training cost than the DeNS-assisted EquiformerV3 baseline. At
-the compact end, DPA4-Air reaches higher CPS than the much larger eSEN baseline
-with 2.76M parameters and 42.9-fold less training compute. DPA4-Plus further
-gives the lowest aggregate SPICE-MACE-OFF molecular energy and force errors
-among the compared models, indicating that the architectural gains are not
-limited to inorganic-crystal relaxation. Together with the approximately
-3$\times$ acceleration from the compiled conservative-force pathway, these
-results make compact, target-specific and energy-conservative potentials more
-practical to train, ablate and redeploy within ordinary simulation workflows.
+The practical implication is that competitive equivariant potentials no longer require a large-scale training budget.
+Across both the materials and molecular benchmarks, DPA4 matches or surpasses substantially larger baselines and baselines trained with auxiliary DeNS or direct-force objectives, while being optimised only through the conservative energy path and at lower parameter count and training cost.
+Together with the compiler-driven training acceleration, this makes compact, target-specific and energy-conservative potentials practical to train, ablate and redeploy within ordinary simulation workflows.
 
-Native ZBL Zone Bridging addresses a complementary failure mode. It is not the
-main source of the Matbench Discovery or SPICE-MACE-OFF gains; rather, it
-targets close-contact regimes that are weakly represented in standard
-near-equilibrium benchmarks. In the C--Si dimer scan, the tested external
-DP-ZBL-style correction appears smooth in energy but produces a force-level
-switching artifact near the splice region. By placing the analytical repulsion
-inside the same scalar energy and suppressing the learned short-range pair
-channel, DPA4 removes this artifact in the local test while retaining
-energy-derived forces and a smooth transition to the learned regime. Long-time
-molecular-dynamics tests are still needed to determine how this local
-improvement translates to energy drift, collision stability and damage
-evolution.
+Native ZBL Zone Bridging targets a complementary failure mode rather than the benchmark accuracy itself.
+By placing the analytical short-range repulsion inside the same scalar energy, it removes the force-level switching artifact that an external energy-level correction can introduce near the splice region, while keeping the forces conservative.
+This was demonstrated only in a local dimer test, and long-time molecular-dynamics validation---energy drift, collision stability and damage evolution---remains future work.
+More broadly, we establish DPA4 here as a generalist backbone architecture in the single-task, per-dataset setting; its realisation as a fully pretrained large atomistic model under large-scale multitask training and heterogeneous DFT datasets, together with autonomous active-learning convergence and closed-loop deployment, remains to be established.
 
-Several limitations remain. We establish DPA4 here as a generalist backbone
-architecture in the single-task, per-dataset setting; its realisation as a
-fully pretrained large atomistic model under large-scale multitask training and
-heterogeneous DFT datasets remains to be established. The short-range study is also
-intentionally local, and the present benchmarks do not yet test autonomous
-active-learning convergence or closed-loop experimental deployment.
-
-The natural next step is therefore to use DPA4 as a backbone for LAM
-pretraining and downstream adaptation, while preserving conservative training
-efficiency and native short-range coupling. In that setting, the relevant
-question is not only whether a single pretrained model reaches a higher
-benchmark score, but whether accurate target-domain potentials can be
-generated, tested and refined repeatedly at low cost. More reliable and
-accessible potential generation may in turn support more automated, agentic
-workflows for building materials potentials, and eventually help connect
-simulation-driven model updates with dry--wet closed-loop materials discovery.
+The natural next step is therefore to use DPA4 as a backbone for LAM pretraining and downstream adaptation while preserving its conservative-training efficiency and native short-range coupling.
+The relevant question is then not only whether a single pretrained model reaches a higher benchmark score, but whether accurate target-domain potentials can be generated, validated and refined repeatedly at low cost---an ingredient for more automated, agentic potential development and, ultimately, for closing the loop between computation and experiment, so that simulation-driven model updates and laboratory feedback iteratively refine one another.
 
 % =============================================================
