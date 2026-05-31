@@ -1,9 +1,10 @@
 \section{Discussion}
 \label{sec:discussion}
 
-DPA4 shows that the deployability gap of equivariant MLIPs narrows when representation, aggregation, training and short-range physics are co-designed as one energy-conservative system rather than assembled as independent components.
-Carrying directional information through a local-frame SO(2) pathway avoids the full cost of SO(3) Clebsch--Gordan tensor products, while a compiler-friendly conservative-force path removes much of the optimisation and systems overhead that usually limits expressive equivariant models.
-It is this co-design, rather than any single component, that moves DPA4 onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules and a better accuracy--cost frontier on Matbench Discovery.
+DPA4 shows that the accuracy--cost trade-off of equivariant interatomic potentials can be substantially improved when the architecture and the conservative-force training path are co-designed as one energy-conservative system.
+On the architectural side, a low-rank edge--node SO(2)-equivariant product in an edge-local frame, a multi-focus design for message non-linearity, envelope-gated attention for message aggregation, and a Lebedev-grid projection for SO(3)-equivariant non-linearity together avoid the full cost of SO(3) Clebsch--Gordan tensor products while remaining substantially more expressive than prior SO(2) reductions.
+On the training side, a compiler-friendly implementation makes the energy-to-force path compatible with \texttt{torch.compile} and removes the systems overhead that usually limits expressive equivariant models.
+It is this combined design, rather than any single component, that moves DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules.
 
 The practical implication is that competitive equivariant potentials no longer require a large-scale training budget.
 Across both the materials and molecular benchmarks, DPA4 matches or surpasses substantially larger baselines and baselines trained with auxiliary DeNS or direct-force objectives, while being optimised only through the conservative energy path and at lower parameter count and training cost.
