@@ -13,10 +13,11 @@ On the efficiency side, the most expressive SO(3)-equivariant models rely on Cle
 Reducing SO(3) convolutions to edge-local SO(2) operations provides one route to this trade-off~\cite{passaro2023reducing}, exploited by recent high-performing models such as eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3}.
 In these constructions, edge information is often introduced through invariant radial or scalar channels, whereas utilizing more expressive edge--node interactions require more intensive algibraic operations in the equivariant multiplication in the residual SO(2) basis.
 
-Beyond architectural cost, two practical constraints shape MLIP design.
-First, conservative-force training is difficult to accelerate because the force loss differentiates through the energy model, so mainstream LLM training stacks, optimised for first-derivative gradients, do not transfer directly to this second-derivative setting.
-Second, the short-range region of the potential-energy surface is sparsely sampled in ordinary DFT datasets; external Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion~\cite{ziegler1985}, but native and smooth coupling is preferable when the model is used in molecular dynamics.
-These considerations motivate an architecture that treats directional expressiveness, training efficiency and short-range robustness as coupled design requirements rather than separate add-ons.
+Beyond architectural cost, a practical constraint shapes the training strategy of these models.
+Conservative-force training is difficult to accelerate because the force loss differentiates through the energy model, so mainstream LLM training stacks, optimised for first-derivative gradients, do not transfer directly to this second-derivative setting.
+Most leading models, such as EquiformerV3, eSEN and UMA, work around this by pre-training with denoising (DeNS~\cite{liao2024dens}) or direct-force prediction, which predict the denoising target or the atomic force in a single forward pass and thereby avoid the backpropagation pass required by conservative-force training, and only later fine-tune with the conservative-force objective.
+This two-stage protocol adds substantial engineering complexity to LAM training, motivating an architecture in which conservative-force training is itself compile-friendly from the first step.
+% These considerations motivate an architecture that treats directional expressiveness, and training efficiency as coupled design requirements rather than separate add-ons.
 
 \begin{figure}[t]
     \centering
@@ -31,18 +32,14 @@ These considerations motivate an architecture that treats directional expressive
 
 Here we present DPA4, an equivariant interatomic-potential architecture designed around these three requirements.
 DPA4 combines local-frame equivariant message passing, compiler-friendly conservative-force training and native analytical short-range coupling in one model family.
-Its main contributions are as follows.
-\begin{enumerate}
-    \item \textbf{Architectural innovations co-designed for efficiency and accuracy.}
-      DPA4 combines (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message non-linearity, (A3) envelope-gated attention for message aggregation, and (A4) a Lebedev-grid projection for SO(3)-equivariant non-linearity.
-      Together, A1--A3 raise the model's generalisation accuracy at low computational cost relative to standard SO(2)-equivariant baselines, and A4 maintains SO(3)-equivariance of the non-linearity to machine precision.
-    \item \textbf{End-to-end \texttt{torch.compile} training.}
-          DPA4 uses a shape-stable and compiler-friendly implementation of conservative force training.
-          This makes the energy-to-force path compatible with \texttt{torch.compile} and provides up to a 3.1$\times$ wall-clock training speedup in controlled ablations.
-    \item \textbf{Native ZBL Zone Bridging.}
-          DPA4 incorporates the analytical ZBL repulsion inside the energy model instead of applying it as a post-hoc correction.
-          A smooth Zone Bridging mechanism suppresses the direct learned short-range pair channel, preserving conservative forces while assigning the singular close-contact interaction to the analytical branch.
-\end{enumerate}
+DPA4 is a Architectural innovations co-designed for efficiency and accuracy: it combines (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message non-linearity, (A3) envelope-gated attention for message aggregation, and (A4) a Lebedev-grid projection for SO(3)-equivariant non-linearity.
+Together, A1--A3 raise the model's generalisation accuracy at low computational cost relative to standard SO(2)-equivariant baselines, and A4 maintains SO(3)-equivariance of the non-linearity to machine precision.
+On the practical side, DPA4 enables a end-to-end \texttt{torch.compile} training.
+DPA4 uses a shape-stable and compiler-friendly implementation of conservative force training.
+This makes the energy-to-force path compatible with \texttt{torch.compile} and provides up to a 3.1$\times$ wall-clock training speedup in controlled ablations.
+In addition, the short-range region of the potential-energy surface is sparsely sampled in ordinary DFT datasets; external Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion~\cite{ziegler1985}, but native and smooth coupling is preferable when the model is used in molecular dynamics.
+
+        
 
 DPA4 variants form a new accuracy--efficiency frontier on Matbench Discovery~\cite{riebesell2025matbench}, as summarized by the Combined Performance Score (CPS) versus training-cost comparison in Fig.~\ref{fig:cps}, and improve the molecular benchmark errors on SPICE-MACE-OFF~\cite{kovacs2023mace}.
 The largest DPA4 variant reaches state-of-the-art Matbench Discovery performance, while smaller variants approach the accuracy of much larger baselines with substantially fewer parameters and lower training cost.
