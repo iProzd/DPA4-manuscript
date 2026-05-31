@@ -190,6 +190,7 @@ The smaller DPA4-Air model preserves much of this accuracy at a lower cost.
 With 2.7M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.12~meV/atom and 2.44~meV/\AA{}, both lower than the 6.5M-parameter eSEN baseline~\cite{fu2025esen}.
 Against DPA3-L24~\cite{zhang2025dpa3}, DPA4-Air lowers the aggregate energy and force errors by 45\% and 58\%, respectively, while using 45\% fewer parameters.
 DPA4-Air is also the second-best model for most subset-level targets, including water, solvated amino acids and QMugs.
+Beyond model size, these gains come at low training cost: DPA4-Air and DPA4-Plus use only 4 and 8 A100-equivalent GPU-days (Table~\ref{table:spice}), below the MACE baselines (10 and 14) and 36--72$\times$ less than the 288 GPU-days of DPA3-L24, while no public training cost is reported for the eSEN baselines.
 Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the accuracy--parameter frontier across both inorganic crystals and organic molecules, rather than specialising to a single chemical domain.
 
 \subsection{Training and inference efficiency}
