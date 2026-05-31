@@ -11,12 +11,11 @@ On the accuracy side, equivariant architectures carry directional information as
 On the efficiency side, the most expressive SO(3)-equivariant models rely on Clebsch--Gordan tensor products or dense spherical-grid operations whose cost grows rapidly with angular order, model width and neighbour count.
 % This cost becomes a bottleneck when the target is not a single specialised potential, but an MLIP architecture that can scale to broad training sets and serve as the backbone of future LAMs.
 Reducing SO(3) convolutions to edge-local SO(2) operations provides one route to this trade-off~\cite{passaro2023reducing}, exploited by recent high-performing models such as eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3}.
-In these constructions, edge information is often introduced through invariant radial or scalar channels, whereas more expressive edge--node interactions require sparse equivariant edge representations and equivariant multiplication in the residual SO(2) basis.
+In these constructions, edge information is often introduced through invariant radial or scalar channels, whereas utilizing more expressive edge--node interactions require more intensive algibraic operations in the equivariant multiplication in the residual SO(2) basis.
 
-Efficiency and robustness impose further constraints on practical MLIP design.
-Conservative-force training can be difficult to accelerate because the force loss differentiates through the energy model, so mainstream AI optimisation stacks developed for first-order LLM training do not directly apply to this second-derivative setting.
-The short-range region of the potential-energy surface is also sparsely sampled in ordinary DFT datasets.
-External Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion~\cite{ziegler1985}, but native and smooth coupling is preferable when the model is used in molecular dynamics.
+Beyond architectural cost, two practical constraints shape MLIP design.
+First, conservative-force training is difficult to accelerate because the force loss differentiates through the energy model, so mainstream LLM training stacks, optimised for first-derivative gradients, do not transfer directly to this second-derivative setting.
+Second, the short-range region of the potential-energy surface is sparsely sampled in ordinary DFT datasets; external Ziegler--Biersack--Littmark (ZBL) corrections can repair the asymptotic repulsion~\cite{ziegler1985}, but native and smooth coupling is preferable when the model is used in molecular dynamics.
 These considerations motivate an architecture that treats directional expressiveness, training efficiency and short-range robustness as coupled design requirements rather than separate add-ons.
 
 \begin{figure}[t]
@@ -44,6 +43,7 @@ Its main contributions are as follows.
           DPA4 incorporates the analytical ZBL repulsion inside the energy model instead of applying it as a post-hoc correction.
           A smooth Zone Bridging mechanism suppresses the direct learned short-range pair channel, preserving conservative forces while assigning the singular close-contact interaction to the analytical branch.
 \end{enumerate}
+
 DPA4 variants form a new accuracy--efficiency frontier on Matbench Discovery~\cite{riebesell2025matbench}, as summarized by the Combined Performance Score (CPS) versus training-cost comparison in Fig.~\ref{fig:cps}, and improve the molecular benchmark errors on SPICE-MACE-OFF~\cite{kovacs2023mace}.
 The largest DPA4 variant reaches state-of-the-art Matbench Discovery performance, while smaller variants approach the accuracy of much larger baselines with substantially fewer parameters and lower training cost.
 Matbench Discovery and SPICE-MACE-OFF are widely used benchmarks that respectively test inorganic-crystal relaxation and molecular force-field accuracy across organic chemistry, while avoiding validation dominated by strongly out-of-domain data or massive pretraining cost.
