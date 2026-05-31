@@ -168,12 +168,14 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
                 QMugs              & 0.69                         & 23.58                        & 0.54                       & 16.93                      & 0.16                          & 5.70                           & 0.12                           & 3.78             & 0.17          & 8.66          & \underline{0.08} & \underline{3.52} & \textbf{0.06} & \textbf{2.47} \\\hline
                 LWAMAE\tnote{a}    & 0.73                         & 15.42                        & 0.65                       & 11.66                      & 0.19                          & 3.83                           & 0.14                           & 2.58             & 0.22          & 5.78          & \underline{0.12} & \underline{2.44} & \textbf{0.09} & \textbf{1.77} \\\hline
                 \textbf{\# Params} & \multicolumn{2}{c|}{2.3 M}   & \multicolumn{2}{c|}{6.9 M}   & \multicolumn{2}{c|}{3.2 M} & \multicolumn{2}{c|}{6.5 M} & \multicolumn{2}{c|}{4.9 M}    & \multicolumn{2}{c|}{2.7 M}     & \multicolumn{2}{c}{5.3 M}                                                                                                                               \\
+                \textbf{Train cost}\tnote{b} & \multicolumn{2}{c|}{10}      & \multicolumn{2}{c|}{14}      & \multicolumn{2}{c|}{/}     & \multicolumn{2}{c|}{/}     & \multicolumn{2}{c|}{288}      & \multicolumn{2}{c|}{4}         & \multicolumn{2}{c}{8}                                                                                                                                   \\
                 \toprule
             \end{tabular}
             \begin{tablenotes}
                 \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy (E) MAEs are in meV/atom and force (F) MAEs are in meV/\AA.
                 \item[] Boldface and underlining denote the best and second-best values for each dataset--target pair, respectively.
                 \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
+                \item[b] Train cost denotes the training cost in A100-equivalent GPU-days; a slash (/) indicates that no public training-cost information was found.
             \end{tablenotes}
         \end{spacing}
     \end{threeparttable}
