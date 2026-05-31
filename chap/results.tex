@@ -167,13 +167,15 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
                 Water              & 0.76                         & 15.27                        & 0.83                       & 13.57                      & 0.24                          & 3.88                           & 0.15                           & \underline{2.50} & 0.32          & 6.89          & \underline{0.11} & 2.52             & \textbf{0.09} & \textbf{1.89} \\
                 QMugs              & 0.69                         & 23.58                        & 0.54                       & 16.93                      & 0.16                          & 5.70                           & 0.12                           & 3.78             & 0.17          & 8.66          & \underline{0.08} & \underline{3.52} & \textbf{0.06} & \textbf{2.47} \\\hline
                 LWAMAE\tnote{a}    & 0.73                         & 15.42                        & 0.65                       & 11.66                      & 0.19                          & 3.83                           & 0.14                           & 2.58             & 0.22          & 5.78          & \underline{0.12} & \underline{2.44} & \textbf{0.09} & \textbf{1.77} \\\hline
-                \textbf{\# Params} & \multicolumn{2}{c|}{2.3 M}   & \multicolumn{2}{c|}{6.9 M}   & \multicolumn{2}{c|}{3.2 M} & \multicolumn{2}{c|}{6.5 M} & \multicolumn{2}{c|}{4.9 M}    & \multicolumn{2}{c|}{2.7 M}     & \multicolumn{2}{c}{5.3 M}                                                                                                                               \\
+                \textbf{\# Params} & \multicolumn{2}{c|}{2.3 M}   & \multicolumn{2}{c|}{6.9 M}   & \multicolumn{2}{c|}{3.2 M} & \multicolumn{2}{c|}{6.5 M} & \multicolumn{2}{c|}{4.9 M}    & \multicolumn{2}{c|}{2.7 M}     & \multicolumn{2}{c}{5.3 M}                                                                                                                               \\\hline
+                \textbf{Train cost}\tnote{b} & \multicolumn{2}{c|}{10}      & \multicolumn{2}{c|}{14}      & \multicolumn{2}{c|}{/}     & \multicolumn{2}{c|}{/}     & \multicolumn{2}{c|}{288}      & \multicolumn{2}{c|}{4}         & \multicolumn{2}{c}{8}                                                                                                                                   \\
                 \toprule
             \end{tabular}
             \begin{tablenotes}
                 \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy (E) MAEs are in meV/atom and force (F) MAEs are in meV/\AA.
                 \item[] Boldface and underlining denote the best and second-best values for each dataset--target pair, respectively.
                 \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
+                \item[b] Train cost denotes the training cost in A100-equivalent GPU-days; a slash (/) indicates that no public training-cost information was found.
             \end{tablenotes}
         \end{spacing}
     \end{threeparttable}
@@ -188,6 +190,7 @@ The smaller DPA4-Air model preserves much of this accuracy at a lower cost.
 With 2.7M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.12~meV/atom and 2.44~meV/\AA{}, both lower than the 6.5M-parameter eSEN baseline~\cite{fu2025esen}.
 Against DPA3-L24~\cite{zhang2025dpa3}, DPA4-Air lowers the aggregate energy and force errors by 45\% and 58\%, respectively, while using 45\% fewer parameters.
 DPA4-Air is also the second-best model for most subset-level targets, including water, solvated amino acids and QMugs.
+Beyond model size, these gains come at low training cost: DPA4-Air and DPA4-Plus use only 4 and 8 A100-equivalent GPU-days (Table~\ref{table:spice}), below the MACE baselines (10 and 14) and 36--72$\times$ less than the 288 GPU-days of DPA3-L24, while no public training cost is reported for the eSEN baselines.
 Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the accuracy--parameter frontier across both inorganic crystals and organic molecules, rather than specialising to a single chemical domain.
 
 \subsection{Training and inference efficiency}
