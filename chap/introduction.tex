@@ -40,7 +40,7 @@ Its main contributions are as follows.
       Together, A1--A3 raise the model's generalisation accuracy at low computational cost relative to standard SO(2)-equivariant baselines, and A4 maintains SO(3)-equivariance of the non-linearity to machine precision.
     \item \textbf{End-to-end \texttt{torch.compile} training.}
           DPA4 uses a shape-stable and compiler-friendly implementation of conservative force training.
-          This makes the energy-to-force path compatible with \texttt{torch.compile} and provides a 2--3$\times$ wall-clock training speedup in controlled ablations.
+          This makes the energy-to-force path compatible with \texttt{torch.compile} and provides up to a 3.1$\times$ wall-clock training speedup in controlled ablations.
     \item \textbf{Native ZBL Zone Bridging.}
           DPA4 incorporates the analytical ZBL repulsion inside the energy model instead of applying it as a post-hoc correction.
           A smooth Zone Bridging mechanism suppresses the direct learned short-range pair channel, preserving conservative forces while assigning the singular close-contact interaction to the analytical branch.

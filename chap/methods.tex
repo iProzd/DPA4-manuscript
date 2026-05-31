@@ -928,9 +928,7 @@ differentiates the force residual with respect to model parameters.
 The neighbour representation is kept shape-stable, and inactive neighbours are
 represented by exactly silent contributions. The compiled path therefore
 preserves the scalar energy-to-force relation of the uncompiled model, rather
-than replacing conservative force matching with a direct-force surrogate. In
-controlled ablations, compiled mixed-precision training gives a 2--3$\times$
-wall-clock speedup with no systematic accuracy degradation
-(Table~\ref{tab:dpa4_compile_ablation}).
+than replacing conservative force matching with a direct-force surrogate.
+In controlled ablations, compiled mixed-precision training gives up to a 3.1$\times$ wall-clock speedup with no systematic accuracy degradation (Table~\ref{tab:dpa4_compile_ablation}).
 
 % =============================================================
