@@ -90,9 +90,10 @@ Both branches contribute to the same scalar total energy and are differentiated 
     }
     \smallskip
     \begin{minipage}{\linewidth}
-        \scriptsize Leaderboard entries include all compliant models accessed before
-        May 25, 2026. Boldface and underlining denote the best and second-best
-        values for each ranked evaluation metric, respectively.
+        \scriptsize Leaderboard entries include all compliant models accessed before May 25, 2026.
+        Boldface and underlining denote the best and second-best values for each ranked evaluation metric, respectively.
+        The Targets column lists the quantities each model is trained to predict, following the Matbench Discovery convention~\cite{riebesell2025matbench}: E, F, S, M and H denote energy, forces, stress, magnetic moments and Hessian, while the suffix G or D indicates whether forces and stress are obtained by energy gradient (conservative) or direct prediction.
+        All DPA4 variants are EFSG, i.e.\ conservative energy-gradient forces and stress.
     \end{minipage}
 \end{table}
 
