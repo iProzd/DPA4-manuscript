@@ -4,7 +4,7 @@
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
 
-DPA4 is a conservative SO(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
+DPA4, also known as SeZM for Smooth equivariant Zone-bridging Model, is a conservative SO(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
 Each interaction block has a residual structure with two skip connections: one over an SO(2) multi-focus (MF) convolution followed by an equivariant RMSNorm, and one over a second equivariant RMSNorm followed by an equivariant feed-forward network (FFN).
 Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant product, the multi-focus design for message non-linearity, and the envelope-gated attention for message aggregation, operate inside the SO(2) MF convolution (Fig.~\ref{fig:arch}c).
 Architectural design A4, the Lebedev-grid projection for SO(3)-equivariant non-linearity, operates inside the equivariant FFN.
@@ -117,13 +117,14 @@ The smaller DPA4 variants show that the same architecture remains effective in a
 DPA4-Plus reaches a CPS of 0.822 with only 5.40M parameters, reducing the gap to EquiformerV3+DeNS-MP to 0.008 CPS while using 82\% fewer parameters.
 DPA4-Air reaches a CPS of 0.804 with 2.76M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 10.9$\times$ smaller model.
 DPA4-Neo contains only 1.60M parameters but still reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model.
-The Air--Neo segment in Fig.~\ref{fig:cps} has a steeper CPS drop per saved training cost than the Pro--Plus--Air segment, with CPS decreasing from 0.804 to 0.781 as the parameter count decreases from 2.76M to 1.60M.
-This suggests that further compression below the Air scale begins to trade accuracy more visibly for reduced parameter count and training cost.
-Beyond parameter count, Fig.~\ref{fig:cps} compares the A100-equivalent training cost needed to reach each point on the leaderboard.
+The Air--Neo segment in Fig.~\ref{fig:cps} reveals a diminishing-return regime at the smallest scale: CPS decreases from 0.804 to 0.781, whereas the A100-equivalent training cost decreases only from 7.8 to 6.5 GPU-days.
+This limited wall-clock saving is consistent with a hardware-utilisation floor: once the network becomes too small, the per-step arithmetic workload and matrix sizes no longer saturate the GPU, and neighbour-list construction, geometric preprocessing, memory traffic and kernel overheads occupy a larger fraction of the elapsed time.
+Larger batches can partly amortise these costs, but the wall-clock training time no longer follows the parameter count. At the same time, CPS drops more rapidly below the Air scale, indicating that model capacity rather than training cost becomes the limiting factor.
+Thus, among the single-digit-GPU-day variants, DPA4-Air provides the more balanced point on the accuracy--efficiency frontier.
 On this scale, DPA4-Air requires only single-digit A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP while achieving a higher CPS.
 For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS peak FP32 throughput.
 Under an idealized peak-FLOP rescaling, the DPA4-Air training budget is therefore on the order of one day on such hardware.
-These compact variants are important for high-throughput workflows because they offer strong accuracy with lower training cost and faster deployment.
+This accuracy at reduced model size and training cost makes DPA4-Air and DPA4-Neo practical for high-throughput workflows.
 
 As the leading compliant models are now separated by relatively small CPS differences, further optimisation of the fixed-MPtrj Matbench Discovery leaderboard may have limited practical value once models reach the present accuracy--efficiency frontier.
 This does not diminish the usefulness of the benchmark; rather, it suggests that future comparisons may be more informative when they also consider non-compliant settings with broader DFT training datasets, additional fine-tuning data or different deployment objectives.
@@ -238,7 +239,7 @@ benchmarks were run on the same H20 hardware and software environment, with the
 full configuration and the \texttt{catalysts\_500} ASE measurement reported in
 Supplementary Fig.~\ref{fig:sm_ase_catalysts}.
 
-Figure~\ref{fig:ase_inorganic_infer} shows that the compact DPA4 models retain
+Figure~\ref{fig:ase_inorganic_infer} shows that DPA4-Air and DPA4-Plus retain
 high atom-normalized throughput despite their equivariant message passing.
 Across the system-size sweep, the DPA4 variants deliver substantially higher
 throughput than the DPA3 baselines~\cite{zhang2025dpa3} and remain competitive
@@ -252,11 +253,11 @@ DeePMD-kit native ASE path constructs neighbour lists on the GPU, making the
 end-to-end throughput partly limited by neighbour-list memory and runtime
 overheads~\cite{zeng2025deepmdv3}. This front-end bottleneck is
 separate from the DPA4 architecture; dedicated SO(2)-convolution kernels could
-reduce memory traffic and provide a further 2--3$\times$ inference speedup. The
-compact DPA4 variants therefore reduce training cost and retain practical ASE
-inference throughput for large atomistic evaluations.
+reduce memory traffic and provide a further 2--3$\times$ inference speedup.
+DPA4-Air and DPA4-Plus therefore reduce training cost while retaining practical
+ASE inference throughput for large atomistic evaluations.
 
-\subsection{Native ZBL coupling and extreme conditions}
+\subsection{Native ZBL coupling under close-contact conditions}
 \label{sec:zbl}
 
 \begin{figure}[t]
@@ -270,27 +271,34 @@ inference throughput for large atomistic evaluations.
     \label{fig:zbl}
 \end{figure}
 
-We test the short-range branch on a C--Si dimer scan derived from an
-ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset. This one-dimensional probe
-drives the model into the sub-\AA{} regime, where ordinary DFT training data
-are sparse and the repulsive screened Coulomb interaction should dominate. The
-comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise
+We isolate the short-range behaviour with a C--Si dimer scan derived from an
+ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset. The scan drives the pair
+into the sub-\AA{} regime, where ordinary DFT training data are sparse and the
+screened nuclear repulsion should dominate. The resulting curve provides a
+local test of the transition between the learned potential and the analytical
+ZBL limit.
+The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise
 correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging
 enabled.
 
 Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of
-the scan, but the force response separates the two short-range treatments. The
-DPA3 DP-ZBL baseline develops a sharp force excursion near the switching
-region, producing a local attractive impulse where the analytical ZBL
-force~\cite{ziegler1985} is strongly repulsive. DPA4 instead follows the
-analytical ZBL force in the inner region and joins smoothly to the learned
-force as the C--Si distance increases. This behaviour is consistent with
-Section~\ref{sec:zbl_method}: the analytical branch reads the true distance,
-the learned branch reads a $C^3$ clamped displacement, and the source-freeze
-gate suppresses the direct learned short-range pair channel. Native ZBL Zone
-Bridging therefore supplies the close-contact repulsion before differentiating
-the total scalar energy, avoiding the force-level switching artifact observed
-for the external pair correction.
+the scan, whereas the force curves expose the difference between the two
+coupling strategies. The DPA3 DP-ZBL baseline develops a sharp force excursion
+near the switching region, producing a local attractive impulse even though the
+analytical ZBL force~\cite{ziegler1985} is strongly repulsive at these
+distances. The location and sign of this excursion are consistent with the
+switching-force term in Eq.~\eqref{eq:zbl-switching-force}: the extra
+contribution is governed by the mismatch between the ZBL and learned energies
+inside the splice window, not by the monotone screened-Coulomb repulsion.
+
+DPA4 removes this force-level splice. The analytical branch is evaluated on the
+true distance, the learned branch sees the $C^3$ clamped displacement, and the
+source-freeze gate suppresses the direct learned short-range pair channel
+(Section~\ref{sec:zbl_method}). Consequently, DPA4 follows the analytical ZBL
+force in the inner region and joins smoothly to the learned force as the C--Si
+distance increases. Native ZBL Zone Bridging therefore assigns the
+close-contact repulsion inside the scalar energy before differentiation,
+avoiding the switching artifact observed for the external pair correction.
 
 \input{chap/results_ablation}
 

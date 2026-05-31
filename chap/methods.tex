@@ -785,14 +785,51 @@ $E^{\mathrm{ZBL}}$ is evaluated on the raw pair distances $r_{ij}$, in
 contrast with the learned branch $E_{\Theta}^{\mathrm{NN}}$ which consumes
 only the clamped distance $\widetilde{r}(r_{ij})$
 (Sec.~\ref{sec:geom-inputs}). Native ZBL Zone Bridging couples the two
-branches inside the energy model rather than as a post-hoc additive
-correction.
+branches inside the energy model rather than as a post-hoc energy-level splice.
+
+This distinction removes a force artifact that is intrinsic to conventional
+energy-level splicing. If a coordinate-dependent switching function
+$\lambda_i(R)$ blends an analytical ZBL branch with a learned atom-wise energy,
+as in DP-ZBL-type pair corrections~\cite{wang2019dpzbl}, the spliced energy can
+be written schematically as
+\begin{equation}
+    E^{\mathrm{splice}}(Z,R)
+    =
+    \sum_i
+    \left[
+        \lambda_i(R)E_i^{\mathrm{ZBL}}(Z,R)
+        +\bigl(1-\lambda_i(R)\bigr)E_{\Theta,i}^{\mathrm{NN}}(Z,R)
+    \right].
+    \label{eq:zbl-splice-energy}
+\end{equation}
+Differentiating Eq.~\eqref{eq:zbl-splice-energy} gives
+\begin{equation}
+    \mathbf{F}_k^{\mathrm{splice}}
+    =
+    \mathbf{F}_{k}^{\mathrm{weighted}}
+    -
+    \sum_i
+    \frac{\partial \lambda_i}{\partial \mathbf{R}_k}
+    \left(
+        E_i^{\mathrm{ZBL}}-E_{\Theta,i}^{\mathrm{NN}}
+    \right),
+    \label{eq:zbl-switching-force}
+\end{equation}
+where $\mathbf{F}_{k}^{\mathrm{weighted}}$ contains the weighted gradients of
+the two energy branches. The second term in
+Eq.~\eqref{eq:zbl-switching-force} is a switching force proportional to the
+branch energy mismatch in the splice window. It has no independent physical
+counterpart and vanishes only when the switching weight is constant or the two
+branches are exactly energy-matched throughout the switching region.
 
 By construction of the clamped distance and the source-freeze gate
 (Sec.~\ref{sec:geom-inputs}), $E_{\Theta}^{\mathrm{NN}}$ is independent of
 $r_{jk}$ for every pair with $r_{jk}\le r_{\mathrm{in}}$, so the force on such
-a frozen pair coincides exactly with the ZBL pair force; many-body
-contributions involving non-frozen neighbours are unaffected.
+a frozen pair coincides exactly with the ZBL pair force. Because no
+coordinate-dependent switching weight multiplies the energy difference between
+the branches in Eq.~\eqref{eq:dpa4-total-energy}, Native ZBL Zone Bridging has
+no analogue of Eq.~\eqref{eq:zbl-switching-force}; many-body contributions
+involving non-frozen neighbours are unaffected.
 
 \subsubsection{Symmetry guarantees}
 \label{sec:symmetry}

@@ -1,9 +1,9 @@
 \begin{abstract}
-    Machine-learning interatomic potentials are becoming a practical route to on-demand atomistic simulation, but broad deployment requires models that are simultaneously accurate, efficient and stable beyond equilibrium.
-    Existing architectures often trade one requirement for another: highly equivariant models are costly to train and evaluate, whereas faster models can lose directional fidelity and usually treat short-range physics as an external correction.
-    Here we report DPA4, also referred to as SeZM for Smooth equivariant Zone-bridging Model, an equivariant interatomic potential based on an SO(2) convolution and attention framework.
-    The model preserves directional information at moderate computational cost, incorporates a native short-range treatment, and supports \texttt{torch.compile}-compatible conservative-force training.
-    Across inorganic-material and organic-molecule benchmarks, DPA4 achieves the best reported Matbench Discovery CPS and SPICE-MACE-OFF aggregate accuracy among the compared models.
-    A compact DPA4 variant reaches eSEN-level Matbench Discovery accuracy with roughly one tenth of the parameters and can be trained within a few GPU-days on a single GPU.
-    These results establish DPA4 as a practical foundation for accurate, efficient and robust on-demand interatomic potentials.
+    Machine-learning interatomic potentials now approach quantum-mechanical accuracy in many benchmarks, but routine model generation remains limited by the cost of expressive equivariant architectures, conservative-force training and short-range physical extrapolation.
+    Here we introduce DPA4, the Smooth equivariant Zone-bridging Model (SeZM), an SO(3)-equivariant energy model built around local-frame SO(2) message passing, geometry-informed embeddings and native coupling to an analytical Ziegler--Biersack--Littmark repulsion.
+    The architecture is compact and compiler friendly: all variants are trained through energy-derived forces, and \texttt{torch.compile} provides an approximately 3$\times$ wall-clock speedup without replacing conservative training by a direct-force surrogate.
+    On the compliant Matbench Discovery benchmark, DPA4-Pro attains the best combined score among the compared models, whereas the 2.76M-parameter DPA4-Air matches or exceeds the accuracy of much larger eSEN baselines with 10.9-fold fewer parameters and 42.9-fold less training compute, while retaining practical ASE inference throughput.
+    On SPICE-MACE-OFF, DPA4-Plus gives the lowest aggregate molecular energy and force errors among the compared models.
+    DPA4 also incorporates ZBL close-contact repulsion within the same scalar energy, removing the force-switching artifact observed for an external short-range correction.
+    Together, these results support DPA4 as a scalable backbone for accurate, conservative and deployable interatomic potentials.
 \end{abstract}
