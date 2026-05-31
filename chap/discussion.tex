@@ -6,16 +6,21 @@ On the architectural side, a low-rank edge--node SO(2)-equivariant product in an
 On the training side, a compiler-friendly implementation makes the energy-to-force path compatible with \texttt{torch.compile} and removes the systems overhead that usually limits expressive equivariant models.
 It is this combined design, rather than any single component, that moves DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules.
 
-The practical implication is that competitive equivariant potentials no longer require a large-scale training budget.
-Across both the materials and molecular benchmarks, DPA4 matches or surpasses substantially larger baselines and baselines trained with auxiliary DeNS or direct-force objectives, while being optimised only through the conservative energy path and at lower parameter count and training cost.
-Together with the compiler-driven training acceleration, this makes compact, target-specific and energy-conservative potentials practical to train, ablate and redeploy within ordinary simulation workflows.
+Across materials and molecular benchmarks, DPA4 delivers competitive accuracy at a fraction of the parameter count and training compute of leading baselines.
+On Matbench Discovery, DPA4-Pro reaches the top of the compliant leaderboard with $\sim31\%$ fewer parameters than EquiformerV3+DeNS-MP, while DPA4-Air (2.76\,M parameters) exceeds the eSEN-30M-MP baseline with $10.9\times$ fewer parameters and $42.9\times$ less training compute.
+On SPICE-MACE-OFF, DPA4-Plus (5.3\,M parameters) attains the lowest energy and force errors across all seven subsets, lowering aggregate errors by $36\%$ and $31\%$ respectively relative to the 6.5\,M-parameter eSEN baseline.
+All of these gains are obtained through the conservative energy path alone, without auxiliary DeNS or direct-force pretraining, showing that those auxiliary objectives are not the only route to competitive accuracy.
+Combined with the $\sim$3$\times$ compiler-driven training speedup, this makes compact, single-task energy-conservative potentials practical to train, ablate and redeploy in molecular-dynamics and structure-relaxation workflows.
+In addition, Native ZBL Zone Bridging follows the analytical ZBL force smoothly at close contact and removes the spurious force-switching artefact of external pair corrections.
 
-Native ZBL Zone Bridging targets a complementary failure mode rather than the benchmark accuracy itself.
-By placing the analytical short-range repulsion inside the same scalar energy, it removes the force-level switching artifact that an external energy-level correction can introduce near the splice region, while keeping the forces conservative.
-This was demonstrated only in a local dimer test, and long-time molecular-dynamics validation---energy drift, collision stability and damage evolution---remains future work.
-More broadly, we establish DPA4 here as a generalist backbone architecture in the single-task, per-dataset setting; its realisation as a fully pretrained large atomistic model under large-scale multitask training and heterogeneous DFT datasets, together with autonomous active-learning convergence and closed-loop deployment, remains to be established.
+% \WH{I comment out this paragraph. it is off the accuracy-cost story line.}
+% Native ZBL Zone Bridging targets a complementary failure mode rather than the benchmark accuracy itself.
+% By placing the analytical short-range repulsion inside the same scalar energy, it removes the force-level switching artifact that an external energy-level correction can introduce near the splice region, while keeping the forces conservative.
+% This was demonstrated only in a local dimer test, and long-time molecular-dynamics validation---energy drift, collision stability and damage evolution---remains future work.
+% More broadly, we establish DPA4 here as a generalist backbone architecture in the single-task, per-dataset setting; its realisation as a fully pretrained large atomistic model under large-scale multitask training and heterogeneous DFT datasets, together with autonomous active-learning convergence and closed-loop deployment, remains to be established.
 
-The natural next step is therefore to use DPA4 as a backbone for LAM pretraining and downstream adaptation while preserving its conservative-training efficiency and native short-range coupling.
-The relevant question is then not only whether a single pretrained model reaches a higher benchmark score, but whether accurate target-domain potentials can be generated, validated and refined repeatedly at low cost---an ingredient for more automated, agentic potential development and, ultimately, for closing the loop between computation and experiment, so that simulation-driven model updates and laboratory feedback iteratively refine one another.
+The natural next step is therefore to use DPA4 as a backbone for LAM pretraining and downstream adaptation while preserving its conservative-training efficiency.
+The relevant question is then not only whether a single pretrained model reaches a higher benchmark score, but whether accurate target-domain potentials can be generated, validated and refined repeatedly at low cost.
+Such low-cost, repeated refinement is an ingredient for more automated, agentic potential development and, ultimately, for closing the loop between computation and experiment, so that simulation-driven model updates and laboratory feedback iteratively refine one another.
 
 % =============================================================
