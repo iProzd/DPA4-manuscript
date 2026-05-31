@@ -608,18 +608,13 @@ is used for the released DPA4 variants.
 Supplementary inference benchmarks were conducted to assess whether the
 throughput trends in Section~\ref{sec:efficiency} are robust to the simulated
 structure and software interface. The main text reports the ASE
-\texttt{inorganic\_500} comparison; here we provide the corresponding LAMMPS
-\texttt{inorganic\_500} sweep, the LAMMPS \texttt{catalysts\_500} sweep and the
-remaining ASE \texttt{catalysts\_500} sweep. Together, these measurements
-separate calculator-interface throughput from molecular-dynamics driver
-throughput.
+\texttt{inorganic\_500} comparison; here we provide the corresponding ASE
+\texttt{catalysts\_500} sweep to test whether the calculator-interface trends
+are robust to the repeated seed structure.
 
-All inference benchmarks were run on the same NVIDIA H20 hardware and base
+All ASE inference benchmarks were run on the same NVIDIA H20 hardware and base
 system environment with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0. The
-LAMMPS benchmarks used Kokkos acceleration~\cite{trott2022kokkos} with Python
-3.12.13, PyTorch 2.11.0+cu128, DeePMD-kit
-0.1.dev3702+\texttt{g478cba61b}, LAMMPS 22 Jul 2025 Update 2, Kokkos 4.6.2 and
-Open MPI 4.0.3. The ASE benchmarks used the ASE calculator
+benchmarks used the ASE calculator
 interface~\cite{ase-paper}; DPA4 calculators used compiled inference with
 Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy 2.4.4. The MACE
 baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning} used
@@ -630,6 +625,8 @@ EquiformerV3~\cite{liao2026equiformerv3} used the
 \texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128. All ASE baseline
 environments used ASE 3.28.0 and NumPy 2.4.4.
 
+% LAMMPS inference benchmarks are excluded from the current manuscript draft.
+\iffalse
 \begin{figure}[p]
     \centering
     \includegraphics[width=\textwidth]{fig/inorganic.pdf}
@@ -659,13 +656,17 @@ environments used ASE 3.28.0 and NumPy 2.4.4.
 \end{figure}
 
 The two LAMMPS sweeps provide a complementary molecular-dynamics view of
-deployment throughput. DPA4-Neo and DPA4-Air occupy a substantially faster
-regime than the larger MACE baseline in atom-normalized throughput while
-retaining equivariant message passing. This behaviour is most relevant for
-large periodic systems, where atom-step throughput is the practical quantity
-that determines wall-clock molecular-dynamics progress.
+deployment throughput. Their ranking differs from the ASE calculator comparison
+in the main text: in the LAMMPS path, the MACE baselines give the highest
+throughput, and their advantage is most evident for the largest repeated
+systems. This difference shows that end-to-end deployment speed depends not only
+on the neural-network architecture but also on the molecular-dynamics driver,
+neighbour-list path and model-interface implementation. DPA4-Neo and DPA4-Air
+nevertheless retain practical molecular-dynamics throughput despite their
+equivariant message passing.
+\fi
 
-\begin{figure}[p]
+\begin{figure}[!ht]
     \centering
     \includegraphics[width=0.82\textwidth]{fig/ase-catalysts_500.pdf}
     \caption{
@@ -679,10 +680,6 @@ that determines wall-clock molecular-dynamics progress.
     \label{fig:sm_ase_catalysts}
 \end{figure}
 
-The \texttt{catalysts\_500} ASE sweep provides the corresponding
-calculator-interface comparison for the catalyst seed structure.
-
-\FloatBarrier
 \section{Model and training configurations}
 
 This section specifies the model and training configurations used in the

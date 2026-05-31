@@ -235,8 +235,8 @@ The main comparison uses the LAMBench~\cite{peng2025lambench}
 \texttt{inorganic\_500} system-size sweep and therefore includes neighbour-list
 construction, model evaluation and calculator-interface overhead. All inference
 benchmarks were run on the same H20 hardware and software environment, with the
-full configuration and companion LAMMPS measurements reported in Supplementary
-Figs.~\ref{fig:sm_lmp_inorganic}--\ref{fig:sm_ase_catalysts}.
+full configuration and the \texttt{catalysts\_500} ASE measurement reported in
+Supplementary Fig.~\ref{fig:sm_ase_catalysts}.
 
 Figure~\ref{fig:ase_inorganic_infer} shows that the compact DPA4 models retain
 high atom-normalized throughput despite their equivariant message passing.
@@ -264,7 +264,6 @@ inference throughput for large atomistic evaluations.
     \includegraphics[width=0.9\textwidth]{fig/dimer_c_si.pdf}
     \caption{
         Short-range C--Si dimer response for models trained on an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
-        \WH{the dimer energy should be plotted with the energy at infty aligned.}
         The DPA3 baseline uses the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas DPA4 uses the Native ZBL Zone Bridging branch described in Section~\ref{sec:zbl_method}.
         The analytical reference is the ZBL screened Coulomb potential~\cite{ziegler1985}.
     }
