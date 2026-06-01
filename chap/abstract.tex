@@ -4,6 +4,6 @@
     A Lebedev-grid projection further preserves SO(3)-equivariance in the nonlinearity to machine precision.
     A compiler-friendly conservative energy-gradient training path provides up to $\sim$3 times wall-clock speedup under \texttt{torch.compile}.
     On the compliant Matbench Discovery benchmark, DPA4-Pro attains the best Combined Performance Score (CPS) on the leaderboard, while the 2.76M-parameter DPA4-Air exceeds the accuracy of the 30.1M-parameter eSEN-30M-MP baseline with 10.9$\times$ fewer parameters and 42.9$\times$ less training compute.
-    On SPICE-MACE-OFF, DPA4-Plus gives the lowest aggregate molecular energy and force errors among the compared models.
+    On SPICE-MACE-OFF, the 5.4M-parameter DPA4-Plus lowers the aggregate molecular energy and force errors of the 6.5M-parameter eSEN baseline by 29\% and 30\%, while the 2.7M-parameter DPA4-Air still surpasses that baseline with $\sim$2.4$\times$ fewer parameters.
     Together these results place DPA4 on a new accuracy--cost Pareto frontier on Matbench Discovery and position it as a strong candidate backbone for future multi-task large atomistic model (LAM) pretraining.
 \end{abstract}
