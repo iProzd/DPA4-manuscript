@@ -2,7 +2,7 @@
 \label{sec:discussion}
 
 DPA4 shows that the accuracy--cost trade-off of equivariant interatomic potentials can be substantially improved when the architecture and the conservative-force training path are co-designed as one energy-conservative system.
-On the architectural side, a low-rank edge--node SO(2)-equivariant product in an edge-local frame, a multi-focus design for message non-linearity, envelope-gated attention for message aggregation, and a Lebedev-grid projection for SO(3)-equivariant non-linearity together avoid the full cost of SO(3) Clebsch--Gordan tensor products while remaining more expressive than prior SO(2) reductions.
+On the architectural side, the EMFA SO(2) convolution avoids the full cost of SO(3) Clebsch--Gordan tensor products while remaining more expressive than prior SO(2) reductions, and a Lebedev-grid projection preserves SO(3)-equivariance in the non-linearity to machine precision.
 On the training side, a compiler-friendly implementation makes the energy-to-force path compatible with \texttt{torch.compile} and removes the systems overhead that usually limits expressive equivariant models.
 It is this combined design, rather than any single component, that moves DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules.
 

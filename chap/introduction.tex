@@ -30,7 +30,7 @@ This two-stage protocol adds substantial engineering complexity to LAM training,
     \label{fig:cps}
 \end{figure}
 
-Here we present DPA4, an SO(3)-equivariant interatomic-potential architecture built on local-frame SO(2) convolution that achieves leading accuracy at substantially lower model and training cost on inorganic-crystal and organic-molecule benchmarks.
+Here we present DPA4, an SO(3)-equivariant interatomic-potential architecture built on an EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2) convolution that achieves leading accuracy at substantially lower model and training cost on inorganic-crystal and organic-molecule benchmarks.
 Its architectural innovations, co-designed for efficiency and accuracy, are (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message non-linearity, (A3) envelope-gated attention for message aggregation, and (A4) a Lebedev-grid projection for SO(3)-equivariant non-linearity; A1--A3 raise generalisation accuracy at low computational cost relative to standard SO(2)-equivariant baselines, and A4 maintains SO(3)-equivariance of the non-linearity to machine precision.
 A shape-stable, compiler-friendly implementation of conservative-force training makes the energy-to-force path compatible with \texttt{torch.compile} and gives up to $\sim 3$ times wall-clock training speedup in controlled ablations.
 In addition, Native ZBL Zone Bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, stabilising molecular dynamics and structure relaxations at very close atomic distances where the potential-energy surface is sparsely sampled by training data.
