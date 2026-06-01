@@ -4,9 +4,9 @@
 \subsection{The DPA4 architecture}
 \label{sec:arch_overview}
 
-DPA4, also known as SeZM for Smooth equivariant Zone-bridging Model, is a conservative SO(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
-Each interaction block has a residual structure with two skip connections: one over an SO(2) multi-focus (MF) convolution followed by an equivariant RMSNorm, and one over a second equivariant RMSNorm followed by an equivariant feed-forward network (FFN).
-Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant product, the multi-focus design for message non-linearity, and the envelope-gated attention for message aggregation, operate inside the SO(2) MF convolution (Fig.~\ref{fig:arch}c).
+DPA4 is a conservative SO(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
+Each interaction block has a residual structure with two skip connections: one over an EMFA SO(2) convolution followed by an equivariant RMSNorm, and one over a second equivariant RMSNorm followed by an equivariant feed-forward network (FFN).
+Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant product, the multi-focus design for message non-linearity, and the envelope-gated attention for message aggregation, operate inside the EMFA SO(2) convolution (Fig.~\ref{fig:arch}c).
 Architectural design A4, the Lebedev-grid projection for SO(3)-equivariant non-linearity, operates inside the equivariant FFN.
 Forces and virials are obtained by automatic differentiation through the scalar energy.
 

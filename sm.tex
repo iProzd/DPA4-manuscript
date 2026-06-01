@@ -37,7 +37,7 @@
 This section provides the complete ablation evidence behind
 Section~\ref{sec:ablation}. The first five subsections give the full
 mechanism-level sweeps for graph compilation, attention aggregation,
-multi-focus SO(2) convolution, the low-rank edge--node SO(2)-equivariant
+multi-focus design, the low-rank edge--node SO(2)-equivariant
 product and $\Sph$ activation. The
 remaining subsections report model-selection and robustness studies. All ablations use the same
 WBM-subsampled evaluation protocol. Relative efficiency metrics are normalized
@@ -165,7 +165,7 @@ selection while preserving equivariance of the higher-order SO(2) features.
 \end{table}
 
 \FloatBarrier
-\subsection{Multi-focus \texorpdfstring{SO(2)}{SO2} convolution}
+\subsection{Multi-focus design}
 \label{sec:sm-multifocus}
 
 The multi-focus comparison separates per-focus feature width from the number of
@@ -687,7 +687,7 @@ equivariant message passing.
 This section specifies the model and training configurations used in the
 ablation and benchmark experiments. Table~\ref{tab:sm_main_ablation_config}
 gives the configurations for the mechanism ablations---graph compilation,
-attention aggregation, multi-focus SO(2) convolution, the low-rank edge--node
+attention aggregation, multi-focus design, the low-rank edge--node
 SO(2)-equivariant product and
 $\Sph$ activation---and Table~\ref{tab:sm_supplementary_ablation_config} those
 for the model-selection and robustness ablations. Entries marked by ``--'' are

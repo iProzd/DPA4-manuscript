@@ -8,7 +8,7 @@ Envelope-gated softmax attention improves neighbourhood aggregation without alte
 In the deployed two-focus configuration, attention-weighted aggregation lowers the energy and force MAEs by 9.2\% and 6.8\%, respectively, relative to scatter-sum aggregation, for a 6\% increase in training time (Supplementary Table~\ref{tab:dpa4_attention_ablation}).
 Because the weights are computed from rotationally invariant scalar channels, this gain reflects adaptive neighbour weighting rather than any relaxation of SO(3) equivariance.
 
-Multi-focus SO(2) convolution separates expressivity from raw channel width.
+The multi-focus design separates expressivity from raw channel width.
 At a fixed SO(2) dimension of 192, the 96-channel two-focus model matches the accuracy of the 192-channel single-focus model (energy and force MAEs of 26.994~meV/atom and 36.408~meV/\AA{} versus 27.286~meV/atom and 36.477~meV/\AA{}) while using 56\% fewer parameters, 23\% less training time and 34\% less inference time.
 Widening the single stream beyond this point yields no further benefit: the 256-channel single-focus model carries about four times as many parameters yet attains higher errors (28.409~meV/atom and 36.670~meV/\AA{}), indicating that a single wide equivariant stream is harder to optimise to comparable quality under a shared training recipe (Supplementary Table~\ref{tab:dpa4_focus_ablation}).
 Allocating the same angular budget to focus channels that compete over distinct edge-local motifs therefore provides a more parameter-efficient and more readily optimised route for scaling the SO(2) representation than widening a single stream.

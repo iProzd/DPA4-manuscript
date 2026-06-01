@@ -30,8 +30,8 @@ Forces and virials are obtained by differentiating the scalar energy in Eq.~\eqr
 
 In the learned branch $E_{\Theta}^{\mathrm{NN}}$, the atomic species $Z$ and positions $R$ are encoded into per-atom irreducible representations in the real space $V_{\leq L}\otimes\mathbb{R}^{C}$ by a Geometry-Informed Embedding (GIE) stage (Sec.~\ref{sec:gie}), updated through $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and read out as a scalar energy by an atomic energy head.
 Here $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$ with $V_l$ the $(2l+1)$-dimensional irreducible representation of SO(3); the $l=0$ subspace is invariant and is used for scalar readout, while $l>0$ subspaces transform equivariantly and carry angular information.
-Each interaction block is a residual stack of an SO(2) multi-focus convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms.
-The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant product (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the SO(2) MF convolution (Sec.~\ref{sec:so2}); the Lebedev-grid spherical-grid SwiGLU non-linearity (A4) acts inside the FFN (Sec.~\ref{sec:s2-method}).
+Each interaction block is a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms.
+The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant product (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the EMFA SO(2) convolution (Sec.~\ref{sec:so2}); the Lebedev-grid spherical-grid SwiGLU non-linearity (A4) acts inside the FFN (Sec.~\ref{sec:s2-method}).
 Short-range repulsion couples the learned and analytical branches through Native ZBL Zone Bridging (Sec.~\ref{sec:zbl_method}).
 
 \subsubsection{Geometric inputs to the learned branch}
@@ -424,7 +424,7 @@ Combining the per-edge message $\mathbf{m}_{ij}$ from
 Eq.~\eqref{eq:dpa4-edge-message}, the envelope-gated attention weight
 $w_{ij}^{(f,a)}$ of Eq.~\eqref{eq:dpa4-attention}, the destination-side output
 gate $G_i^{(f,a)}$ of Eq.~\eqref{eq:dpa4-attn-gate}, and the channel post-mixer
-$L^{\mathrm{post}}_{\mathrm{deg}}$, the SO(2) multi-focus convolution at atom
+$L^{\mathrm{post}}_{\mathrm{deg}}$, the EMFA SO(2) convolution at atom
 $i$ is
 \begin{equation}
     \bigl(\mathcal{C}_{\theta}\mathbf{h}\bigr)_i
@@ -626,7 +626,7 @@ Because no coordinate-dependent switching weight multiplies the energy differenc
 The total energy $E(Z,R)$ in Eq.~\eqref{eq:dpa4-total-energy} is invariant under translations, atom permutations of the same chemical species and global rotations, is $C^3$-smooth in $R$, and gives strictly conservative forces.
 Translation invariance follows because every geometric input is built from relative displacements.
 Permutation invariance follows because all edge and node operators are globally shared and depend on species only through learned embeddings of $Z_i$, and neighbour aggregation is by summation or softmax-weighted summation.
-Rotational invariance of $E$ follows because the Geometry-Informed Embedding (Sec.~\ref{sec:gie}), the SO(2) multi-focus convolution (Sec.~\ref{sec:so2}), the equivariant feed-forward network (Sec.~\ref{sec:s2-method}) and the equivariant RMS norm are SO(3)-equivariant on $V_{\leq L}\otimes\mathbb{R}^{C}$, while the atomic energy head reads out only the $l=0$ invariant slice; the analytical ZBL branch depends only on scalar distances $r_{ij}$.
+Rotational invariance of $E$ follows because the Geometry-Informed Embedding (Sec.~\ref{sec:gie}), the EMFA SO(2) convolution (Sec.~\ref{sec:so2}), the equivariant feed-forward network (Sec.~\ref{sec:s2-method}) and the equivariant RMS norm are SO(3)-equivariant on $V_{\leq L}\otimes\mathbb{R}^{C}$, while the atomic energy head reads out only the $l=0$ invariant slice; the analytical ZBL branch depends only on scalar distances $r_{ij}$.
 Smoothness follows from the $C^3$ cutoff envelope $s_5$, the $C^3$ clamped distance $\widetilde{r}$ and source-freeze gate $\eta_j$ (Sec.~\ref{sec:geom-inputs}), and the softplus stabiliser in the attention denominator (Eq.~\eqref{eq:dpa4-attention}).
 Forces and virials are obtained by automatic differentiation of the single scalar energy in Eq.~\eqref{eq:dpa4-total-energy}, so the resulting force field is conservative by construction.
 
