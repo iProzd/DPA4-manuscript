@@ -214,10 +214,11 @@ Inference efficiency was evaluated through the ASE calculator interface~\cite{as
 The DPA4 calculators used compiled inference.
 The MACE baselines were evaluated both in their standard path and with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
 The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead.
-All inference benchmarks were run on the same H20 hardware and software environment.
+All inference benchmarks were run on the same H20 hardware and software environment, with the full configuration reported in Supplementary Section~\ref{sec:sm-inference}.
 
 Figure~\ref{fig:ase_inorganic_infer} shows that DPA4-Air and DPA4-Neo retain high atom-normalized throughput despite their equivariant message passing.
 Across the system-size sweep, DPA4-Air and DPA4-Neo deliver substantially higher throughput than the DPA3 baselines~\cite{zhang2025dpa3}, and at small system sizes they also exceed the NVIDIA cuEquivariance-optimized MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning,nvidia_cuequivariance}.
+The same throughput ordering holds on the LAMBench \texttt{catalysts\_500} sweep over surface and catalyst structures (Supplementary Fig.~\ref{fig:sm_ase_catalysts}), indicating that the ranking is not specific to the \texttt{inorganic\_500} structure distribution.
 DPA4-Pro is also faster than the EquiformerV3 baseline in this ASE path while reaching higher Matbench Discovery CPS than EquiformerV3+DeNS-MP (Table~\ref{tab:matbench}).
 At the largest atom counts, the DPA3 and DPA4 curves bend downward because the present ASE path uses native DeePMD-kit neighbor lists, which are built with a naive all-pairs algorithm of $\mathcal O(N^2)$ complexity, leaving the end-to-end throughput partly limited by neighbor-list runtime overheads~\cite{zeng2025deepmdv3}.
 This front-end bottleneck is separate from the DPA4 architecture and would be alleviated by a more efficient neighbor-list implementation.
