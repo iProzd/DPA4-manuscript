@@ -231,19 +231,27 @@ before the rotate-back step.
 
 This ablation tests the low-rank edge--node SO(2)-equivariant product (A1),
 namely how edge-side angular information conditions the node-side SO(2) message
-in the local frame. The scalar-scaling baseline uses only the $l=0$ edge feature
-to scale edge messages across angular orders, whereas degree mixing uses
-higher-degree edge-equivariant features to mix input and output angular degrees
-at fixed $|m|$ before the SO(2) stack. The main gain comes from allowing this
-degree mixing to be channel dependent while keeping the kernel compact. Even the
-rank-1 per-channel low-rank kernel captures most of the benefit: it reduces
-energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to
-35.689~meV/\AA{} relative to scalar scaling, corresponding to 3.1\% and 6.9\%
-improvements, respectively. This improvement is obtained at low additional
-cost, with training and test times increasing only to 1.12$\times$ and
-1.10$\times$ the scalar-scaling baseline. A compact low-rank edge--node product
-therefore provides a favorable accuracy--throughput trade-off before the
-kernel is made more expressive.
+in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
+The scalar-scaling baseline uses only the $l=0$ edge feature to scale edge
+messages across angular orders, whereas degree mixing builds a cross-degree
+kernel from the SO(2) Clebsch--Gordan coefficients and the $l>0$ edge spherical
+harmonics in the local frame, mixing input and output angular degrees at fixed
+$|m|$ before the SO(2) stack.
+Making this kernel channel-dependent improves expressivity, but a per-channel
+dense kernel would inflate the parameter count by a factor of the hidden width
+$H$.
+DPA4 instead parameterizes the kernel as a rank-$R$ factorization across the
+channel index, with $R$ scalar degree-pair coefficients contracted against a
+learnable channel basis of width $R\leq H$ (main-text Eq.~\ref{eq:dpa4-K-lowrank}).
+Even the rank-$R=1$ form captures most of the benefit: it reduces energy MAE
+from 28.493 to 27.611~meV/atom and force MAE from 38.349 to 35.689~meV/\AA{}
+relative to scalar scaling, corresponding to 3.1\% and 6.9\% improvements,
+respectively (Table~\ref{tab:dpa4_radial_degree_ablation}).
+This improvement is obtained at low additional cost, with training and test
+times increasing only to 1.12$\times$ and 1.10$\times$ the scalar-scaling
+baseline.
+A compact low-rank edge--node product therefore provides a favorable
+accuracy--throughput trade-off before the kernel is made more expressive.
 
 The remaining rank sweep shows that a more expressive edge--node product is not
 monotonically better. Increasing the rank from 1 to 4 gives the best energy and
