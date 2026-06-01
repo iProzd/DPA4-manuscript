@@ -286,23 +286,24 @@ rotation-invariant and the entire angular content is carried by the degree-$l$
 spherical harmonic $Y_l^m(\widehat{\mathbf{r}}_{ij})$, which transforms as
 $D^l(R)$ under a rotation $R$.
 
-\subsubsection{SO(2) multi-focus convolution}
+\subsubsection{EMFA SO(2) convolution}
 \label{sec:so2}
 
-Each interaction block applies an SO(3)-equivariant convolution
-$\mathcal{C}_{\theta}$ that takes the per-atom node features $\mathbf{h}_j\in
-    V_{\le L}\otimes\mathbb{R}^{C}$, $j=1,\dots,N$, and returns a per-atom update
+Each interaction block applies the EMFA SO(2) convolution
+$\mathcal{C}_{\theta}$, an SO(3)-equivariant convolution that takes the
+per-atom node features $\mathbf{h}_j\in V_{\le L}\otimes\mathbb{R}^{C}$,
+$j=1,\dots,N$, and returns a per-atom update
 $(\mathcal{C}_{\theta}\mathbf{h})_i\in V_{\le L}\otimes\mathbb{R}^{C}$ obtained
 by aggregating information from the neighbours of atom $i$. The operator is
 built in six stages: (i) transport each source node feature into a per-edge
 SO(2) gauge aligning the bond direction with a fixed reference axis; (ii)
 construct an in-frame edge feature through a \emph{low-rank edge--node
     SO(2)-equivariant product} (A1); (iii) introduce message non-linearity through
-a \emph{multi-focus design} (A2) combining a per-focus SO(2) stack and a
-cross-focus competition, whose gated activations and softmax over focuses act
-as two complementary non-linear elements; (iv) lift the in-frame feature back
-to the global frame as the per-edge equivariant message; (v) aggregate
-neighbour messages with envelope-gated attention (A3) modulated by a
+a \emph{multi-focus design} (A2): $F$ parallel per-focus SO(2) stacks reweighted by
+a cross-focus softmax competition, whose gated activations within each stack and
+softmax over focuses act as two complementary non-linear elements; (iv) lift the
+in-frame feature back to the global frame as the per-edge equivariant message; (v)
+aggregate neighbour messages with envelope-gated attention (A3) modulated by a
 destination-side output gate; and (vi) project the result back to
 representation width through a channel post-mixer. The closed form of
 $\mathcal{C}_{\theta}$ collecting all six stages is given as
