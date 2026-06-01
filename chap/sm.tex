@@ -54,7 +54,7 @@ that is not applicable to the corresponding setting.
 \label{sec:sm-compile-ablation}
 
 This ablation quantifies the systems-level benefit of graph compilation and
-reduced-precision tensor-core execution. Relative to the non-compiled FP32
+reduced-precision tensor-core execution (Table~\ref{tab:dpa4_compile_ablation}). Relative to the non-compiled FP32
 baseline, bf16 AMP alone gives a 1.43$\times$ training speedup and reduces peak
 training memory by 59\%. Graph compilation provides a larger and complementary
 gain: compiled FP32 training gives a 1.61$\times$ speedup, and enabling TF32 in
@@ -120,7 +120,8 @@ specified.
 \label{sec:sm-attention-aggregation}
 
 The attention ablation isolates the aggregation rule while holding the feature
-dimension and focus count fixed within each pair of rows. Replacing scatter-sum
+dimension and focus count fixed within each pair of rows
+(Table~\ref{tab:dpa4_attention_ablation}). Replacing scatter-sum
 aggregation with attention-weighted sum consistently reduces both energy and
 force MAEs across the 64-channel, 96-channel, and 96-channel 2-focus settings.
 The improvement is substantial and stable: energy MAE decreases by 8.3--9.3\%,
@@ -272,7 +273,7 @@ expressive full kernel.
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
             \textbf{Edge--node product} &
-            \textbf{Per-channel mod.} &
+            \textbf{Per-channel ker.} &
             \textbf{Rank} &
             \textbf{E MAE}$\downarrow$ &
             \textbf{F MAE}$\downarrow$ &
@@ -304,7 +305,8 @@ expressive full kernel.
 
 This ablation separates two coupled design choices in the spherical-grid
 nonlinearity: the model component to which $\Sph$ activation is applied and the
-quadrature rule used to project grid features back to equivariant coefficients.
+quadrature rule used to project grid features back to equivariant coefficients
+(Table~\ref{tab:sm_quadrature_ablation}).
 When $\Sph$ activation is restricted to the FFN component, replacing the e3nn
 product grid with the Lebedev rule slightly reduces the energy MAE while
 leaving the force MAE and computational cost essentially unchanged. Applying S2
@@ -354,7 +356,7 @@ nonlinearities are used in equivariant branches.
 \subsection{Layers}
 
 Interaction depth is the strongest determinant of accuracy among the structural
-hyperparameters. Both errors fall most rapidly over the first few interaction
+hyperparameters (Tables~\ref{tab:sm_layers}--\ref{tab:sm_ffn_stack}). Both errors fall most rapidly over the first few interaction
 blocks and then with diminishing returns, while training and inference cost grow
 approximately linearly with depth (Table~\ref{tab:sm_layers}); the depth of each
 DPA4 variant is therefore chosen to balance accuracy against cost rather than to
@@ -444,7 +446,8 @@ variant.
 
 These sweeps vary the attention parameterization around the default single-head
 design, toggling the value, output and pre-mixing projections and the number of
-heads for the 64-channel, 96-channel and 96-channel two-focus configurations.
+heads for the 64-channel, 96-channel and 96-channel two-focus configurations
+(Tables~\ref{tab:sm_attention_64}--\ref{tab:sm_attention_96x2}).
 Across all three configurations, enabling attention with one or more heads
 consistently outperforms the no-attention scatter-sum baseline, in agreement
 with the main attention ablation. The minimal single-head form, without value,
@@ -552,7 +555,8 @@ attention without further projections is therefore retained as the default.
 \subsection{Normalization placement}
 
 Normalization placement is examined by applying RMSNorm as pre-normalization,
-post-normalization or both within the SO(2) and feed-forward sublayers. A single
+post-normalization or both within the SO(2) and feed-forward sublayers
+(Table~\ref{tab:sm_stability}). A single
 normalization per sublayer is consistently more accurate than applying both,
 which adds layers without benefit. SO(2) post-normalization combined with
 feed-forward pre-normalization yields the lowest energy MAE and close to the
