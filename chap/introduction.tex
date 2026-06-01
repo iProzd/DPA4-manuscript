@@ -11,7 +11,7 @@ On the accuracy side, equivariant architectures carry directional information as
 On the efficiency side, the most expressive SO(3)-equivariant models rely on Clebsch--Gordan tensor products or dense spherical-grid operations whose cost grows rapidly with angular order, model width and neighbour count.
 % This cost becomes a bottleneck when the target is not a single specialised potential, but an MLIP architecture that can scale to broad training sets and serve as the backbone of future LAMs.
 Reducing SO(3) convolutions to edge-local SO(2) operations provides one route to this trade-off~\cite{passaro2023reducing}, exploited by recent high-performing models such as eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3}.
-In these constructions, edge information is often introduced through invariant radial or scalar channels, whereas utilizing more expressive edge--node interactions require more intensive algibraic operations in the equivariant multiplication in the residual SO(2) basis.
+In these constructions, edge information is often introduced through invariant radial or scalar channels, whereas using more expressive edge--node interactions requires more intensive algebraic operations in the equivariant multiplication in the residual SO(2) basis.
 
 Beyond architectural cost, a practical constraint shapes the training strategy of these models.
 Conservative-force training is difficult to accelerate because the force loss differentiates through the energy model, so mainstream LLM training stacks, optimised for first-derivative gradients, do not transfer directly to this second-derivative setting.

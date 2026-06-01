@@ -37,7 +37,8 @@
 This section provides the complete ablation evidence behind
 Section~\ref{sec:ablation}. The first five subsections give the full
 mechanism-level sweeps for graph compilation, attention aggregation,
-multi-focus SO(2) convolution, radial coupling and $\Sph$ activation. The
+multi-focus SO(2) convolution, the low-rank edge--node SO(2)-equivariant
+product and $\Sph$ activation. The
 remaining subsections report model-selection and robustness studies. All ablations use the same
 WBM-subsampled evaluation protocol. Relative efficiency metrics are normalized
 within each controlled group under matched H20 hardware, batch-size,
@@ -225,43 +226,44 @@ before the rotate-back step.
 \end{table}
 
 \FloatBarrier
-\subsection{Radial coupling}
+\subsection{Low-rank edge--node \texorpdfstring{SO(2)}{SO2}-equivariant product}
 \label{sec:sm-radial-coupling}
 
-This ablation tests how radial features couple to local SO(2) edge features.
-The scalar-scaling baseline uses only the $l=0$ radial feature to scale edge
-features across angular orders, whereas degree mixing uses higher-order radial
-features to mix input and output angular degrees in the local SO(2) frame
-before modulating the edge features. The main gain comes from allowing this
-degree mixing to be channel dependent while keeping the modulation kernel
-compact. Even the rank-1 per-channel kernel captures most of the benefit: it
-reduces energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to
+This ablation tests the low-rank edge--node SO(2)-equivariant product (A1),
+namely how edge-side angular information conditions the node-side SO(2) message
+in the local frame. The scalar-scaling baseline uses only the $l=0$ edge feature
+to scale edge messages across angular orders, whereas degree mixing uses
+higher-degree edge-equivariant features to mix input and output angular degrees
+at fixed $|m|$ before the SO(2) stack. The main gain comes from allowing this
+degree mixing to be channel dependent while keeping the kernel compact. Even the
+rank-1 per-channel low-rank kernel captures most of the benefit: it reduces
+energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to
 35.689~meV/\AA{} relative to scalar scaling, corresponding to 3.1\% and 6.9\%
 improvements, respectively. This improvement is obtained at low additional
 cost, with training and test times increasing only to 1.12$\times$ and
-1.10$\times$ the scalar-scaling baseline. Low-rank radial degree coupling
+1.10$\times$ the scalar-scaling baseline. A compact low-rank edge--node product
 therefore provides a favourable accuracy--throughput trade-off before the
 kernel is made substantially more expressive.
 
-The remaining rank sweep shows that more expressive radial coupling is not
+The remaining rank sweep shows that a more expressive edge--node product is not
 monotonically better. Increasing the rank from 1 to 4 gives the best energy and
 force MAEs, but also raises the training cost to 1.86$\times$ the baseline;
 rank 8, rank 16, and the full kernel are still more expensive yet give worse
 force MAEs. These results suggest that compact per-channel kernels act as a
 structural regularizer, providing enough channel-specific angular mixing
 without introducing many weakly constrained radial--angular interactions. We
-therefore use compact low-rank radial degree coupling rather than the most
-expressive full coupling.
+therefore use the rank-1 low-rank edge--node product rather than the most
+expressive full kernel.
 
 \begin{table}[ht]
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of radial coupling in SO(2) edge-feature modulation.\tnote{a}}
+        \caption{Ablation of the low-rank edge--node SO(2)-equivariant product.\tnote{a}}
         \label{tab:dpa4_radial_degree_ablation}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
-            \textbf{Radial coupling} &
+            \textbf{Edge--node product} &
             \textbf{Per-channel mod.} &
             \textbf{Rank} &
             \textbf{E MAE}$\downarrow$ &
@@ -281,8 +283,8 @@ expressive full coupling.
         \end{tabular*}
         \begin{tablenotes}
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the scalar-scaling
-            baseline. Scalar scaling uses only the $l=0$ radial feature, whereas degree
-            mixing uses higher-order radial features to mix angular degrees in the local
+            baseline. Scalar scaling uses only the $l=0$ edge feature, whereas degree
+            mixing uses higher-degree edge-equivariant features to mix angular degrees in the local
             SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
@@ -685,7 +687,8 @@ equivariant message passing.
 This section specifies the model and training configurations used in the
 ablation and benchmark experiments. Table~\ref{tab:sm_main_ablation_config}
 gives the configurations for the mechanism ablations---graph compilation,
-attention aggregation, multi-focus SO(2) convolution, radial coupling and
+attention aggregation, multi-focus SO(2) convolution, the low-rank edge--node
+SO(2)-equivariant product and
 $\Sph$ activation---and Table~\ref{tab:sm_supplementary_ablation_config} those
 for the model-selection and robustness ablations. Entries marked by ``--'' are
 the controlled variables within the corresponding experiment family; all other
@@ -707,7 +710,7 @@ groups of hyperparameters without adding category labels to the table body.
             \makecell{\textbf{Compile/}\\\textbf{precision}} &
             \textbf{Attention} &
             \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} &
-            \makecell{\textbf{Radial}\\\textbf{coupling}} &
+            \makecell{\textbf{Edge--node}\\\textbf{product}} &
             \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} \\
             \midrule
             Feature dim. & 64 & 64/96/96 & -- & 64 & 64 \\
@@ -721,7 +724,7 @@ groups of hyperparameters without adding category labels to the table body.
             $L_{\max}$ & 3 & 3 & 3 & 3 & 3 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Radial coupling & Degree mixing & Scalar scaling & Scalar scaling & -- & Degree mixing \\
+            Edge--node product & Degree mixing & Scalar scaling & Scalar scaling & -- & Degree mixing \\
             Per-channel mod. & True & N/A & N/A & -- & True \\
             Rank & 1 & N/A & N/A & -- & 1 \\
             Attn. heads & 1 & -- & 1 & 1 & 1 \\
@@ -774,8 +777,8 @@ groups of hyperparameters without adding category labels to the table body.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
-            \item[g] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2)
+            \item[g] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
+            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
         \end{tablenotes}
     \end{threeparttable}
@@ -809,7 +812,7 @@ groups of hyperparameters without adding category labels to the table body.
             $L_{\max}$ & 3 & 3 & 3 & 3 & 3 & 3 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Radial coupling & Scalar scaling & Degree mixing & Degree mixing & Scalar scaling & Scalar scaling & Degree mixing \\
+            Edge--node product & Scalar scaling & Degree mixing & Degree mixing & Scalar scaling & Scalar scaling & Degree mixing \\
             Per-channel mod. & N/A & True & True & N/A & N/A & True \\
             Rank & N/A & 1 & 1 & N/A & N/A & 1 \\
             Attn. heads & 1 & 1 & 1 & -- & 1 & 1 \\
@@ -862,8 +865,8 @@ groups of hyperparameters without adding category labels to the table body.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
             $4d_\mathrm{feat}$ otherwise.
-            \item[g] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2)
+            \item[g] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
+            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
         \end{tablenotes}
     \end{threeparttable}
@@ -897,7 +900,7 @@ groups of hyperparameters without adding category labels to the table body.
             $L_{\max}$ & 3 & 3 & 4 & 5 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 \\
             \midrule
-            Radial coupling & Degree mixing & Degree mixing & Degree mixing & Degree mixing \\
+            Edge--node product & Degree mixing & Degree mixing & Degree mixing & Degree mixing \\
             Per-channel mod. & True & True & True & True \\
             Rank & 1 & 1 & 1 & 2 \\
             Attn. heads & 1 & 1 & 1 & 1 \\
@@ -947,8 +950,8 @@ groups of hyperparameters without adding category labels to the table body.
             $4d_\mathrm{feat}$ otherwise.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
-            \item[d] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2)
+            \item[d] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
+            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
         \end{tablenotes}
     \end{threeparttable}
@@ -976,7 +979,7 @@ groups of hyperparameters without adding category labels to the table body.
             $L_{\max}$ & 3 & 4 \\
             $M_{\max}$ & 1 & 1 \\
             \midrule
-            Radial coupling & Degree mixing & Degree mixing \\
+            Edge--node product & Degree mixing & Degree mixing \\
             Per-channel mod. & True & True \\
             Rank & 1 & 1 \\
             Attn. heads & 1 & 1 \\
@@ -1026,8 +1029,8 @@ groups of hyperparameters without adding category labels to the table body.
             $4d_\mathrm{feat}$ otherwise.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
-            \item[d] Scalar scaling uses only the $l=0$ radial feature, whereas degree mixing
-            uses higher-order radial features to mix angular degrees in the local SO(2)
+            \item[d] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
+            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
         \end{tablenotes}
     \end{threeparttable}
