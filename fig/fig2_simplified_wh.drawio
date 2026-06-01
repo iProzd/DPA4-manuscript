@@ -1,6 +1,6 @@
 <mxfile host="Electron">
   <diagram name="Fig 1 SeZM Combined Architecture" id="fig1_combined_sezm">
-    <mxGraphModel dx="1163" dy="856" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3220" pageHeight="1280" math="0" shadow="0">
+    <mxGraphModel dx="1992" dy="1166" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3220" pageHeight="1280" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -369,7 +369,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="uS-GRDGCgWQyfRnlyKgP-2" parent="panel_c" style="shape=trapezoid;perimeter=trapezoidPerimeter;direction=west;rotation=-90;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=24;fontColor=#1F2933;align=center;verticalAlign=middle;spacing=8;fillColor=#FFF2E5;strokeColor=#D9862E;strokeWidth=1.8;flipH=0;legacyAnchorPoints=0;flipV=0;size=0.08528880866425993;connectable=1;pointerEvents=0;" value="&lt;font style=&quot;font-size: 28px;&quot;&gt;Gate &amp;amp; channel mixing&lt;/font&gt;" vertex="1">
-          <mxGeometry height="44" width="336.76" x="1006" y="199" as="geometry" />
+          <mxGeometry height="44" width="336.76" x="1006" y="203" as="geometry" />
         </mxCell>
         <mxCell id="V6tHNyhNLOQP1egksWAj-55" parent="panel_c" style="rounded=1;whiteSpace=wrap;html=1;arcSize=18;fontFamily=Times New Roman;fontSize=20;fontColor=#1F2933;align=center;verticalAlign=middle;spacing=8;fillColor=#EDF5FF;strokeColor=#4E79A7;strokeWidth=1.7;" value="&lt;font style=&quot;font-size: 28px;&quot;&gt;&lt;i&gt;D&lt;/i&gt;&lt;sub&gt;ij&lt;/sub&gt;&lt;sup&gt;-1&lt;/sup&gt;&lt;/font&gt;" vertex="1">
           <mxGeometry height="50" width="65" x="831" y="314.5" as="geometry" />
