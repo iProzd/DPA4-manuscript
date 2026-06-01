@@ -18,12 +18,12 @@ In parallel, an equivariant branch projects each neighbour direction onto real s
 This gives the model chemical and geometric context from the outset, rather than forcing all local-environment information to be discovered through iterated message passing.
 The construction details are given in Section~\ref{sec:gie}.
 
-The SO(2) multi-focus convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbours to update the node features.
+The EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbours to update the node features.
 Mathematical details are given in Section~\ref{sec:so2}.
 In the local frame, the convolution applies the low-rank edge--node SO(2)-equivariant product (A1), which exploits the simpler SO(2) Clebsch--Gordan structure to replace the costly SO(3) Clebsch--Gordan tensor product.
 The product depends on the full set of per-edge equivariant features at degrees $l=0,\dots,L$, in contrast to similar SO(2)-equivariant constructions in eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3} where the product depends only on invariant ($l=0$) edge features.
 The product of the SO(2) Clebsch--Gordan coefficients and the edge equivariant features uses a low-rank parameterisation, improving accuracy at modest additional training cost (Section~\ref{sec:ablation}).
-The multi-focus design (A2) splits the hidden width into $F$ parallel focus streams processed by an SO(2) stack and a cross-focus softmax competition, introducing message non-linearity.
+The multi-focus design (A2) splits the hidden width into $F$ parallel focus streams, each processed by its own SO(2) stack and then reweighted by a cross-focus softmax competition, introducing message non-linearity.
 At fixed hidden width, this parallel-focus structure substantially reduces the model parameter count while improving accuracy relative to the $F=1$ single-focus baseline (Section~\ref{sec:ablation}).
 Aggregation over neighbours uses an envelope-gated attention (A3) computed from the SO(3)-invariant $l=0$ slice, with a destination-side output gate (Section~\ref{sec:attn}).
 This attention-weighted aggregation improves accuracy at small additional training cost relative to a plain envelope-weighted scatter sum (Section~\ref{sec:ablation}).
@@ -43,9 +43,9 @@ Both branches contribute to the same scalar total energy and are differentiated 
     \includegraphics[width=\textwidth]{fig/fig2_simplified_wh.pdf}
     \caption{
         Overview of the DPA4 architecture.
-        (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an SO(2) multi-focus (MF) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head. Architectural designs A1--A3 act inside the SO(2) MF convolution and A4 (Lebedev-grid $\Sph$ non-linearity) inside the equivariant FFN.
+        (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head. Architectural designs A1--A3 act inside the EMFA SO(2) convolution and A4 (Lebedev-grid $\Sph$ non-linearity) inside the equivariant FFN.
         (b) The shared edge cache precomputes per-edge quantities; the GIE stage initialises the $l=0$ slice through FiLM modulation by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbour directions onto real spherical harmonics weighted by a radial-species profile.
-        (c) The SO(2) multi-focus convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant product (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbours through envelope-gated attention (A3).
+        (c) The EMFA SO(2) convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant product (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbours through envelope-gated attention (A3).
     }
     \label{fig:arch}
 \end{figure}
