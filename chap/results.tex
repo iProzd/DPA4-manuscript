@@ -114,18 +114,19 @@ DeNS~\cite{liao2024dens} has been shown to improve equivariant force fields by d
 DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy-gradient path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
 This result suggests that the DPA4 architecture itself contributes to the improved accuracy rather than relying on an auxiliary denoising or direct-force objective.
 
-The smaller DPA4 variants show that the same architecture remains effective in a lower-cost regime.
+The smaller DPA4 variants extend this accuracy--cost trade-off across model scales, surpassing or matching much larger baselines with substantially fewer parameters.
 DPA4-Plus reaches a CPS of 0.822 with only 5.40M parameters, reducing the gap to EquiformerV3+DeNS-MP to 0.008 CPS while using 82\% fewer parameters.
 DPA4-Air reaches a CPS of 0.804 with 2.76M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 10.9$\times$ smaller model.
 DPA4-Neo contains only 1.60M parameters but still reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model.
+
 The Air--Neo segment in Fig.~\ref{fig:cps} reveals a diminishing-return regime at the smallest scale: CPS decreases from 0.804 to 0.781, whereas the A100-equivalent training cost decreases only from 7.8 to 6.5 GPU-days.
 This limited wall-clock saving is consistent with a hardware-utilization floor: once the network becomes too small, the per-step arithmetic workload and matrix sizes no longer saturate the GPU, and neighbor-list construction, geometric preprocessing, memory traffic and kernel overheads occupy a larger fraction of the elapsed time.
 Larger batches can partly amortize these costs, but the wall-clock training time no longer follows the parameter count.
 At the same time, CPS drops more rapidly below the Air scale, indicating that model capacity rather than training cost becomes the limiting factor.
-Thus, among the single-digit-GPU-day variants, DPA4-Air provides the more balanced point on the accuracy--efficiency frontier.
-On this scale, DPA4-Air requires only single-digit A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP while achieving a higher CPS.
-For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS peak FP32 throughput.
-Under an idealized peak-FLOP rescaling, the DPA4-Air training budget is therefore on the order of one day on such hardware.
+Thus, between DPA4-Air and DPA4-Neo, DPA4-Air offers the best-balanced point on the accuracy--efficiency frontier.
+On this scale, DPA4-Air requires only 7.8 A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP while achieving a higher CPS.
+For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS.
+Rescaled by the peak-FLOP ratio, the DPA4-Air training budget is therefore on the order of one day on such hardware.
 This accuracy at reduced model size and training cost makes DPA4-Air and DPA4-Neo practical for high-throughput workflows.
 
 As the leading compliant models are now separated by relatively small CPS differences, further optimization of the fixed-MPtrj Matbench Discovery leaderboard may have limited practical value once models reach the present accuracy--efficiency frontier.
