@@ -214,7 +214,7 @@ Inference efficiency was evaluated through the ASE calculator interface~\cite{as
 The DPA4 calculators used compiled inference.
 The MACE baselines were evaluated both in their standard path and with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
 The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead.
-All inference benchmarks were run on the same H20 hardware and software environment, with the full configuration and the \texttt{catalysts\_500} ASE measurement reported in Supplementary Fig.~\ref{fig:sm_ase_catalysts}.
+All inference benchmarks were run on the same H20 hardware and software environment.
 
 Figure~\ref{fig:ase_inorganic_infer} shows that DPA4-Air and DPA4-Neo retain high atom-normalized throughput despite their equivariant message passing.
 Across the system-size sweep, DPA4-Air and DPA4-Neo deliver substantially higher throughput than the DPA3 baselines~\cite{zhang2025dpa3}, and at small system sizes they also exceed the NVIDIA cuEquivariance-optimized MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning,nvidia_cuequivariance}.
