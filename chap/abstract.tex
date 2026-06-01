@@ -1,6 +1,6 @@
 \begin{abstract}
     Machine-learning interatomic potentials now approach quantum-mechanical accuracy on standard benchmarks, but the training cost of the most expressive equivariant architectures has become a serious bottleneck.
-    We introduce DPA4, an SO(3)-equivariant interatomic-potential architecture with an EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2)-equivariant convolution that combines a low-rank edge--node SO(2)-equivariant product, a multi-focus design for message nonlinearity, and envelope-gated attention for message aggregation.
+    We introduce DPA4, an SE(3)-equivariant interatomic-potential architecture with an EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2)-equivariant convolution that combines a low-rank edge--node SO(2)-equivariant product, a multi-focus design for message nonlinearity, and envelope-gated attention for message aggregation.
     A Lebedev-grid projection further preserves SO(3)-equivariance in the nonlinearity to machine precision.
     A compiler-friendly conservative energy-gradient training path provides up to $\sim$3 times wall-clock speedup under \texttt{torch.compile}.
     On the compliant Matbench Discovery benchmark, DPA4-Pro attains the best Combined Performance Score (CPS) on the leaderboard, while the 2.76M-parameter DPA4-Air exceeds the accuracy of the 30.1M-parameter eSEN-30M-MP baseline with 10.9$\times$ fewer parameters and 42.9$\times$ less training compute.
