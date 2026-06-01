@@ -1,3 +1,5 @@
 modifyLineBreaks:
+  oneSentencePerLine:
+    manipulateSentences: 1
   textWrapOptions:
     columns: 80

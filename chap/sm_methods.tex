@@ -2,43 +2,29 @@
 \label{sec:sm-model-formulation}
 \label{sec:sm-methods}
 
-This section collects the mathematical details that supplement the
-architecture description in Section~\ref{sec:methods}: the formal SO(3)
-representation notation, the edge-local frame and SO(2) decomposition, the
-closed-form cutoff envelope coefficients, the truncated SO(2) layout and
-rescaled lift, the SO(2)-equivariant operator algebra, and the
-cutoff-consistent first-layer bias correction used by the ablations in
-later supplementary sections.
+This section collects the mathematical details that supplement the architecture description in Section~\ref{sec:methods}: the formal SO(3) representation notation, the edge-local frame and SO(2) decomposition, the closed-form cutoff envelope coefficients, the truncated SO(2) layout and rescaled lift, the SO(2)-equivariant operator algebra, and the cutoff-consistent first-layer bias correction used by the ablations in later supplementary sections.
 
 \subsection{SO(3) representation: notation}
 \label{sec:sm-representation}
 
-For each integer $l\ge 0$, let $V_l\cong\mathbb{R}^{2l+1}$ be the real
-$(2l+1)$-dimensional irreducible representation of SO(3), spanned by the
-real spherical harmonics $\{Y_l^m\}_{m=-l}^{l}$. The action of a rotation
+For each integer $l\ge 0$, let $V_l\cong\mathbb{R}^{2l+1}$ be the real $(2l+1)$-dimensional irreducible representation of SO(3), spanned by the real spherical harmonics $\{Y_l^m\}_{m=-l}^{l}$.
+The action of a rotation
 $Q\in\mathrm{SO}(3)$ on $V_l$ is given by the real Wigner $D$-matrix
 $D^l(Q)\in\mathrm{O}(2l+1)$, the orthogonal $(2l+1)\times(2l+1)$ matrix
 that describes how the real spherical harmonics transform under rotation,
 \begin{equation}
-    Y_l^m(Q^{-1}\widehat{\mathbf{r}})
-    =\sum_{m'=-l}^{l}D^l(Q)_{m,m'}\,Y_l^{m'}(\widehat{\mathbf{r}}).
+    Y_l^m(Q^{-1}\widehat{\mathbf{r}}) =\sum_{m'=-l}^{l}D^l(Q)_{m,m'}\,Y_l^{m'}(\widehat{\mathbf{r}}).
     \label{eq:sm-wigner-D}
 \end{equation}
-The map $D^l:\mathrm{SO}(3)\to\mathrm{O}(2l+1)$ is a continuous group
-homomorphism (i.e.\ $D^l(QQ')=D^l(Q)D^l(Q')$), and the $V_l$ are
-\emph{irreducible}: $V_l$ admits no proper SO(3)-invariant subspace. The
-trivial case $l=0$ is the invariant scalar representation with
-$D^0(Q)\equiv 1$.
+The map $D^l:\mathrm{SO}(3)\to\mathrm{O}(2l+1)$ is a continuous group homomorphism (i.e.\ $D^l(QQ')=D^l(Q)D^l(Q')$), and the $V_l$ are \emph{irreducible}: $V_l$ admits no proper SO(3)-invariant subspace.
+The trivial case $l=0$ is the invariant scalar representation with $D^0(Q)\equiv 1$.
 
 The node-feature space $V_{\le L}\otimes\mathbb{R}^{C}=\bigoplus_{l=0}^{L}
-V_l\otimes\mathbb{R}^{C}$ of main-text Section~\ref{sec:methods} therefore
+    V_l\otimes\mathbb{R}^{C}$ of main-text Section~\ref{sec:methods} therefore
 carries the real block-diagonal action
 \begin{equation}
-    D(Q)=\bigoplus_{l=0}^{L}D^l(Q),
-    \label{eq:sm-direct-sum}
-\end{equation}
-acting independently on each degree-$l$ block and trivially on the channel
-factor $\mathbb{R}^{C}$. Basis coefficients are packed by the linear index
+    D(Q)=\bigoplus_{l=0}^{L}D^l(Q), \label{eq:sm-direct-sum} \end{equation} acting independently on each degree-$l$ block and trivially on the channel factor $\mathbb{R}^{C}$.
+Basis coefficients are packed by the linear index
 \begin{equation}
     \iota(l,m)=l^2+l+m,\qquad
     m=-l,\ldots,l,\quad l=0,\ldots,L,
@@ -47,11 +33,8 @@ factor $\mathbb{R}^{C}$. Basis coefficients are packed by the linear index
 used throughout this Supplement and in main-text Eq.~\eqref{eq:dpa4-gie};
 under this packing, the matrix $D(Q)$ is block-diagonal with the
 $(2l+1)\times(2l+1)$ block $D^l(Q)$ occupying rows and columns
-$\iota(l,-l),\ldots,\iota(l,+l)$. A map
-$f:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}\otimes\mathbb{R}^{C'}$ is
-\emph{SO(3)-equivariant} if $f\circ D(Q)=D(Q)\circ f$ for every
-$Q\in\mathrm{SO}(3)$, and \emph{SO(3)-invariant} if it lands in the $l=0$
-block, on which $D^0\equiv 1$.
+$\iota(l,-l),\ldots,\iota(l,+l)$.
+A map $f:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}\otimes\mathbb{R}^{C'}$ is \emph{SO(3)-equivariant} if $f\circ D(Q)=D(Q)\circ f$ for every $Q\in\mathrm{SO}(3)$, and \emph{SO(3)-invariant} if it lands in the $l=0$ block, on which $D^0\equiv 1$.
 
 \subsection{Edge-local frame and SO(2) decomposition}
 \label{sec:sm-local-frame}
@@ -62,14 +45,13 @@ For each directed edge $(i,j)$, DPA4 chooses a rotation $R_{ij}$ satisfying
     R_{ij}\widehat{\mathbf{r}}_{ij}=\mathbf{e}_z=(0,0,1)^{\top}.
     \label{eq:sm-local-frame-goal}
 \end{equation}
-This converts an SO(3) problem into an SO(2) problem in the edge-local frame:
-after the bond direction is aligned with $\mathbf{e}_z$, the residual symmetry
-is the subgroup of rotations about $\mathbf{e}_z$. The in-plane basis is a
-gauge choice. The equivariant message does not depend on this choice because the
-local operator commutes with the residual SO(2) action.
+This converts an SO(3) problem into an SO(2) problem in the edge-local frame: after the bond direction is aligned with $\mathbf{e}_z$, the residual symmetry is the subgroup of rotations about $\mathbf{e}_z$.
+The in-plane basis is a gauge choice.
+The equivariant message does not depend on this choice because the local operator commutes with the residual SO(2) action.
 
 \paragraph{Two quaternion charts.}
-Let $\widehat{\mathbf{r}}=(x,y,z)\in \Sph$. DPA4 uses two smooth unit-quaternion
+Let $\widehat{\mathbf{r}}=(x,y,z)\in \Sph$.
+DPA4 uses two smooth unit-quaternion
 charts,
 \begin{equation}
     \mathbf{q}^{+}(\widehat{\mathbf{r}})
@@ -81,8 +63,8 @@ charts,
     \frac{(-x,\;0,\;1-z,\;y)}{\sqrt{2(1-z)}}.
     \label{eq:sm-quaternion-charts}
 \end{equation}
-The first chart is regular away from the south pole and the second is regular
-away from the north pole. In the overlap, the sign of $\mathbf{q}^{-}$ is chosen
+The first chart is regular away from the south pole and the second is regular away from the north pole.
+In the overlap, the sign of $\mathbf{q}^{-}$ is chosen
 so that $\langle\mathbf{q}^{+},\mathbf{q}^{-}\rangle\ge 0$, and the blended
 quaternion is
 \begin{equation}
@@ -96,10 +78,8 @@ quaternion is
     \lambda=\frac{1+z}{2}.
     \label{eq:sm-quaternion-blend}
 \end{equation}
-The denominator is bounded away from zero after shortest-arc sign alignment in
-the chosen chart overlap, so the resulting gauge is smooth on the chart used by
-the implementation. The Wigner-D matrix in the edge-local gauge is denoted
-$D_{ij}=D(R(\mathbf{q}_{ij}))$.
+The denominator is bounded away from zero after shortest-arc sign alignment in the chosen chart overlap, so the resulting gauge is smooth on the chart used by the implementation.
+The Wigner-D matrix in the edge-local gauge is denoted $D_{ij}=D(R(\mathbf{q}_{ij}))$.
 The underlying unit-quaternion rotation matrix is
 \begin{equation}
     R(\mathbf{q})=
@@ -110,33 +90,18 @@ The underlying unit-quaternion rotation matrix is
     \end{pmatrix}.
     \label{eq:sm-quaternion-rotation}
 \end{equation}
-During training, an additional random roll about the local $z$ axis may be
-composed with $R_{ij}$. This roll is a gauge augmentation: it changes the
-in-plane basis of the local gauge but leaves the bond direction fixed. Because
-the SO(2) stack is gauge equivariant, the lifted global message is unchanged by
-this roll apart from the prescribed SO(3) transformation law.
+During training, an additional random roll about the local $z$ axis may be composed with $R_{ij}$.
+This roll is a gauge augmentation: it changes the in-plane basis of the local gauge but leaves the bond direction fixed.
+Because the SO(2) stack is gauge equivariant, the lifted global message is unchanged by this roll apart from the prescribed SO(3) transformation law.
 
 \paragraph{SO(2) decomposition.}
-Let $\{\mathbf{e}^{(l)}_m\}_{m=-l}^{l}$ denote the real-spherical-harmonic
-basis of $V_l$. Under restriction to the SO(2) subgroup of rotations about
+Let $\{\mathbf{e}^{(l)}_m\}_{m=-l}^{l}$ denote the real-spherical-harmonic basis of $V_l$.
+Under restriction to the SO(2) subgroup of rotations about
 the local $z$ axis, $V_l$ decomposes as
 \begin{equation}
-    V_l|_{\mathrm{SO}(2)}
-    =
-    \mathrm{span}_{\mathbb{R}}\{\mathbf{e}^{(l)}_0\}
-    \;\oplus\;
-    \bigoplus_{m=1}^{l}
-    \mathrm{span}_{\mathbb{R}}\{\mathbf{e}^{(l)}_{-m},\,\mathbf{e}^{(l)}_{+m}\},
-    \label{eq:sm-so2-decomposition}
-\end{equation}
-where $\mathrm{span}_{\mathbb{R}}\{\cdot\}$ denotes the real linear span of
-the indicated basis vectors. The $m=0$ summand is a one-dimensional trivial
-SO(2) sub-representation, and each $m=1,\ldots,l$ summand is a
-two-dimensional real SO(2) sub-representation on which a $z$-axis rotation
-by angle $\theta$ acts as planar rotation by angle $m\theta$, equivalent
-to multiplication by the complex phase $e^{im\theta}$. This is the
-algebraic reason DPA4 can use SO(2)-equivariant local operators instead of
-Clebsch--Gordan tensor products.
+    V_l|_{\mathrm{SO}(2)} = \mathrm{span}_{\mathbb{R}}\{\mathbf{e}^{(l)}_0\} \;\oplus\; \bigoplus_{m=1}^{l} \mathrm{span}_{\mathbb{R}}\{\mathbf{e}^{(l)}_{-m},\,\mathbf{e}^{(l)}_{+m}\}, \label{eq:sm-so2-decomposition} \end{equation} where $\mathrm{span}_{\mathbb{R}}\{\cdot\}$ denotes the real linear span of the indicated basis vectors.
+The $m=0$ summand is a one-dimensional trivial SO(2) sub-representation, and each $m=1,\ldots,l$ summand is a two-dimensional real SO(2) sub-representation on which a $z$-axis rotation by angle $\theta$ acts as planar rotation by angle $m\theta$, equivalent to multiplication by the complex phase $e^{im\theta}$.
+This is the algebraic reason DPA4 can use SO(2)-equivariant local operators instead of Clebsch--Gordan tensor products.
 
 \subsection{Closed-form cutoff coefficients}
 \label{sec:sm-radial}
@@ -172,14 +137,14 @@ Inside the edge-local frame, DPA4 retains only
     D_M=|\mathcal{I}_M|.
     \label{eq:sm-trunc-index}
 \end{equation}
-Let $P_M:\mathbb{R}^{(L+1)^2}\to\mathbb{R}^{D_M}$ be the orthogonal projection
-onto this reduced layout. The truncated edge rotation is
+Let $P_M:\mathbb{R}^{(L+1)^2}\to\mathbb{R}^{D_M}$ be the orthogonal projection onto this reduced layout.
+The truncated edge rotation is
 \begin{equation}
     D_{ij}^{\le M}=P_M D_{ij}.
     \label{eq:sm-truncated-rotation}
 \end{equation}
-Because $P_M^{\top}P_M$ is not the identity when $M<L$, the round trip loses
-degree-block norm. DPA4 applies the diagonal lift compensation
+Because $P_M^{\top}P_M$ is not the identity when $M<L$, the round trip loses degree-block norm.
+DPA4 applies the diagonal lift compensation
 \begin{equation}
     (\Xi_M)_{\iota(l,m),\iota(l,m)}
     =
@@ -188,15 +153,14 @@ degree-block norm. DPA4 applies the diagonal lift compensation
     \sqrt{\frac{2l+1}{2\min(l,M)+1}}.
     \label{eq:sm-rescale}
 \end{equation}
-Thus
-$\Xi_M= \operatorname{diag}(\kappa_0 I_1,\kappa_1 I_3,\ldots,\kappa_L I_{2L+1})$.
+Thus $\Xi_M= \operatorname{diag}(\kappa_0 I_1,\kappa_1 I_3,\ldots,\kappa_L I_{2L+1})$.
 
 \subsection{Equivariant operator algebra}
 \label{sec:sm-operators}
 
 \paragraph{Classification by Schur's lemma.}
-The linear operators used by DPA4 follow from the classification of
-equivariant maps on the relevant representation spaces. In the global
+The linear operators used by DPA4 follow from the classification of equivariant maps on the relevant representation spaces.
+In the global
 SO(3) frame, Schur's lemma forbids mixing distinct degrees:
 \begin{equation}
     \mathrm{Hom}_{\mathrm{SO}(3)}
@@ -216,8 +180,7 @@ and each $|m|>0$ pair is complex type, giving
     \bigoplus_{m=1}^{M}\bigoplus_{l,l'\ge m}\mathbb{C}^{C\times C'}.
     \label{eq:sm-schur-so2}
 \end{equation}
-Equation~\eqref{eq:sm-schur-so2} is the formal reason the local-frame
-operator may mix degrees $l,l'$ while preserving each $|m|$ stratum.
+Equation~\eqref{eq:sm-schur-so2} is the formal reason the local-frame operator may mix degrees $l,l'$ while preserving each $|m|$ stratum.
 
 \paragraph{Global SO(3) linear maps.}
 By Eq.~\eqref{eq:sm-schur-so3}, an SO(3)-equivariant \emph{degree-wise} map
@@ -225,22 +188,14 @@ has the explicit form
 \begin{equation}
     (L^{\mathrm{deg}}_{\Theta}\mathbf{h})_{\iota(l,m),c'}
     =
-    \sum_{c=1}^{C}W^{(l)}_{c,c'}\mathbf{h}_{\iota(l,m),c},
-    \label{eq:sm-degree-linear}
-\end{equation}
-with one learnable channel matrix $W^{(l)}\in\mathbb{R}^{C\times C'}$ per
-degree $l$. Here ``degree-wise'' means \emph{per-$l$ but identical across
-all $m\in\{-l,\ldots,l\}$ within a degree}: the same $W^{(l)}$ is applied
-to every $m$-slice of the degree-$l$ block, with different matrices allowed
-for different $l$. All ``degree-wise channel-mixing maps'' in main-text
-Section~\ref{sec:methods} (including $L^{\mathrm{pre}}_{\mathrm{deg}}$,
-$L^{\mathrm{post}}_{\mathrm{deg}}$, $L^{\mathrm{rad}}_{\mathrm{lift}}$,
-$L^{\mathrm{ch}}_{\mathrm{in}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}$) are
-instances of this form.
+    \sum_{c=1}^{C}
+    W^{(l)}_{c,c'}\mathbf{h}_{\iota(l,m),c}, \label{eq:sm-degree-linear} \end{equation} with one learnable channel matrix $W^{(l)}\in\mathbb{R}^{C\times C'}$ per degree $l$.
+Here ``degree-wise'' means \emph{per-$l$ but identical across all $m\in\{-l,\ldots,l\}$ within a degree}: the same $W^{(l)}$ is applied to every $m$-slice of the degree-$l$ block, with different matrices allowed for different $l$.
+All ``degree-wise channel-mixing maps'' in main-text Section~\ref{sec:methods} (including $L^{\mathrm{pre}}_{\mathrm{deg}}$, $L^{\mathrm{post}}_{\mathrm{deg}}$, $L^{\mathrm{rad}}_{\mathrm{lift}}$, $L^{\mathrm{ch}}_{\mathrm{in}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}$) are instances of this form.
 
 \paragraph{Edge-local SO(2) linear maps.}
-In the edge-local frame, the $m=0$ lines are trivial SO(2) representations,
-whereas each $|m|>0$ pair is complex type. The most general SO(2)-equivariant
+In the edge-local frame, the $m=0$ lines are trivial SO(2) representations, whereas each $|m|>0$ pair is complex type.
+The most general SO(2)-equivariant
 linear map on the reduced layout is therefore
 \begin{align}
     (L_{\Theta}^{\mathrm{SO2}}\mathbf{x})_{(l,0),c'}
@@ -299,15 +254,14 @@ $G^{(l)}$, define
     (\Gamma_{\psi,G}\mathbf{h})_{\iota(l,m),c}
     =
     \begin{cases}
-        \psi(\mathbf{h}_{\iota(0,0),c}),   & l=0,    \\[2pt]
+        \psi(\mathbf{h}_{\iota(0,0),c}),                  & l=0,    \\[2pt]
         \mathbf{h}_{\iota(l,m),c}
-        \sigma\!\left(\sum_{c'}G^{(l)}_{c',c}
-        \mathbf{h}_{\iota(0,0),c'}\right), & l\ge 1.
+        \sigma\!\left(\sum_{c'}
+        G^{(l)}_{c',c} \mathbf{h}_{\iota(0,0),c'}\right), & l\ge 1.
     \end{cases}
     \label{eq:sm-gated}
 \end{equation}
-The gate is a scalar function of the invariant $l=0$ slice, so the operation is
-SO(3)-equivariant.
+The gate is a scalar function of the invariant $l=0$ slice, so the operation is SO(3)-equivariant.
 
 \paragraph{Scalar-keyed mixtures.}
 If $\mathbf{x}^{(1)},\ldots,\mathbf{x}^{(S)}$ are equivariant tensors of the
@@ -326,22 +280,18 @@ is equivariant, because the weights are invariant scalars.
 \subsection{Bias consistency at the smooth cutoff}
 \label{sec:sm-so2conv}
 
-If the first SO(2) linear map of the SO(2) multi-focus convolution
-(main-text Sec.~\ref{sec:so2}; Eqs.~\eqref{eq:sm-so2-m0}, \eqref{eq:sm-so2-mn})
-includes an additive $l=0$ bias, that bias must vanish with the same smooth
-envelope as the rest of the edge message. Otherwise an edge whose radial
-contribution has gone to zero could still carry a constant scalar offset.
-DPA4 therefore treats the first-layer scalar bias as part of the
-edge-conditioned response. If $b_{0,f,c}$ is the scalar bias for focus $f$
+If the first SO(2) linear map of the SO(2) multi-focus convolution (main-text Sec.~\ref{sec:so2}; Eqs.~\eqref{eq:sm-so2-m0}, \eqref{eq:sm-so2-mn}) includes an additive $l=0$ bias, that bias must vanish with the same smooth envelope as the rest of the edge message.
+Otherwise an edge whose radial contribution has gone to zero could still carry a constant scalar offset.
+DPA4 therefore treats the first-layer scalar bias as part of the edge-conditioned response.
+If $b_{0,f,c}$ is the scalar bias for focus $f$
 and channel $c$, the net contribution to the local $(l,m)=(0,0)$ slot is
 adjusted to
 \begin{equation}
     b_{0,f,c}\,\widetilde{\rho}_{ij,0,c}\,s_5(r_{ij}),
     \label{eq:sm-bias-consistency}
 \end{equation}
-which is $C^3$ and vanishes at the cutoff. This correction is only needed
-at the first SO(2) layer because subsequent layers operate on already
-modulated local features.
+which is $C^3$ and vanishes at the cutoff.
+This correction is only needed at the first SO(2) layer because subsequent layers operate on already modulated local features.
 
 \subsection{Numerical equivariance of truncated local layouts}
 \label{sec:sm-truncated-equivariance}
@@ -352,13 +302,10 @@ modulated local features.
     \setlength{\tabcolsep}{3pt}
     \caption{
         $m$-truncated \texorpdfstring{$\Sph$}{S2} activation equivariance under random local
-        $z$-axis rotations. These cases test the reduced local layout used in
-        SO(2) convolution. Product-grid rules are
-        $(R_{\phi},R_{\theta})$ with the total number of grid points
-        $R_{\phi}R_{\theta}$ given alongside; Lebedev rules are reported by
-        their algebraic order of accuracy $p$ and the corresponding number
-        of points. Errors are maximum absolute deviations between the two
-        equivariance paths.
+        $z$-axis rotations.
+        These cases test the reduced local layout used in SO(2) convolution.
+        Product-grid rules are $(R_{\phi},R_{\theta})$ with the total number of grid points $R_{\phi}R_{\theta}$ given alongside; Lebedev rules are reported by their algebraic order of accuracy $p$ and the corresponding number of points.
+        Errors are maximum absolute deviations between the two equivariance paths.
     }
     \label{tab:sm_s2_truncated_equivariance}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccccc@{}}
@@ -394,10 +341,10 @@ modulated local features.
 \subsection{Training objective}
 \label{sec:sm-training-objective}
 
-DPA4 is trained as a conservative interatomic potential. The neural network
-predicts a scalar total energy, and forces are obtained by differentiating this
-energy with respect to atomic positions. The reported training runs use MAE
-losses with vector-norm force residuals. For a mini-batch of configurations
+DPA4 is trained as a conservative interatomic potential.
+The neural network predicts a scalar total energy, and forces are obtained by differentiating this energy with respect to atomic positions.
+The reported training runs use MAE losses with vector-norm force residuals.
+For a mini-batch of configurations
 $b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the objective is
 \begin{equation}
     \mathcal{L}
@@ -407,34 +354,21 @@ $b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the objective is
     \frac{|E_{\Theta,b}-E_b|}{N_b}
     +
     \lambda_F
-    \frac{1}{\sum_{b=1}^{B} N_b}
-    \sum_{b=1}^{B}\sum_{i=1}^{N_b}
-    \left\|
-    \mathbf{F}_{\Theta,bi}-\mathbf{F}_{bi}
-    \right\|_2
-    +
-    \lambda_{\Pi}
-    \frac{1}{B}\sum_{b=1}^{B}
-    \frac{\left\|\Pi_{\Theta,b}-\Pi_b\right\|_1}{9N_b}.
+    \frac{1}{\sum_{b=1}^{B}
+        N_b} \sum_{b=1}^{B}\sum_{i=1}^{N_b} \left\| \mathbf{F}_{\Theta,bi}-\mathbf{F}_{bi} \right\|_2 + \lambda_{\Pi} \frac{1}{B}\sum_{b=1}^{B} \frac{\left\|\Pi_{\Theta,b}-\Pi_b\right\|_1}{9N_b}.
     \label{eq:sm-loss}
 \end{equation}
-Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Pi_{\Theta,b}$ denote DPA4
-predictions, while $E_b$, $\mathbf{F}_{bi}$ and $\Pi_b$ denote reference DFT
-labels. The force residual is treated as a three-dimensional vector for each
-atom: the Euclidean norm is taken before averaging over atoms. Energy and
-virial residuals use the MAE form with per-atom normalisation.
-The benchmark-specific weights, batch sizes and training lengths are listed in
-Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
+Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Pi_{\Theta,b}$ denote DPA4 predictions, while $E_b$, $\mathbf{F}_{bi}$ and $\Pi_b$ denote reference DFT labels.
+The force residual is treated as a three-dimensional vector for each atom: the Euclidean norm is taken before averaging over atoms.
+Energy and virial residuals use the MAE form with per-atom normalisation.
+The benchmark-specific weights, batch sizes and training lengths are listed in Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
 \subsection{Warmup--stable--decay learning-rate schedule}
 \label{sec:sm-wsd-schedule}
 
-For long training runs, DPA4 uses a warmup--stable--decay schedule in which the
-learning rate first increases linearly, remains constant for the main training
-phase and is annealed only near the end of the run~\cite{wen2024wsd}. Let $T$
-be the total number of optimisation steps, $T_{\mathrm{w}}$ the warmup length,
-$T_{\mathrm{d}}$ the decay length and
-$T_{\mathrm{s}}=T-T_{\mathrm{w}}-T_{\mathrm{d}}$ the stable length. The
+For long training runs, DPA4 uses a warmup--stable--decay schedule in which the learning rate first increases linearly, remains constant for the main training phase and is annealed only near the end of the run~\cite{wen2024wsd}.
+Let $T$ be the total number of optimisation steps, $T_{\mathrm{w}}$ the warmup length, $T_{\mathrm{d}}$ the decay length and $T_{\mathrm{s}}=T-T_{\mathrm{w}}-T_{\mathrm{d}}$ the stable length.
+The
 schedule used in the reported DPA4 training runs is
 \begin{equation}
     \alpha(t)=
@@ -474,87 +408,52 @@ with cosine annealing in the decay phase,
     \left(1+\cos \pi\tau\right).
     \label{eq:sm-wsd-cosine}
 \end{equation}
-Thus the stable phase carries most optimisation steps, whereas the final
-cosine decay suppresses high-learning-rate oscillations before checkpoint
-selection.
+Thus the stable phase carries most optimisation steps, whereas the final cosine decay suppresses high-learning-rate oscillations before checkpoint selection.
 
 \subsection{HybridMuon optimiser}
 \label{sec:sm-hybrid-muon}
 
-DPA4 is optimised with HybridMuon, a matrix-aware hybrid optimiser adapted from
-Muon~\cite{jordan2024muon} and scalable-Muon training
-studies~\cite{liu2025muon}. The design separates two classes of trainable
-parameters. Matrix-valued hidden transformations are routed to Muon, whereas
-biases, normalisation scales, one-dimensional parameters and explicitly marked
-auxiliary parameters are routed to Adam or decoupled-weight-decay Adam. This
-static routing is built on the first optimiser step and remains fixed during
-training, so the update rule for each parameter is independent of the current
-gradient value.
+DPA4 is optimised with HybridMuon, a matrix-aware hybrid optimiser adapted from Muon~\cite{jordan2024muon} and scalable-Muon training studies~\cite{liu2025muon}.
+The design separates two classes of trainable parameters.
+Matrix-valued hidden transformations are routed to Muon, whereas biases, normalisation scales, one-dimensional parameters and explicitly marked auxiliary parameters are routed to Adam or decoupled-weight-decay Adam.
+This static routing is built on the first optimiser step and remains fixed during training, so the update rule for each parameter is independent of the current gradient value.
 
 \paragraph{Matrix views and slice mode.}
-Let a trainable tensor have an effective shape obtained by removing singleton
-dimensions. HybridMuon interprets a rank-two effective shape as one matrix. For
-higher-rank equivariant tensors, DPA4 uses slice mode: the leading dimensions
-index independent blocks, and Muon is applied separately to every trailing
-$(m,n)$ matrix. Thus, for an effective shape $(b_1,\ldots,b_q,m,n)$, the
+Let a trainable tensor have an effective shape obtained by removing singleton dimensions.
+HybridMuon interprets a rank-two effective shape as one matrix.
+For higher-rank equivariant tensors, DPA4 uses slice mode: the leading dimensions index independent blocks, and Muon is applied separately to every trailing $(m,n)$ matrix.
+Thus, for an effective shape $(b_1,\ldots,b_q,m,n)$, the
 optimiser constructs
 \begin{equation}
-    B=\prod_{a=1}^{q}b_a
-    \quad\text{independent matrix blocks}\quad
-    G_t^{(b)}\in\mathbb{R}^{m\times n},
-    \qquad b=1,\ldots,B.
+    B=\prod_{a=1}^{q}b_a \quad\text{independent matrix blocks}\quad G_t^{(b)}\in\mathbb{R}^{m\times n}, \qquad b=1,\ldots,B.
     \label{eq:sm-muon-slice-view}
 \end{equation}
-This choice is important for SO(2)-structured equivariant weights: degree and
-order-indexed blocks are updated independently, rather than being flattened
-into one large matrix that would mix unrelated representation strata. In the
-degree-wise SO(3) channel maps used by the SO(2) pre- and post-projections and
-by the equivariant FFN, the weight tensor has shape
-$(L+1,C_{\mathrm{in}},F C_{\mathrm{out}})$; slice mode therefore applies Muon
-separately to the $(C_{\mathrm{in}},F C_{\mathrm{out}})$ matrix of each
-degree $l$. Local SO(2) linear maps keep separate matrix parameters for the
-$m=0$ block and the constrained $|m|>0$ blocks, so the optimiser acts on these
-structured matrix blocks without collapsing distinct equivariant subspaces.
+This choice is important for SO(2)-structured equivariant weights: degree and order-indexed blocks are updated independently, rather than being flattened into one large matrix that would mix unrelated representation strata.
+In the degree-wise SO(3) channel maps used by the SO(2) pre- and post-projections and by the equivariant FFN, the weight tensor has shape $(L+1,C_{\mathrm{in}},F C_{\mathrm{out}})$; slice mode therefore applies Muon separately to the $(C_{\mathrm{in}},F C_{\mathrm{out}})$ matrix of each degree $l$.
+Local SO(2) linear maps keep separate matrix parameters for the $m=0$ block and the constrained $|m|>0$ blocks, so the optimiser acts on these structured matrix blocks without collapsing distinct equivariant subspaces.
 
 \paragraph{Muon update.}
 For each Muon-routed block, the optimiser maintains a momentum buffer and forms
 a Nesterov-style update
 \begin{align}
-    M_t^{(b)}
-     & =
-    \beta M_{t-1}^{(b)}+(1-\beta)G_t^{(b)}, \\
-    U_t^{(b)}
-     & =
-    \beta M_t^{(b)}+(1-\beta)G_t^{(b)}.
+    M_t^{(b)} & = \beta M_{t-1}^{(b)}+(1-\beta)G_t^{(b)}, \\ U_t^{(b)} & = \beta M_t^{(b)}+(1-\beta)G_t^{(b)}.
     \label{eq:sm-muon-nesterov}
 \end{align}
-The matrix $U_t^{(b)}$ is then orthogonalised by a Newton--Schulz polar
-iteration. For the standard square or batched path, the iteration starts from
+The matrix $U_t^{(b)}$ is then orthogonalised by a Newton--Schulz polar iteration.
+For the standard square or batched path, the iteration starts from
 $X_0=U_t^{(b)}/\|U_t^{(b)}\|_{\mathrm{F}}$ and applies
 \begin{equation}
-    X_{k+1}
-    =
-    a_k X_k
-    +
-    \left(b_k A_k+c_k A_k^2\right)X_k,
-    \qquad
-    A_k=X_kX_k^{\mathsf{T}}.
+    X_{k+1} = a_k X_k + \left(b_k A_k+c_k A_k^2\right)X_k, \qquad A_k=X_kX_k^{\mathsf{T}}.
     \label{eq:sm-newton-schulz}
 \end{equation}
-DPA4 uses a two-stage schedule: eight fast iterations with
-$(a,b,c)=(3.4445,-4.7750,2.0315)$ followed by two Newton polishing iterations
-with $(a,b,c)=(2,-1.5,0.5)$. The resulting polar factor is denoted
-$Q_t^{(b)}$.
+DPA4 uses a two-stage schedule: eight fast iterations with $(a,b,c)=(3.4445,-4.7750,2.0315)$ followed by two Newton polishing iterations with $(a,b,c)=(2,-1.5,0.5)$.
+The resulting polar factor is denoted $Q_t^{(b)}$.
 
 \paragraph{Rectangular Gram path.}
-For rectangular matrices, HybridMuon uses a compiled Gram Newton--Schulz path
-following the fast polar-decomposition formulation used for
-Muon~\cite{dao2026gramnewtonschulz}. The matrix is oriented so that $m\le n$,
-normalised in single precision and iterated in half precision using a fixed
-Polar-Express coefficient schedule. Since the iteration depends on
-$XX^{\mathsf{T}}\in\mathbb{R}^{m\times m}$, rectangular blocks with the same
-smaller dimension can be column-padded, concatenated and orthogonalised in a
-single grouped call. Padding only the larger dimension preserves the Frobenius
+For rectangular matrices, HybridMuon uses a compiled Gram Newton--Schulz path following the fast polar-decomposition formulation used for Muon~\cite{dao2026gramnewtonschulz}.
+The matrix is oriented so that $m\le n$, normalised in single precision and iterated in half precision using a fixed Polar-Express coefficient schedule.
+Since the iteration depends on $XX^{\mathsf{T}}\in\mathbb{R}^{m\times m}$, rectangular blocks with the same smaller dimension can be column-padded, concatenated and orthogonalised in a single grouped call.
+Padding only the larger dimension preserves the Frobenius
 norm and the Gram matrix,
 \begin{equation}
     [X\;0][X\;0]^{\mathsf{T}}=XX^{\mathsf{T}},
@@ -573,24 +472,17 @@ scaled as
     \qquad \gamma=0.18.
     \label{eq:sm-match-rms}
 \end{equation}
-This coefficient follows the update-RMS calibration used in scalable Muon
-training~\cite{liu2025muon}: it brings the per-element magnitude of the
-orthogonalised matrix update onto the same learning-rate scale as AdamW-like
-updates. Parameters routed to Adam use first and second moments in single
-precision, with bias correction and $\epsilon=10^{-20}$. Decoupled weight decay
-is applied to Muon-routed matrices and to decay-enabled Adam-routed tensors,
-but not to one-dimensional Adam-routed parameters.
+This coefficient follows the update-RMS calibration used in scalable Muon training~\cite{liu2025muon}: it brings the per-element magnitude of the orthogonalised matrix update onto the same learning-rate scale as AdamW-like updates.
+Parameters routed to Adam use first and second moments in single precision, with bias correction and $\epsilon=10^{-20}$.
+Decoupled weight decay is applied to Muon-routed matrices and to decay-enabled Adam-routed tensors, but not to one-dimensional Adam-routed parameters.
 
 \subsection{Magma-lite update damping}
 \label{sec:sm-magma-lite}
 
-Conservative force training produces gradients that include mixed
-coordinate--parameter derivatives and can exhibit large block-to-block
-variation. DPA4 therefore augments the Muon path with a deterministic
-Magma-lite damping rule, adapted from momentum-aligned gradient
-masking~\cite{joo2026magma}. For each Muon block, let $G_t^{(b)}$ be the
-current gradient and $M_t^{(b)}$ the momentum buffer after the update in
-Eq.~\eqref{eq:sm-muon-nesterov}. The block alignment is
+Conservative force training produces gradients that include mixed coordinate--parameter derivatives and can exhibit large block-to-block variation.
+DPA4 therefore augments the Muon path with a deterministic Magma-lite damping rule, adapted from momentum-aligned gradient masking~\cite{joo2026magma}.
+For each Muon block, let $G_t^{(b)}$ be the current gradient and $M_t^{(b)}$ the momentum buffer after the update in Eq.~\eqref{eq:sm-muon-nesterov}.
+The block alignment is
 \begin{equation}
     \chi_t^{(b)}
     =
@@ -638,18 +530,14 @@ and the final Muon update is rescaled by
     \qquad s_{\min}=0.1.
     \label{eq:sm-magma-lite}
 \end{equation}
-This rule differs from stochastic masking: all blocks remain active, and
-poorly aligned updates are continuously damped rather than randomly skipped.
-The nonzero lower bound prevents the optimiser from freezing a block entirely,
-which is important for MLIP training where force labels can make the alignment
-temporarily noisy without implying that the corresponding representation block
-should stop learning.
+This rule differs from stochastic masking: all blocks remain active, and poorly aligned updates are continuously damped rather than randomly skipped.
+The nonzero lower bound prevents the optimiser from freezing a block entirely, which is important for MLIP training where force labels can make the alignment temporarily noisy without implying that the corresponding representation block should stop learning.
 
 \subsection{Compiled conservative-force training}
 \label{sec:sm-compiled-training}
 
-The conservative energy path is compiled separately from direct-force or
-density-denoising modes. Force matching requires differentiating through
+The conservative energy path is compiled separately from direct-force or density-denoising modes.
+Force matching requires differentiating through
 \begin{equation}
     \mathbf{F}_{\Theta}
     =
@@ -660,65 +548,37 @@ density-denoising modes. Force matching requires differentiating through
     \frac{\partial^2E_{\Theta}}{\partial R\,\partial\Theta}.
     \label{eq:sm-double-backward}
 \end{equation}
-A standard compiled forward/backward stack captures the forward graph and its
-first reverse-mode derivative, but it does not directly expose a nested
-coordinate derivative inside the compiled region. DPA4 resolves this by first
-executing the energy-to-force derivative during symbolic tracing and then
-lowering the resulting tensor graph with PyTorch
-Inductor~\cite{ansel2024pytorch2}.
+A standard compiled forward/backward stack captures the forward graph and its first reverse-mode derivative, but it does not directly expose a nested coordinate derivative inside the compiled region.
+DPA4 resolves this by first executing the energy-to-force derivative during symbolic tracing and then lowering the resulting tensor graph with PyTorch Inductor~\cite{ansel2024pytorch2}.
 
 \paragraph{Tracing the conservative lower graph.}
-The compiled function wraps the lower energy computation as a tensor-only map:
-from extended coordinates, atom types, neighbour indices and optional
-conditioning tensors to energies, forces and virials. Before entering the
-traced function, the extended coordinates are rebound to a fresh leaf tensor.
-This restart removes any upstream graph carried by data loading or neighbour
-construction while preserving a well-defined coordinate endpoint for $\partial
-    E/\partial R$. During training, the force construction keeps the
-coordinate-derivative graph alive; the outer loss backward pass can therefore
-differentiate the force residual into the model parameters, realising the mixed
-derivative in Eq.~\eqref{eq:sm-double-backward}.
+The compiled function wraps the lower energy computation as a tensor-only map: from extended coordinates, atom types, neighbour indices and optional conditioning tensors to energies, forces and virials.
+Before entering the traced function, the extended coordinates are rebound to a fresh leaf tensor.
+This restart removes any upstream graph carried by data loading or neighbour construction while preserving a well-defined coordinate endpoint for $\partial E/\partial R$.
+During training, the force construction keeps the coordinate-derivative graph alive; the outer loss backward pass can therefore differentiate the force residual into the model parameters, realising the mixed derivative in Eq.~\eqref{eq:sm-double-backward}.
 
 \paragraph{Symbolic tracing and higher-order differentiability.}
-The implementation traces the conservative lower graph with symbolic shapes and
-real tensor inputs. Real inputs are needed because compact edge construction
-contains data-dependent operations; after that control flow is resolved, the
-runtime dimensions are represented symbolically. The trace uses a small
-five-frame representative batch chosen to avoid known symbolic-dimension
-collisions with singleton axes, charge--spin width, Cartesian coordinates and
-virial components. The SiLU backward operation is decomposed into elementary
-pointwise operations before tracing, so the compiler receives an explicit
-first-derivative graph when the optimiser later requests a second derivative.
+The implementation traces the conservative lower graph with symbolic shapes and real tensor inputs.
+Real inputs are needed because compact edge construction contains data-dependent operations; after that control flow is resolved, the runtime dimensions are represented symbolically.
+The trace uses a small five-frame representative batch chosen to avoid known symbolic-dimension collisions with singleton axes, charge--spin width, Cartesian coordinates and virial components.
+The SiLU backward operation is decomposed into elementary pointwise operations before tracing, so the compiler receives an explicit first-derivative graph when the optimiser later requests a second derivative.
 
 \paragraph{Preserving the force-loss gradient.}
-When the coordinate derivative is traced in training mode, autograd inserts
-detach nodes around saved forward activations. In the traced FX graph these
-nodes would become ordinary tensor operations and would sever the path from the
-force loss back to the parameters. DPA4 removes only the detach nodes matching
-the saved-tensor topology and keeps user-intended detach operations unchanged.
-The edited graph is then rebuilt into a fresh FX graph before compilation, so
-all compiler passes see a consistent node topology.
+When the coordinate derivative is traced in training mode, autograd inserts detach nodes around saved forward activations.
+In the traced FX graph these nodes would become ordinary tensor operations and would sever the path from the force loss back to the parameters.
+DPA4 removes only the detach nodes matching the saved-tensor topology and keeps user-intended detach operations unchanged.
+The edited graph is then rebuilt into a fresh FX graph before compilation, so all compiler passes see a consistent node topology.
 
 \paragraph{Dynamic edge representation and cache structure.}
-The padded DeePMD neighbour list is converted inside the graph into a compact
-edge list. Edge vectors are formed by differentiable indexed selection from the
-extended coordinate tensor, and a single masked sentinel edge is appended to
-every batch. The sentinel edge guarantees a nonempty edge tensor under symbolic
-shapes while contributing exactly zero to downstream reductions. Compiled
-callables are cached by graph topology, including training versus evaluation,
-the presence of atomic virial outputs and coordinate-correction inputs. This
-multi-slot cache avoids recompilation when training is periodically interrupted
-by validation, while keeping distinct output signatures in separate compiled
-graphs.
+The padded DeePMD neighbour list is converted inside the graph into a compact edge list.
+Edge vectors are formed by differentiable indexed selection from the extended coordinate tensor, and a single masked sentinel edge is appended to every batch.
+The sentinel edge guarantees a nonempty edge tensor under symbolic shapes while contributing exactly zero to downstream reductions.
+Compiled callables are cached by graph topology, including training versus evaluation, the presence of atomic virial outputs and coordinate-correction inputs.
+This multi-slot cache avoids recompilation when training is periodically interrupted by validation, while keeping distinct output signatures in separate compiled graphs.
 
 \paragraph{Inductor configuration.}
-The traced graph is lowered with dynamic-shape compilation. The compiled path
-uses deterministic compilation settings rather than autotuning, enables shape
-padding for fluctuating symbolic dimensions and disables compiler features that
-interfere with higher-order autograd metadata or produce unstable large fused
-reduction kernels for this higher-order graph. Training and evaluation use
-separate fusion limits because the training graph contains the
-second-derivative branch whereas the evaluation graph does not. This systems
-design preserves the scalar energy-to-force relation while allowing the
-conservative training path to remain inside compiled GPU code.
+The traced graph is lowered with dynamic-shape compilation.
+The compiled path uses deterministic compilation settings rather than autotuning, enables shape padding for fluctuating symbolic dimensions and disables compiler features that interfere with higher-order autograd metadata or produce unstable large fused reduction kernels for this higher-order graph.
+Training and evaluation use separate fusion limits because the training graph contains the second-derivative branch whereas the evaluation graph does not.
+This systems design preserves the scalar energy-to-force relation while allowing the conservative training path to remain inside compiled GPU code.
 

@@ -3,7 +3,6 @@
 Machine-learning interatomic potentials (MLIPs) are undergoing a paradigm shift, from case-specific MLIPs trained on dedicated density-functional-theory (DFT) data to solve narrow scientific problems, to large pretrained atomistic foundation models~\cite{yuan2026foundation}, also called large atomistic models (LAMs), that serve as universal DFT surrogates for molecular simulation, materials discovery and molecular design~\cite{merchant2023scaling}.
 The architectural lineage mirrors this shift: the Behler--Parrinello neural-network potential~\cite{behler2007generalized}, Gaussian approximation potentials~\cite{bartok2010gaussian}, SchNet~\cite{schutt2017schnet}, PhysNet~\cite{unke2019physnet} and Deep Potential~\cite{zhang2018deep,wang2018deepmd} characterise the case-specific era, while M3GNet~\cite{chen2022universal}, CHGNet~\cite{deng2023chgnet}, MACE~\cite{batatia2022mace,kovacs2023mace}, MatterSim~\cite{yang2024mattersim}, Orb~\cite{neumann2024orb,rhodes2025orbv3}, UMA~\cite{wood2025umafamilyuniversalmodels} and the DPA series~\cite{zhang2022dpa,zhang2024dpa2,zhang2025dpa3} characterise the LAM era.
 
-
 Although LAMs have demonstrated their potential to revolutionise materials and molecular design, training such models is prohibitively expensive: UMA-M~\cite{wood2025umafamilyuniversalmodels}, built on the eSEN architecture~\cite{fu2025esen}, required 129{,}024 H200 GPU-hours to train, posing a substantial barrier to both training and downstream use.
 This motivates the question whether comparable accuracy can be reached at substantially lower training cost.
 % The next challenge is no longer accuracy alone, but the joint optimisation of accuracy, efficiency and physical robustness.
@@ -34,8 +33,6 @@ Here we present DPA4, an SO(3)-equivariant interatomic-potential architecture bu
 Its architectural innovations, co-designed for efficiency and accuracy, are (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message non-linearity, (A3) envelope-gated attention for message aggregation, and (A4) a Lebedev-grid projection for SO(3)-equivariant non-linearity; A1--A3 raise generalisation accuracy at low computational cost relative to standard SO(2)-equivariant baselines, and A4 maintains SO(3)-equivariance of the non-linearity to machine precision.
 A shape-stable, compiler-friendly implementation of conservative-force training makes the energy-to-force path compatible with \texttt{torch.compile} and gives up to $\sim 3$ times wall-clock training speedup in controlled ablations.
 In addition, Native ZBL Zone Bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, stabilising molecular dynamics and structure relaxations at very close atomic distances where the potential-energy surface is sparsely sampled by training data.
-
-        
 
 On Matbench Discovery~\cite{riebesell2025matbench}, DPA4 variants establish a new accuracy--efficiency frontier (Fig.~\ref{fig:cps}): the largest variant reaches state-of-the-art performance, while smaller variants approach the accuracy of much larger baselines with substantially fewer parameters and lower training cost.
 On SPICE-MACE-OFF~\cite{kovacs2023mace}, molecular-benchmark errors are improved across all subsets (Table~\ref{table:spice}).
