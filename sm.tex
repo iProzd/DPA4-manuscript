@@ -976,16 +976,16 @@ groups of hyperparameters without adding category labels to the table body.
             $L_{\max}$ & 3 & 4 \\
             $M_{\max}$ & 1 & 1 \\
             \midrule
-            Radial coupling & Scalar scaling & Scalar scaling \\
-            Per-channel mod. & N/A & N/A \\
-            Rank & N/A & N/A \\
+            Radial coupling & Degree mixing & Degree mixing \\
+            Per-channel mod. & True & True \\
+            Rank & 1 & 1 \\
             Attn. heads & 1 & 1 \\
             Value proj. & False & False \\
             Output proj. & False & False \\
             Pre mixing & False & False \\
             S2 act. & FFN only & FFN only \\
-            Quadrature & e3nn & e3nn \\
-            Norm. placement & Pre \& Pre & Pre \& Pre \\
+            Quadrature & Lebedev & Lebedev \\
+            Norm. placement & Post \& Pre & Post \& Pre \\
             Activation func. & SiLU & SiLU \\
             GLU & True & True \\
             FFN hidden dim. & Auto & Auto \\
@@ -1015,7 +1015,7 @@ groups of hyperparameters without adding category labels to the table body.
             Cutoff (\AA) & 6 & 6 \\
             Max. neighbors & 100 & 100 \\
             \midrule
-            Params & 2.7M & 5.3M \\
+            Params & 2.7M & 5.4M \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
