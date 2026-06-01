@@ -61,7 +61,7 @@ gain: compiled FP32 training gives a 1.61$\times$ speedup, and enabling TF32 in
 this compiled path increases the speedup to 1.82$\times$. The largest practical
 improvement is obtained by combining compilation with bf16 AMP, which gives a
 3.1$\times$ speedup and reduces peak memory by 60\%. Thus, the compiled
-mixed-precision path makes conservative force training more than three times
+mixed-precision path makes conservative energy-gradient training more than three times
 faster while using only about 40\% of the baseline peak GPU memory.
 
 The corresponding accuracy changes are small compared with the efficiency gain.
@@ -128,7 +128,7 @@ and force MAE decreases by 4.7--6.8\% relative to the corresponding scatter-sum
 controls. The gain is obtained with a small computational cost, increasing
 training time by only 5--6\% and leaving test time within 1--5\% of the control
 models. This result supports the design choice of computing attention from
-rotationally invariant scalar channels: the model gains adaptive neighbour
+rotationally invariant scalar channels: the model gains adaptive neighbor
 selection while preserving equivariance of the higher-order SO(2) features.
 
 \begin{table}[ht]
@@ -242,8 +242,8 @@ energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to
 improvements, respectively. This improvement is obtained at low additional
 cost, with training and test times increasing only to 1.12$\times$ and
 1.10$\times$ the scalar-scaling baseline. A compact low-rank edge--node product
-therefore provides a favourable accuracy--throughput trade-off before the
-kernel is made substantially more expressive.
+therefore provides a favorable accuracy--throughput trade-off before the
+kernel is made more expressive.
 
 The remaining rank sweep shows that a more expressive edge--node product is not
 monotonically better. Increasing the rank from 1 to 4 gives the best energy and
@@ -350,7 +350,7 @@ hyperparameters. Both errors fall most rapidly over the first few interaction
 blocks and then with diminishing returns, while training and inference cost grow
 approximately linearly with depth (Table~\ref{tab:sm_layers}); the depth of each
 DPA4 variant is therefore chosen to balance accuracy against cost rather than to
-minimise the error alone. Within a block, additional SO(2) sublayers improve
+minimize the error alone. Within a block, additional SO(2) sublayers improve
 accuracy steadily at modest cost (Table~\ref{tab:sm_so2_stack}), whereas
 deepening the feed-forward sublayer produces only small and partly non-monotonic
 changes (Table~\ref{tab:sm_ffn_stack}). We accordingly retain a single
@@ -434,7 +434,7 @@ variant.
 \FloatBarrier
 \subsection{Attention-aggregation design variants}
 
-These sweeps vary the attention parameterisation around the default single-head
+These sweeps vary the attention parameterization around the default single-head
 design, toggling the value, output and pre-mixing projections and the number of
 heads for the 64-channel, 96-channel and 96-channel two-focus configurations.
 Across all three configurations, enabling attention with one or more heads
@@ -543,11 +543,11 @@ attention without further projections is therefore retained as the default.
 \FloatBarrier
 \subsection{Normalization placement}
 
-Normalisation placement is examined by applying RMSNorm as pre-normalisation,
-post-normalisation or both within the SO(2) and feed-forward sublayers. A single
-normalisation per sublayer is consistently more accurate than applying both,
-which adds layers without benefit. SO(2) post-normalisation combined with
-feed-forward pre-normalisation yields the lowest energy MAE and close to the
+Normalization placement is examined by applying RMSNorm as pre-normalization,
+post-normalization or both within the SO(2) and feed-forward sublayers. A single
+normalization per sublayer is consistently more accurate than applying both,
+which adds layers without benefit. SO(2) post-normalization combined with
+feed-forward pre-normalization yields the lowest energy MAE and close to the
 lowest force MAE (Table~\ref{tab:sm_stability}), and this placement is used
 throughout.
 
@@ -663,7 +663,7 @@ in the main text: in the LAMMPS path, the MACE baselines give the highest
 throughput, and their advantage is most evident for the largest repeated
 systems. This difference shows that end-to-end deployment speed depends not only
 on the neural-network architecture but also on the molecular-dynamics driver,
-neighbour-list path and model-interface implementation. DPA4-Neo and DPA4-Air
+neighbor-list path and model-interface implementation. DPA4-Neo and DPA4-Air
 nevertheless retain practical molecular-dynamics throughput despite their
 equivariant message passing.
 \fi
@@ -787,6 +787,7 @@ groups of hyperparameters without adding category labels to the table body.
 \begin{table}[p]
     \centering
     \scriptsize
+    \renewcommand{\arraystretch}{0.97}
     \setlength{\tabcolsep}{3pt}
     \caption{Ablation model configurations (2).}
     \label{tab:sm_supplementary_ablation_config}

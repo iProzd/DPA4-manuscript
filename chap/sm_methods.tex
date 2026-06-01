@@ -221,7 +221,7 @@ linear map on the reduced layout is therefore
     \label{eq:sm-so2-mn}
 \end{align}
 
-\paragraph{Equivariant RMS normalisation.}
+\paragraph{Equivariant RMS normalization.}
 For $\mathbf{h}\in V_{\le L}\otimes\mathbb{R}^{C}$, define
 \begin{equation}
     \sigma^2(\mathbf{h})
@@ -233,7 +233,7 @@ For $\mathbf{h}\in V_{\le L}\otimes\mathbb{R}^{C}$, define
     \bar{h}=C^{-1}\sum_c \mathbf{h}_{\iota(0,0),c}.
     \label{eq:sm-rms-stat}
 \end{equation}
-The normalisation
+The normalization
 \begin{equation}
     (N_{\gamma,\beta}\mathbf{h})_{\iota(l,m),c}
     =
@@ -360,14 +360,14 @@ $b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the objective is
 \end{equation}
 Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Pi_{\Theta,b}$ denote DPA4 predictions, while $E_b$, $\mathbf{F}_{bi}$ and $\Pi_b$ denote reference DFT labels.
 The force residual is treated as a three-dimensional vector for each atom: the Euclidean norm is taken before averaging over atoms.
-Energy and virial residuals use the MAE form with per-atom normalisation.
+Energy and virial residuals use the MAE form with per-atom normalization.
 The benchmark-specific weights, batch sizes and training lengths are listed in Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
 \subsection{Warmup--stable--decay learning-rate schedule}
 \label{sec:sm-wsd-schedule}
 
 For long training runs, DPA4 uses a warmup--stable--decay schedule in which the learning rate first increases linearly, remains constant for the main training phase and is annealed only near the end of the run~\cite{wen2024wsd}.
-Let $T$ be the total number of optimisation steps, $T_{\mathrm{w}}$ the warmup length, $T_{\mathrm{d}}$ the decay length and $T_{\mathrm{s}}=T-T_{\mathrm{w}}-T_{\mathrm{d}}$ the stable length.
+Let $T$ be the total number of optimization steps, $T_{\mathrm{w}}$ the warmup length, $T_{\mathrm{d}}$ the decay length and $T_{\mathrm{s}}=T-T_{\mathrm{w}}-T_{\mathrm{d}}$ the stable length.
 The
 schedule used in the reported DPA4 training runs is
 \begin{equation}
@@ -408,38 +408,38 @@ with cosine annealing in the decay phase,
     \left(1+\cos \pi\tau\right).
     \label{eq:sm-wsd-cosine}
 \end{equation}
-Thus the stable phase carries most optimisation steps, whereas the final cosine decay suppresses high-learning-rate oscillations before checkpoint selection.
+Thus the stable phase carries most optimization steps, whereas the final cosine decay suppresses high-learning-rate oscillations before checkpoint selection.
 
-\subsection{HybridMuon optimiser}
+\subsection{HybridMuon optimizer}
 \label{sec:sm-hybrid-muon}
 
-DPA4 is optimised with HybridMuon, a matrix-aware hybrid optimiser adapted from Muon~\cite{jordan2024muon} and scalable-Muon training studies~\cite{liu2025muon}.
+DPA4 is optimized with HybridMuon, a matrix-aware hybrid optimizer adapted from Muon~\cite{jordan2024muon} and scalable-Muon training studies~\cite{liu2025muon}.
 The design separates two classes of trainable parameters.
-Matrix-valued hidden transformations are routed to Muon, whereas biases, normalisation scales, one-dimensional parameters and explicitly marked auxiliary parameters are routed to Adam or decoupled-weight-decay Adam.
-This static routing is built on the first optimiser step and remains fixed during training, so the update rule for each parameter is independent of the current gradient value.
+Matrix-valued hidden transformations are routed to Muon, whereas biases, normalization scales, one-dimensional parameters and explicitly marked auxiliary parameters are routed to Adam or decoupled-weight-decay Adam.
+This static routing is built on the first optimizer step and remains fixed during training, so the update rule for each parameter is independent of the current gradient value.
 
 \paragraph{Matrix views and slice mode.}
 Let a trainable tensor have an effective shape obtained by removing singleton dimensions.
 HybridMuon interprets a rank-two effective shape as one matrix.
 For higher-rank equivariant tensors, DPA4 uses slice mode: the leading dimensions index independent blocks, and Muon is applied separately to every trailing $(m,n)$ matrix.
 Thus, for an effective shape $(b_1,\ldots,b_q,m,n)$, the
-optimiser constructs
+optimizer constructs
 \begin{equation}
     B=\prod_{a=1}^{q}b_a \quad\text{independent matrix blocks}\quad G_t^{(b)}\in\mathbb{R}^{m\times n}, \qquad b=1,\ldots,B.
     \label{eq:sm-muon-slice-view}
 \end{equation}
 This choice is important for SO(2)-structured equivariant weights: degree and order-indexed blocks are updated independently, rather than being flattened into one large matrix that would mix unrelated representation strata.
 In the degree-wise SO(3) channel maps used by the SO(2) pre- and post-projections and by the equivariant FFN, the weight tensor has shape $(L+1,C_{\mathrm{in}},F C_{\mathrm{out}})$; slice mode therefore applies Muon separately to the $(C_{\mathrm{in}},F C_{\mathrm{out}})$ matrix of each degree $l$.
-Local SO(2) linear maps keep separate matrix parameters for the $m=0$ block and the constrained $|m|>0$ blocks, so the optimiser acts on these structured matrix blocks without collapsing distinct equivariant subspaces.
+Local SO(2) linear maps keep separate matrix parameters for the $m=0$ block and the constrained $|m|>0$ blocks, so the optimizer acts on these structured matrix blocks without collapsing distinct equivariant subspaces.
 
 \paragraph{Muon update.}
-For each Muon-routed block, the optimiser maintains a momentum buffer and forms
+For each Muon-routed block, the optimizer maintains a momentum buffer and forms
 a Nesterov-style update
 \begin{align}
     M_t^{(b)} & = \beta M_{t-1}^{(b)}+(1-\beta)G_t^{(b)}, \\ U_t^{(b)} & = \beta M_t^{(b)}+(1-\beta)G_t^{(b)}.
     \label{eq:sm-muon-nesterov}
 \end{align}
-The matrix $U_t^{(b)}$ is then orthogonalised by a Newton--Schulz polar iteration.
+The matrix $U_t^{(b)}$ is then orthogonalized by a Newton--Schulz polar iteration.
 For the standard square or batched path, the iteration starts from
 $X_0=U_t^{(b)}/\|U_t^{(b)}\|_{\mathrm{F}}$ and applies
 \begin{equation}
@@ -451,8 +451,8 @@ The resulting polar factor is denoted $Q_t^{(b)}$.
 
 \paragraph{Rectangular Gram path.}
 For rectangular matrices, HybridMuon uses a compiled Gram Newton--Schulz path following the fast polar-decomposition formulation used for Muon~\cite{dao2026gramnewtonschulz}.
-The matrix is oriented so that $m\le n$, normalised in single precision and iterated in half precision using a fixed Polar-Express coefficient schedule.
-Since the iteration depends on $XX^{\mathsf{T}}\in\mathbb{R}^{m\times m}$, rectangular blocks with the same smaller dimension can be column-padded, concatenated and orthogonalised in a single grouped call.
+The matrix is oriented so that $m\le n$, normalized in single precision and iterated in half precision using a fixed Polar-Express coefficient schedule.
+Since the iteration depends on $XX^{\mathsf{T}}\in\mathbb{R}^{m\times m}$, rectangular blocks with the same smaller dimension can be column-padded, concatenated and orthogonalized in a single grouped call.
 Padding only the larger dimension preserves the Frobenius
 norm and the Gram matrix,
 \begin{equation}
@@ -472,14 +472,14 @@ scaled as
     \qquad \gamma=0.18.
     \label{eq:sm-match-rms}
 \end{equation}
-This coefficient follows the update-RMS calibration used in scalable Muon training~\cite{liu2025muon}: it brings the per-element magnitude of the orthogonalised matrix update onto the same learning-rate scale as AdamW-like updates.
+This coefficient follows the update-RMS calibration used in scalable Muon training~\cite{liu2025muon}: it brings the per-element magnitude of the orthogonalized matrix update onto the same learning-rate scale as AdamW-like updates.
 Parameters routed to Adam use first and second moments in single precision, with bias correction and $\epsilon=10^{-20}$.
 Decoupled weight decay is applied to Muon-routed matrices and to decay-enabled Adam-routed tensors, but not to one-dimensional Adam-routed parameters.
 
 \subsection{Magma-lite update damping}
 \label{sec:sm-magma-lite}
 
-Conservative force training produces gradients that include mixed coordinate--parameter derivatives and can exhibit large block-to-block variation.
+Conservative energy-gradient training produces gradients that include mixed coordinate--parameter derivatives and can exhibit large block-to-block variation.
 DPA4 therefore augments the Muon path with a deterministic Magma-lite damping rule, adapted from momentum-aligned gradient masking~\cite{joo2026magma}.
 For each Muon block, let $G_t^{(b)}$ be the current gradient and $M_t^{(b)}$ the momentum buffer after the update in Eq.~\eqref{eq:sm-muon-nesterov}.
 The block alignment is
@@ -531,12 +531,12 @@ and the final Muon update is rescaled by
     \label{eq:sm-magma-lite}
 \end{equation}
 This rule differs from stochastic masking: all blocks remain active, and poorly aligned updates are continuously damped rather than randomly skipped.
-The nonzero lower bound prevents the optimiser from freezing a block entirely, which is important for MLIP training where force labels can make the alignment temporarily noisy without implying that the corresponding representation block should stop learning.
+The nonzero lower bound prevents the optimizer from freezing a block entirely, which is important for MLIP training where force labels can make the alignment temporarily noisy without implying that the corresponding representation block should stop learning.
 
-\subsection{Compiled conservative-force training}
+\subsection{Compiled conservative energy-gradient training}
 \label{sec:sm-compiled-training}
 
-The conservative energy path is compiled separately from direct-force or density-denoising modes.
+The conservative energy-gradient path is compiled separately from direct-force or density-denoising modes.
 Force matching requires differentiating through
 \begin{equation}
     \mathbf{F}_{\Theta}
@@ -552,16 +552,16 @@ A standard compiled forward/backward stack captures the forward graph and its fi
 DPA4 resolves this by first executing the energy-to-force derivative during symbolic tracing and then lowering the resulting tensor graph with PyTorch Inductor~\cite{ansel2024pytorch2}.
 
 \paragraph{Tracing the conservative lower graph.}
-The compiled function wraps the lower energy computation as a tensor-only map: from extended coordinates, atom types, neighbour indices and optional conditioning tensors to energies, forces and virials.
+The compiled function wraps the lower energy computation as a tensor-only map: from extended coordinates, atom types, neighbor indices and optional conditioning tensors to energies, forces and virials.
 Before entering the traced function, the extended coordinates are rebound to a fresh leaf tensor.
-This restart removes any upstream graph carried by data loading or neighbour construction while preserving a well-defined coordinate endpoint for $\partial E/\partial R$.
-During training, the force construction keeps the coordinate-derivative graph alive; the outer loss backward pass can therefore differentiate the force residual into the model parameters, realising the mixed derivative in Eq.~\eqref{eq:sm-double-backward}.
+This restart removes any upstream graph carried by data loading or neighbor construction while preserving a well-defined coordinate endpoint for $\partial E/\partial R$.
+During training, the force construction keeps the coordinate-derivative graph alive; the outer loss backward pass can therefore differentiate the force residual into the model parameters, realizing the mixed derivative in Eq.~\eqref{eq:sm-double-backward}.
 
 \paragraph{Symbolic tracing and higher-order differentiability.}
 The implementation traces the conservative lower graph with symbolic shapes and real tensor inputs.
 Real inputs are needed because compact edge construction contains data-dependent operations; after that control flow is resolved, the runtime dimensions are represented symbolically.
 The trace uses a small five-frame representative batch chosen to avoid known symbolic-dimension collisions with singleton axes, charge--spin width, Cartesian coordinates and virial components.
-The SiLU backward operation is decomposed into elementary pointwise operations before tracing, so the compiler receives an explicit first-derivative graph when the optimiser later requests a second derivative.
+The SiLU backward operation is decomposed into elementary pointwise operations before tracing, so the compiler receives an explicit first-derivative graph when the optimizer later requests a second derivative.
 
 \paragraph{Preserving the force-loss gradient.}
 When the coordinate derivative is traced in training mode, autograd inserts detach nodes around saved forward activations.
@@ -570,7 +570,7 @@ DPA4 removes only the detach nodes matching the saved-tensor topology and keeps 
 The edited graph is then rebuilt into a fresh FX graph before compilation, so all compiler passes see a consistent node topology.
 
 \paragraph{Dynamic edge representation and cache structure.}
-The padded DeePMD neighbour list is converted inside the graph into a compact edge list.
+The padded DeePMD neighbor list is converted inside the graph into a compact edge list.
 Edge vectors are formed by differentiable indexed selection from the extended coordinate tensor, and a single masked sentinel edge is appended to every batch.
 The sentinel edge guarantees a nonempty edge tensor under symbolic shapes while contributing exactly zero to downstream reductions.
 Compiled callables are cached by graph topology, including training versus evaluation, the presence of atomic virial outputs and coordinate-correction inputs.

@@ -6,31 +6,31 @@
 
 DPA4 is a conservative SO(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
 Each interaction block has a residual structure with two skip connections: one over an EMFA SO(2) convolution followed by an equivariant RMSNorm, and one over a second equivariant RMSNorm followed by an equivariant feed-forward network (FFN).
-Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant product, the multi-focus design for message non-linearity, and the envelope-gated attention for message aggregation, operate inside the EMFA SO(2) convolution (Fig.~\ref{fig:arch}c).
-Architectural design A4, the Lebedev-grid projection for SO(3)-equivariant non-linearity, operates inside the equivariant FFN.
+Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant product, the multi-focus design for message nonlinearity, and the envelope-gated attention for message aggregation, operate inside the EMFA SO(2) convolution (Fig.~\ref{fig:arch}c).
+Architectural design A4, the Lebedev-grid projection for SO(3)-equivariant nonlinearity, operates inside the equivariant FFN.
 Forces and virials are obtained by automatic differentiation through the scalar energy.
 
 A shared edge cache (Fig.~\ref{fig:arch}b) precomputes and reuses per-edge quantities across interaction blocks: the distance $r_{ij}$ and unit direction $\widehat{\mathbf{r}}_{ij}$, a radial-basis expansion with cutoff envelope, and per-pair edge species features.
 It also caches the Wigner-D rotation $\mathbf{D}_{ij}$ and its inverse $\mathbf{D}_{ij}^{-1}$ for global / edge-local frame transport.
 The GIE stage (Fig.~\ref{fig:arch}b) then injects both chemistry and geometry into the initial node representation before the first interaction block.
 A scalar branch combines per-species type features with an SO(3)-invariant local-environment descriptor through Feature-wise Linear Modulation (FiLM)~\cite{perez2018film}, producing the initial $l=0$ slice.
-In parallel, an equivariant branch projects each neighbour direction onto real spherical harmonics and weights the projection by a radial-species profile, producing the initial $l\geq 1$ slices.
+In parallel, an equivariant branch projects each neighbor direction onto real spherical harmonics and weights the projection by a radial-species profile, producing the initial $l\geq 1$ slices.
 This gives the model chemical and geometric context from the outset, rather than forcing all local-environment information to be discovered through iterated message passing.
 The construction details are given in Section~\ref{sec:gie}.
 
-The EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbours to update the node features.
+The EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbors to update the node features.
 Mathematical details are given in Section~\ref{sec:so2}.
 In the local frame, the convolution applies the low-rank edge--node SO(2)-equivariant product (A1), which exploits the simpler SO(2) Clebsch--Gordan structure to replace the costly SO(3) Clebsch--Gordan tensor product.
 The product depends on the full set of per-edge equivariant features at degrees $l=0,\dots,L$, in contrast to similar SO(2)-equivariant constructions in eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3} where the product depends only on invariant ($l=0$) edge features.
-The product of the SO(2) Clebsch--Gordan coefficients and the edge equivariant features uses a low-rank parameterisation, improving accuracy at modest additional training cost (Section~\ref{sec:ablation}).
-The multi-focus design (A2) splits the hidden width into $F$ parallel focus streams, each processed by its own SO(2) stack and then reweighted by a cross-focus softmax competition, introducing message non-linearity.
+The product of the SO(2) Clebsch--Gordan coefficients and the edge equivariant features uses a low-rank parameterization, improving accuracy at modest additional training cost (Section~\ref{sec:ablation}).
+The multi-focus design (A2) splits the hidden width into $F$ parallel focus streams, each processed by its own SO(2) stack and then reweighted by a cross-focus softmax competition, introducing message nonlinearity.
 At fixed hidden width, this parallel-focus structure substantially reduces the model parameter count while improving accuracy relative to the $F=1$ single-focus baseline (Section~\ref{sec:ablation}).
-Aggregation over neighbours uses an envelope-gated attention (A3) computed from the SO(3)-invariant $l=0$ slice, with a destination-side output gate (Section~\ref{sec:attn}).
+Aggregation over neighbors uses an envelope-gated attention (A3) computed from the SO(3)-invariant $l=0$ slice, with a destination-side output gate (Section~\ref{sec:attn}).
 This attention-weighted aggregation improves accuracy at small additional training cost relative to a plain envelope-weighted scatter sum (Section~\ref{sec:ablation}).
 The cutoff envelope drives edge contributions smoothly to zero as $r_{ij}\to r_{\mathrm{c}}$, a requirement for stable molecular dynamics.
 
-The equivariant FFN that follows the convolution applies a spherical-grid SwiGLU non-linearity through a Lebedev-quadrature grid projection (A4).
-Relative to the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, the Lebedev rule reaches the same algebraic order of accuracy with substantially fewer sample points and reduces the residual numerical equivariance error of the non-linearity to machine precision (Section~\ref{sec:s2-method}, Table~\ref{tab:s2_full_equivariance} and Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
+The equivariant FFN that follows the convolution applies a spherical-grid SwiGLU nonlinearity through a Lebedev-quadrature grid projection (A4).
+Relative to the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, the Lebedev rule reaches the same algebraic order of accuracy with substantially fewer sample points and reduces the residual numerical equivariance error of the nonlinearity to machine precision (Section~\ref{sec:s2-method}, Table~\ref{tab:s2_full_equivariance} and Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
 
 The remaining architectural component addresses close-contact physics.
 DPA4 decomposes the potential energy as a sum of a learned equivariant branch and an analytical short-range branch, $E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R)+E^{\mathrm{ZBL}}(Z,R)$, with the analytical branch given by the Ziegler--Biersack--Littmark (ZBL) screened-Coulomb pair potential~\cite{ziegler1985}.
@@ -43,9 +43,9 @@ Both branches contribute to the same scalar total energy and are differentiated 
     \caption{
         Overview of the DPA4 architecture.
         (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head.
-        Architectural designs A1--A3 act inside the EMFA SO(2) convolution and A4 (Lebedev-grid $\Sph$ non-linearity) inside the equivariant FFN.
-        (b) The shared edge cache precomputes per-edge quantities; the GIE stage initialises the $l=0$ slice through FiLM modulation by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbour directions onto real spherical harmonics weighted by a radial-species profile.
-        (c) The EMFA SO(2) convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant product (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbours through envelope-gated attention (A3).
+        Architectural designs A1--A3 act inside the EMFA SO(2) convolution and A4 (Lebedev-grid $\Sph$ nonlinearity) inside the equivariant FFN.
+        (b) The shared edge cache precomputes per-edge quantities; the GIE stage initializes the $l=0$ slice through FiLM modulation by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbor directions onto real spherical harmonics weighted by a radial-species profile.
+        (c) The EMFA SO(2) convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant product (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbors through envelope-gated attention (A3).
     }
     \label{fig:arch}
 \end{figure}
@@ -111,7 +111,7 @@ As shown in Fig.~\ref{fig:cps}, DPA4-Pro also reaches this accuracy with a lower
 
 This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked by dashed marker outlines in Fig.~\ref{fig:cps}.
 DeNS~\cite{liao2024dens} has been shown to improve equivariant force fields by denoising non-equilibrium structures, and EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3} further combines this strategy with direct-force pretraining.
-DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
+DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy-gradient path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
 This result suggests that the DPA4 architecture itself contributes to the improved accuracy rather than relying on an auxiliary denoising or direct-force objective.
 
 The smaller DPA4 variants show that the same architecture remains effective in a lower-cost regime.
@@ -119,8 +119,8 @@ DPA4-Plus reaches a CPS of 0.822 with only 5.40M parameters, reducing the gap to
 DPA4-Air reaches a CPS of 0.804 with 2.76M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 10.9$\times$ smaller model.
 DPA4-Neo contains only 1.60M parameters but still reaches a CPS of 0.781, comparable to MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 6.5$\times$ smaller model.
 The Air--Neo segment in Fig.~\ref{fig:cps} reveals a diminishing-return regime at the smallest scale: CPS decreases from 0.804 to 0.781, whereas the A100-equivalent training cost decreases only from 7.8 to 6.5 GPU-days.
-This limited wall-clock saving is consistent with a hardware-utilisation floor: once the network becomes too small, the per-step arithmetic workload and matrix sizes no longer saturate the GPU, and neighbour-list construction, geometric preprocessing, memory traffic and kernel overheads occupy a larger fraction of the elapsed time.
-Larger batches can partly amortise these costs, but the wall-clock training time no longer follows the parameter count.
+This limited wall-clock saving is consistent with a hardware-utilization floor: once the network becomes too small, the per-step arithmetic workload and matrix sizes no longer saturate the GPU, and neighbor-list construction, geometric preprocessing, memory traffic and kernel overheads occupy a larger fraction of the elapsed time.
+Larger batches can partly amortize these costs, but the wall-clock training time no longer follows the parameter count.
 At the same time, CPS drops more rapidly below the Air scale, indicating that model capacity rather than training cost becomes the limiting factor.
 Thus, among the single-digit-GPU-day variants, DPA4-Air provides the more balanced point on the accuracy--efficiency frontier.
 On this scale, DPA4-Air requires only single-digit A100 GPU-days, 42.9$\times$ less training compute than eSEN-30M-MP while achieving a higher CPS.
@@ -128,7 +128,7 @@ For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas rec
 Under an idealized peak-FLOP rescaling, the DPA4-Air training budget is therefore on the order of one day on such hardware.
 This accuracy at reduced model size and training cost makes DPA4-Air and DPA4-Neo practical for high-throughput workflows.
 
-As the leading compliant models are now separated by relatively small CPS differences, further optimisation of the fixed-MPtrj Matbench Discovery leaderboard may have limited practical value once models reach the present accuracy--efficiency frontier.
+As the leading compliant models are now separated by relatively small CPS differences, further optimization of the fixed-MPtrj Matbench Discovery leaderboard may have limited practical value once models reach the present accuracy--efficiency frontier.
 This does not diminish the usefulness of the benchmark; rather, it suggests that future comparisons may be more informative when they also consider non-compliant settings with broader DFT training datasets, additional fine-tuning data or different deployment objectives.
 
 \subsection{SPICE-MACE-OFF molecular benchmark}
@@ -183,7 +183,7 @@ With 2.7M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.13~meV/atom and 2.
 Against DPA3-L24~\cite{zhang2025dpa3}, DPA4-Air lowers the aggregate energy and force errors by 41\% and 58\%, respectively, while using 45\% fewer parameters.
 DPA4-Air is also the second-best model for several subset-level targets, including solvated amino acids and QMugs.
 Beyond model size, these gains come at low training cost: DPA4-Air and DPA4-Plus use only 4 and 8 A100-equivalent GPU-days (Table~\ref{table:spice}), below the MACE baselines (10 and 14) and 36--72$\times$ less than the 288 GPU-days of DPA3-L24, while no public training cost is reported for the eSEN baselines.
-Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the accuracy--parameter frontier across both inorganic crystals and organic molecules, rather than specialising to a single chemical domain.
+Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the accuracy--parameter frontier across both inorganic crystals and organic molecules, rather than specializing to a single chemical domain.
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
@@ -204,22 +204,22 @@ Figure~\ref{fig:cps} complements the Matbench Discovery~\cite{riebesell2025matbe
 DPA4-Air reaches a CPS of 0.804 using 7.8 A100 GPU-days, whereas eSEN-30M-MP~\cite{fu2025esen} reaches a lower CPS of 0.797 using 335 A100 GPU-days.
 This corresponds to 42.9$\times$ less training compute for DPA4-Air at a slightly higher leaderboard score.
 DPA4-Pro remains below the training cost of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} while reaching a higher CPS.
-The dashed-outline baselines in Fig.~\ref{fig:cps} use DeNS~\cite{liao2024dens} or direct-force pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants are trained through the conservative energy path without either auxiliary stage.
+The dashed-outline baselines in Fig.~\ref{fig:cps} use DeNS~\cite{liao2024dens} or direct-force pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants are trained through the conservative energy-gradient path without either auxiliary stage.
 
-The lower training cost is supported by the compiled conservative-force implementation.
+The lower training cost is supported by the compiled conservative energy-gradient implementation.
 In controlled ablations, \texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed precision gives a 3.1$\times$ wall-clock training speedup and reduces peak training memory to about 40\% of the FP32 baseline (Table~\ref{tab:dpa4_compile_ablation}).
 This systems-level gain is obtained without replacing energy-based force matching by a direct-force surrogate.
 
 Inference efficiency was evaluated through the ASE calculator interface~\cite{ase-paper}, which provides a common end-to-end route for single-point energy, force and stress evaluation across DPA4, DPA3, MACE and EquiformerV3 baselines.
 The DPA4 calculators used compiled inference.
 The MACE baselines were evaluated both in their standard path and with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
-The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbour-list construction, model evaluation and calculator-interface overhead.
+The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead.
 All inference benchmarks were run on the same H20 hardware and software environment, with the full configuration and the \texttt{catalysts\_500} ASE measurement reported in Supplementary Fig.~\ref{fig:sm_ase_catalysts}.
 
 Figure~\ref{fig:ase_inorganic_infer} shows that DPA4-Air and DPA4-Plus retain high atom-normalized throughput despite their equivariant message passing.
 Across the system-size sweep, the DPA4 variants deliver substantially higher throughput than the DPA3 baselines~\cite{zhang2025dpa3} and remain competitive with the NVIDIA cuEquivariance-optimized MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning,nvidia_cuequivariance}.
 DPA4-Pro is also faster than the EquiformerV3 baseline in this ASE path while reaching higher Matbench Discovery accuracy and CPS than EquiformerV3+DeNS-MP (Table~\ref{tab:matbench}).
-At the largest atom counts, the ASE curves bend downward because the present DeePMD-kit native ASE path constructs neighbour lists on the GPU, making the end-to-end throughput partly limited by neighbour-list memory and runtime overheads~\cite{zeng2025deepmdv3}.
+At the largest atom counts, the ASE curves bend downward because the present DeePMD-kit native ASE path constructs neighbor lists on the GPU, making the end-to-end throughput partly limited by neighbor-list memory and runtime overheads~\cite{zeng2025deepmdv3}.
 This front-end bottleneck is separate from the DPA4 architecture; dedicated SO(2)-convolution kernels could reduce memory traffic and provide a further 2--3$\times$ inference speedup.
 DPA4-Air and DPA4-Plus therefore reduce training cost while retaining practical ASE inference throughput for large atomistic evaluations.
 
@@ -237,7 +237,7 @@ DPA4-Air and DPA4-Plus therefore reduce training cost while retaining practical 
     \label{fig:zbl}
 \end{figure}
 
-We isolate the short-range behaviour with a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+We isolate the short-range behavior with a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
 The scan drives the pair into the sub-\AA{} regime, where ordinary DFT training data are sparse and the screened nuclear repulsion should dominate.
 The resulting curve provides a local test of the transition between the learned potential and the analytical ZBL limit.
 The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging enabled.

@@ -2,20 +2,20 @@
 \label{sec:ablation}
 
 To establish that the accuracy--efficiency gains originate from the proposed mechanisms rather than from confounding hyperparameter choices, we vary one component at a time under a matched training protocol and evaluate each variant on a subsample of the WBM test set~\cite{WBM}.
-We summarise the principal comparison for each mechanism below and report the complete sweeps, protocols and configurations in Supplementary Section~\ref{sec:sm-ablation}.
+We summarize the principal comparison for each mechanism below and report the complete sweeps, protocols and configurations in Supplementary Section~\ref{sec:sm-ablation}.
 
-Envelope-gated softmax attention improves neighbourhood aggregation without altering the equivariant feature space.
+Envelope-gated softmax attention improves neighborhood aggregation without altering the equivariant feature space.
 In the two-focus configuration, attention-weighted aggregation lowers the energy and force MAEs by 9.2\% and 6.8\%, respectively, relative to scatter-sum aggregation, for a 6\% increase in training time (Supplementary Table~\ref{tab:dpa4_attention_ablation}).
-Because the weights are computed from rotationally invariant scalar channels, this gain reflects adaptive neighbour weighting rather than any relaxation of SO(3) equivariance.
+Because the weights are computed from rotationally invariant scalar channels, this gain reflects adaptive neighbor weighting rather than any relaxation of SO(3) equivariance.
 
 The multi-focus design separates expressivity from raw channel width.
 At a fixed SO(2) dimension of 192, the 96-channel two-focus model matches the accuracy of the 192-channel single-focus model (energy and force MAEs of 26.994~meV/atom and 36.408~meV/\AA{} versus 27.286~meV/atom and 36.477~meV/\AA{}) while using 56\% fewer parameters, 23\% less training time and 34\% less inference time.
-Widening the single stream beyond this point yields no further benefit: the 256-channel single-focus model carries about four times as many parameters as the 96-channel 2-focus model, yet attains 5.2\% higher energy MAE with a nearly identical force MAE, indicating that a single wide equivariant stream is harder to optimise to comparable quality under a shared training recipe (Supplementary Table~\ref{tab:dpa4_focus_ablation}).
-Allocating the same angular budget to focus channels that compete over distinct edge-local motifs therefore provides a more parameter-efficient and more readily optimised route for scaling the SO(2) representation than widening a single stream.
+Widening the single stream beyond this point yields no further benefit: the 256-channel single-focus model carries about four times as many parameters as the 96-channel two-focus model, yet attains 5.2\% higher energy MAE with a nearly identical force MAE, indicating that a single wide equivariant stream is harder to optimize to comparable quality under a shared training recipe (Supplementary Table~\ref{tab:dpa4_focus_ablation}).
+Allocating the same angular budget to focus channels that compete over distinct edge-local motifs therefore provides a more parameter-efficient and more readily optimized route for scaling the SO(2) representation than widening a single stream.
 
 The low-rank edge--node SO(2)-equivariant product (A1) controls how the per-degree edge radial profiles modulate the node message in the local SO(2) frame.
 The simplest variant uses only the $l=0$ radial profile as a scalar multiplier for all angular channels.
-Allowing the degree-indexed radial profiles to parameterise a cross-degree kernel improves expressivity by mixing input and output degrees within each fixed $|m|$ stratum, and the low-rank variants factorise this kernel across channels to keep the additional cost small.
+Allowing the degree-indexed radial profiles to parameterize a cross-degree kernel improves expressivity by mixing input and output degrees within each fixed $|m|$ stratum, and the low-rank variants factorize this kernel across channels to keep the additional cost small.
 A rank-1 per-channel kernel lowers the energy and force MAEs by 3.1\% and 6.9\%, respectively, relative to the $l=0$ scalar-scaling baseline, at only 1.12$\times$ the training time (Supplementary Table~\ref{tab:dpa4_radial_degree_ablation}).
 This rank-1 low-rank edge--node product gives the best accuracy--throughput trade-off and is therefore used as the default A1 setting.
 
@@ -57,4 +57,4 @@ The main role of the Lebedev projection is therefore to remove a systematic nume
     \end{tabular*}
 \end{table}
 
-The remaining studies in Supplementary Section~\ref{sec:sm-ablation}---spanning compiled mixed-precision training, interaction depth, attention design variants, normalisation placement and the learning-rate schedule---corroborate this conclusion: the reported improvements arise from the targeted architectural mechanisms, while the other sweeps establish stable operating points for the released DPA4 variants.
+The remaining studies in Supplementary Section~\ref{sec:sm-ablation}---spanning compiled mixed-precision training, interaction depth, attention design variants, normalization placement and the learning-rate schedule---support this conclusion: the reported improvements arise from the targeted architectural mechanisms, while the other sweeps establish stable operating points for the released DPA4 variants.
