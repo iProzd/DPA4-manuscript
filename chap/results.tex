@@ -216,12 +216,12 @@ The MACE baselines were evaluated both in their standard path and with NVIDIA cu
 The main comparison uses the LAMBench~\cite{peng2025lambench} \texttt{inorganic\_500} system-size sweep and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead.
 All inference benchmarks were run on the same H20 hardware and software environment, with the full configuration and the \texttt{catalysts\_500} ASE measurement reported in Supplementary Fig.~\ref{fig:sm_ase_catalysts}.
 
-Figure~\ref{fig:ase_inorganic_infer} shows that DPA4-Air and DPA4-Plus retain high atom-normalized throughput despite their equivariant message passing.
-Across the system-size sweep, the DPA4 variants deliver substantially higher throughput than the DPA3 baselines~\cite{zhang2025dpa3} and remain competitive with the NVIDIA cuEquivariance-optimized MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning,nvidia_cuequivariance}.
-DPA4-Pro is also faster than the EquiformerV3 baseline in this ASE path while reaching higher Matbench Discovery accuracy and CPS than EquiformerV3+DeNS-MP (Table~\ref{tab:matbench}).
-At the largest atom counts, the ASE curves bend downward because the present DeePMD-kit native ASE path constructs neighbor lists on the GPU, making the end-to-end throughput partly limited by neighbor-list memory and runtime overheads~\cite{zeng2025deepmdv3}.
-This front-end bottleneck is separate from the DPA4 architecture; dedicated SO(2)-convolution kernels could reduce memory traffic and provide a further 2--3$\times$ inference speedup.
-DPA4-Air and DPA4-Plus therefore reduce training cost while retaining practical ASE inference throughput for large atomistic evaluations.
+Figure~\ref{fig:ase_inorganic_infer} shows that DPA4-Air and DPA4-Neo retain high atom-normalized throughput despite their equivariant message passing.
+Across the system-size sweep, DPA4-Air and DPA4-Neo deliver substantially higher throughput than the DPA3 baselines~\cite{zhang2025dpa3}, and at small system sizes they also exceed the NVIDIA cuEquivariance-optimized MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning,nvidia_cuequivariance}.
+DPA4-Pro is also faster than the EquiformerV3 baseline in this ASE path while reaching higher Matbench Discovery CPS than EquiformerV3+DeNS-MP (Table~\ref{tab:matbench}).
+At the largest atom counts, the DPA3 and DPA4 curves bend downward because the present ASE path uses native DeePMD-kit neighbor lists, which are built with a naive all-pairs algorithm of $\mathcal O(N^2)$ complexity, leaving the end-to-end throughput partly limited by neighbor-list runtime overheads~\cite{zeng2025deepmdv3}.
+This front-end bottleneck is separate from the DPA4 architecture and would be alleviated by a more efficient neighbor-list implementation.
+On the model side, dedicated SO(2)-convolution kernels analogous to the cuEquivariance SO(3) kernels used by the MACE-OPT baselines could reduce memory traffic and further accelerate inference.
 
 \subsection{Native ZBL coupling under close-contact conditions}
 \label{sec:zbl}
