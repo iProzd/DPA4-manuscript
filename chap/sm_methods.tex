@@ -337,6 +337,158 @@ Table~\ref{tab:sm_s2_truncated_equivariance} extends the full-coefficient compar
     \end{tabular*}
 \end{table}
 
+\subsection{Completeness of the Wigner bilinear network}
+\label{sec:sm-wbn-complete}
+
+This subsection proves the completeness statement invoked in main-text Section~\ref{sec:s2-method}: networks stacking Wigner bilinear blocks with the \emph{full} frame range $|k|\le l$, interleaved with equivariant linear maps, approximate every continuous SO(3)-equivariant map between band-limited feature spaces, and realize polynomial equivariant maps exactly.
+The block analyzed here is the exact continuous model underlying the deployed FFN: it retains all frames, forms products over all pairs of left and right channels, and evaluates the Haar integral exactly.
+The deployed block (main-text Eqs.~\eqref{eq:dpa4-wbb-lift}--\eqref{eq:dpa4-ffn}) is its economical specialization -- channel-diagonal products, frames truncated to $|k|\le k_{\max}$, and an exact quadrature in place of the integral -- and the role of the truncation is discussed in Remark~\ref{rem:sm-wbn-truncation}.
+
+Throughout, $g$ denotes a rotation, $dg$ the normalized Haar measure on $SO(3)$, and $D^{(l)}_{mk}(g)$ the \emph{complex} Wigner matrices, which satisfy the orthogonality relation
+\begin{equation}
+    (2l+1)\int_{SO(3)}\overline{D^{(l)}_{mk}(g)}\,D^{(l')}_{m'k'}(g)\,dg
+    =\delta_{ll'}\delta_{mm'}\delta_{kk'}
+    \label{eq:sm-wigner-orth}
+\end{equation}
+and the product identity~\cite{varshalovich1988quantum}
+\begin{equation}
+    D^{(l_1)}_{m_1k_1}(g)\,D^{(l_2)}_{m_2k_2}(g)
+    =\sum_{L=|l_1-l_2|}^{l_1+l_2}
+    \langle l_1 m_1\, l_2 m_2|L M\rangle\,
+    \langle l_1 k_1\, l_2 k_2|L \kappa\rangle\,
+    D^{(L)}_{M\kappa}(g),
+    \label{eq:sm-wigner-product}
+\end{equation}
+with $M=m_1+m_2$, $\kappa=k_1+k_2$, and $\langle\cdot\,\cdot|\cdot\rangle$ the Clebsch--Gordan coefficients.
+The associated coupling map $C^{L}_{l_1l_2}:V_{l_1}\otimes V_{l_2}\to V_L$,
+\begin{equation}
+    \bigl(C^{L}_{l_1l_2}(x,y)\bigr)_M
+    =\sum_{m_1,m_2}\langle l_1 m_1\, l_2 m_2|L M\rangle\,x_{m_1}y_{m_2},
+    \label{eq:sm-cg-map}
+\end{equation}
+is a nonzero SO(3)-intertwiner for every admissible triple $|l_1-l_2|\le L\le l_1+l_2$.
+The deployed network uses the real Wigner basis of Section~\ref{sec:sm-representation}; the real and complex conventions are related by an invertible equivariant change of coordinates, which is absorbed into the learnable channel maps, so it suffices to argue in the complex convention.
+
+\paragraph{The full-frame block.}
+Let $\mathcal{H}=V_{\le L_{\max}}\otimes\mathbb{C}^{C}$.
+A \emph{full-frame Wigner bilinear block} $\mathcal{B}:\mathcal{H}\to\mathcal{H}$ maps a feature $x^{(l)}_{m,c}$ to
+\begin{align}
+    u^{\mathrm{L},(l)}_{m,k,a}
+    &=\sum_{c}A^{\mathrm{L},(l)}_{k,a,c}\,x^{(l)}_{m,c},
+    \qquad
+    u^{\mathrm{R},(l)}_{m,k,b}
+    =\sum_{c}A^{\mathrm{R},(l)}_{k,b,c}\,x^{(l)}_{m,c},
+    \qquad |k|\le l,
+    \label{eq:sm-wbb-lin}\\
+    f^{\mathrm{L}}_{a}(g)
+    &=\sum_{l,m,k}u^{\mathrm{L},(l)}_{m,k,a}D^{(l)}_{mk}(g),
+    \qquad
+    f^{\mathrm{R}}_{b}(g)
+    =\sum_{l,m,k}u^{\mathrm{R},(l)}_{m,k,b}D^{(l)}_{mk}(g),
+    \label{eq:sm-wbb-synth}\\
+    h_{ab}(g)
+    &=f^{\mathrm{L}}_{a}(g)\,f^{\mathrm{R}}_{b}(g),
+    \label{eq:sm-wbb-prod}\\
+    z^{(l)}_{m,k,ab}
+    &=(2l+1)\int_{SO(3)}\overline{D^{(l)}_{mk}(g)}\,h_{ab}(g)\,dg,
+    \label{eq:sm-wbb-analysis}\\
+    \mathcal{B}(x)^{(l)}_{m,d}
+    &=\sum_{c}P^{(l)}_{dc}\,x^{(l)}_{m,c}
+    +\delta_{l0}\delta_{m0}\,q_{d}
+    +\sum_{k,a,b}B^{(l)}_{d,k,ab}\,z^{(l)}_{m,k,ab},
+    \label{eq:sm-wbb-out}
+\end{align}
+with the per-degree matrices $A^{\mathrm{L}},A^{\mathrm{R}},P$, the bias $q$, and the mixing coefficients $B$ learnable.
+A \emph{Wigner bilinear network} (WBN) is a composition $\pi\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ\iota$ with equivariant linear maps $\iota:\mathcal{V}\to\mathcal{H}$ and $\pi:\mathcal{H}\to\mathcal{W}$.
+Each block is equivariant: a rotation translates the argument of the synthesized fields, the point-wise product commutes with this translation, and the Haar projection~\eqref{eq:sm-wbb-analysis} intertwines it back to the coefficient action.
+
+\begin{lemma}[Clebsch--Gordan trees span polynomial equivariants]
+\label{lem:sm-cg-span}
+Let $\mathcal{V},\mathcal{W}$ be finite direct sums of SO(3) irreps.
+Every polynomial SO(3)-equivariant map $P:\mathcal{V}\to\mathcal{W}$ is a finite linear combination of \emph{tree maps}: compositions of equivariant linear leaf maps $\mathcal{V}\to V_{l}$, iterated binary couplings~\eqref{eq:sm-cg-map}, and a final equivariant linear map into $\mathcal{W}$, together with constant terms in the trivial isotypic part of $\mathcal{W}$.
+\end{lemma}
+
+\begin{proof}
+Decomposing $P$ into homogeneous parts and comparing degrees in $P(tx)$ shows each part is equivariant; the degree-zero part is an invariant constant.
+A homogeneous part of degree $d$ is, by polarization, the diagonal restriction of a symmetric $d$-linear equivariant map, hence of an element of $\mathrm{Hom}_{SO(3)}(\mathcal{V}^{\otimes d},\mathcal{W})$; it therefore suffices to span this space by trees, and, after decomposing $\mathcal{V}$ and $\mathcal{W}$ into irreps, to span $\mathrm{Hom}_{SO(3)}(V_{l_1}\otimes\cdots\otimes V_{l_d},V_L)$.
+We induct on $d$.
+For $d=1$ Schur's lemma leaves only multiples of the identity.
+For $d>1$, decompose $X=V_{l_1}\otimes\cdots\otimes V_{l_{d-1}}$ into irreducible summands with equivariant projections $p_{J,r}:X\to V_J$ and inclusions $i_{J,r}$ (the equivariant maps extracting and identifying the $r$-th copy of $V_J$ in the decomposition of $X$ into irreducibles, with $\sum_{J,r}i_{J,r}p_{J,r}=\mathrm{id}_X$); any $T\in\mathrm{Hom}_{SO(3)}(X\otimes V_{l_d},V_L)$ writes as $T=\sum_{J,r}T\circ(i_{J,r}p_{J,r}\otimes\mathrm{id})$, and each factor $T\circ(i_{J,r}\otimes\mathrm{id})$ lies in $\mathrm{Hom}_{SO(3)}(V_J\otimes V_{l_d},V_L)$, which by the multiplicity-free Clebsch--Gordan decomposition is spanned by $C^{L}_{Jl_d}$ when the triple is admissible and vanishes otherwise.
+The induction hypothesis expresses each $p_{J,r}$ by trees on the first $d-1$ factors; composing with $C^{L}_{Jl_d}$ yields trees on all $d$ factors.
+Evaluating on the diagonal $(x,\ldots,x)$ recovers the homogeneous polynomial parts and proves the claim.
+\end{proof}
+
+\begin{theorem}[Completeness of the WBN]
+\label{thm:sm-wbn-complete}
+Let $\mathcal{V},\mathcal{W}$ be finite direct sums of SO(3) irreps and let $F:\mathcal{V}\to\mathcal{W}$ be continuous and SO(3)-equivariant.
+For every compact $\Omega\subset\mathcal{V}$ and every $\varepsilon>0$ there exist a band limit $L_{\max}$, a width $C$, a depth $K$, and WBN parameters such that
+\begin{equation}
+    \sup_{x\in\Omega}
+    \bigl\|\pi\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ\iota(x)-F(x)\bigr\|
+    <\varepsilon .
+    \label{eq:sm-wbn-uat}
+\end{equation}
+Moreover, every \emph{polynomial} SO(3)-equivariant map is realized exactly, with zero error.
+\end{theorem}
+
+\begin{proof}
+\emph{Step 1 (reduction to polynomial equivariants).}
+Let $\widehat\Omega=SO(3)\,\Omega$, compact by compactness of the group.
+By the Stone--Weierstrass theorem there is a polynomial map $R:\mathcal{V}\to\mathcal{W}$ with $\sup_{\widehat\Omega}\|R-F\|<\delta$.
+Its Reynolds average $P(x)=\int_{SO(3)}g^{-1}R(gx)\,dg$ is polynomial and equivariant, and since $F(x)=\int g^{-1}F(gx)\,dg$,
+\[
+    \sup_{x\in\Omega}\|P(x)-F(x)\|
+    \le \Bigl(\sup_{g}\|g^{-1}\|_{\mathcal{W}}\Bigr)\,\delta ,
+\]
+which is smaller than $\varepsilon$ for $\delta$ small.
+It therefore suffices to realize polynomial equivariants exactly.
+
+\emph{Step 2 (one block realizes one coupling).}
+Suppose two hidden channels of the current feature hold covariants $T_1(x)\in V_{l_1}$ and $T_2(x)\in V_{l_2}$, and fix an admissible output degree $L$.
+Since the coupling map~\eqref{eq:sm-cg-map} is nonzero, its coefficient array is not identically zero, so there exist frames $|k_1|\le l_1$, $|k_2|\le l_2$ with
+\begin{equation}
+    \langle l_1 k_1\, l_2 k_2|L\,\kappa\rangle\neq0,
+    \qquad \kappa=k_1+k_2 .
+    \label{eq:sm-frame-choice}
+\end{equation}
+Use the maps~\eqref{eq:sm-wbb-lin} to load the two channels into one product pair,
+\[
+    f^{\mathrm{L}}_{a}(g)=\sum_{m_1}(T_1)_{m_1}D^{(l_1)}_{m_1k_1}(g),
+    \qquad
+    f^{\mathrm{R}}_{b}(g)=\sum_{m_2}(T_2)_{m_2}D^{(l_2)}_{m_2k_2}(g),
+\]
+all other coefficients set to zero.
+By the product identity~\eqref{eq:sm-wigner-product},
+\[
+    h_{ab}(g)
+    =\sum_{L'}\langle l_1 k_1\, l_2 k_2|L'\kappa\rangle\,
+    \bigl(C^{L'}_{l_1l_2}(T_1,T_2)\bigr)_{M}\,D^{(L')}_{M\kappa}(g),
+\]
+and the analysis~\eqref{eq:sm-wbb-analysis} with the orthogonality~\eqref{eq:sm-wigner-orth} extracts
+\[
+    z^{(L)}_{M,\kappa,ab}
+    =\langle l_1 k_1\, l_2 k_2|L\,\kappa\rangle\,
+    \bigl(C^{L}_{l_1l_2}(T_1,T_2)\bigr)_{M}.
+\]
+The nonzero scalar~\eqref{eq:sm-frame-choice} is absorbed into $B^{(L)}_{d,\kappa,ab}$ in~\eqref{eq:sm-wbb-out}; choosing $P^{(l)}$ to preserve the existing channels and one fresh output channel $d$ stores exactly the coupling $C^{L}_{l_1l_2}(T_1,T_2)$.
+
+\emph{Step 3 (finite stacks realize all trees).}
+Fix a polynomial equivariant $P$ and expand it by Lemma~\ref{lem:sm-cg-span} into finitely many tree maps.
+Assign one hidden channel to every node of every tree; choose $L_{\max}$ no smaller than the largest degree appearing and $C$ large enough to hold all channels.
+The embedding $\iota$ places the leaf maps.
+Proceeding by induction on tree depth, each block writes all couplings of the next depth into fresh channels -- Step~2, applied with a separate product pair $(a,b)$ and output channel per node, the mixing coefficients $B$ set to ignore all other pairs -- while preserving the channels already filled.
+After finitely many blocks all nodes are present; the readout $\pi$ forms the finite linear combination of tree outputs, and the bias $q$ supplies the constant terms.
+The stack realizes $P$ exactly, and with Step~1 the theorem follows.
+\end{proof}
+
+\begin{remark}[Frame truncation and sphere projection]
+\label{rem:sm-wbn-truncation}
+The full frame range enters the proof only through the choice~\eqref{eq:sm-frame-choice}.
+Truncating the frames to $|k|\le k_{\max}$ restricts that choice, and at $k_{\max}=0$ it forces $k_1=k_2=\kappa=0$: the surviving coefficient $\langle l_1 0\, l_2 0|L 0\rangle$ vanishes whenever $l_1+l_2+L$ is odd, so a sphere-restricted bilinear nonlinearity cannot realize any parity-odd coupling, however deep the stack -- the incompleteness discussed in main-text Section~\ref{sec:s2-method}.
+Already at $k_{\max}=1$ nonzero parity-odd choices become available, e.g.\ $\langle 1\,1\,1\,{-1}|1\,0\rangle=1/\sqrt{2}$ for the cross product $1\otimes1\to1$; the hypothesis of Theorem~\ref{thm:sm-wbn-complete}, however, requires the full range.
+\end{remark}
+
+\FloatBarrier
 \section{Training and systems methods}
 \label{sec:sm-training-systems}
 
