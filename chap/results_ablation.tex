@@ -39,12 +39,12 @@ The ablated variant applies only the $l=0$ radial profile as a scalar multiplier
 This kernel is built from the SO(2) Clebsch--Gordan coefficients and the $l>0$ edge spherical harmonics in the local frame (Section~\ref{sec:so2}), and is factorized across channels to keep the additional cost small.
 A low rank suffices: the released variants use rank 1 or 2 (Supplementary Table~\ref{tab:sm_model_config}), and the full rank sweep is reported in Supplementary Table~\ref{tab:dpa4_radial_degree_ablation}.
 
-The Lebedev-grid projection (A4) tests the numerical equivariance of the spherical-grid nonlinearity.
+The quadrature rule on which the WBN (A4) is evaluated sets the numerical equivariance of the nonlinearity, and the comparison below isolates that choice from the design of the nonlinearity itself.
 Table~\ref{tab:s2_full_equivariance} reports full-coefficient \texorpdfstring{$\Sph$}{S2} activation under random SO(3) rotations.
 Tensor-product latitude--longitude grids leave maximum fp64 residuals of $3.62\times10^{-7}$ -- $4.14\times10^{-6}$; for the higher angular orders, the fp64 residual is larger than the corresponding fp32 residual, showing that the error is set by the projection rule rather than by floating point round-off.
 At the same algebraic order, Lebedev quadrature reduces the fp64 residual to $2.31\times10^{-14}$ -- $7.99\times10^{-14}$ and decreases the grid size from 64--576 points to 26--170 points.
 On the WBM ablation, this replacement changes the benchmark MAEs only modestly, with similar force error and wall-clock cost in the FFN-only setting (Supplementary Table~\ref{tab:sm_quadrature_ablation}).
-The main role of the Lebedev projection is therefore to remove a systematic numerical symmetry error from the nonlinear equivariant branch at lower quadrature size.
+The main role of the Lebedev rule is therefore to remove a systematic numerical symmetry error from the nonlinear equivariant branch at lower quadrature size, independently of which nonlinearity is evaluated on it.
 
 \begin{table}[t]
     \centering

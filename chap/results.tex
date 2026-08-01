@@ -7,7 +7,7 @@
 DPA4 is a conservative SE(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
 Each interaction block has a residual structure with two skip connections: one over an EMFA SO(2) convolution followed by an equivariant RMSNorm, and one over a second equivariant RMSNorm followed by an equivariant feed-forward network (FFN).
 Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant product, the multi-focus design for message nonlinearity, and the envelope-gated attention for message aggregation, operate inside the EMFA SO(2) convolution (Fig.~\ref{fig:arch}c).
-Architectural design A4, the Lebedev-grid projection for SO(3)-equivariant nonlinearity, operates inside the equivariant FFN.
+Architectural design A4, the Wigner bilinear network (WBN) for the SO(3)-equivariant nonlinearity, operates inside the equivariant FFN.
 Forces and virials are obtained by automatic differentiation through the scalar energy.
 
 A shared edge cache (Fig.~\ref{fig:arch}b) precomputes and reuses per-edge quantities across interaction blocks: the distance $r_{ij}$ and unit direction $\widehat{\mathbf{r}}_{ij}$, a radial-basis expansion with cutoff envelope, and per-pair edge species features.
@@ -29,8 +29,9 @@ Aggregation over neighbors uses an envelope-gated attention (A3) computed from t
 This attention-weighted aggregation improves accuracy at small additional training cost relative to a plain envelope-weighted scatter sum (Section~\ref{sec:ablation}).
 The cutoff envelope drives edge contributions smoothly to zero as $r_{ij}\to r_{\mathrm{c}}$, a requirement for stable molecular dynamics.
 
-The equivariant FFN that follows the convolution applies a spherical-grid SwiGLU nonlinearity through a Lebedev-quadrature grid projection (A4).
-Relative to the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, the Lebedev rule reaches the same algebraic order of accuracy with substantially fewer sample points and reduces the residual numerical equivariance error of the nonlinearity to machine precision (Section~\ref{sec:s2-method}, Table~\ref{tab:s2_full_equivariance} and Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
+The equivariant FFN that follows the convolution draws its nonlinearity from a Wigner bilinear network (A4), which expands the node feature into a pair of scalar functions on the rotation group, multiplies them point by point and re-expands the product, so that a single operation couples all degrees at once (Section~\ref{sec:s2-method}).
+Spherical-grid nonlinearities, including those of the Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3}, perform the same construction on the sphere instead, where the parity-odd couplings such as the cross product cannot be formed; working on the rotation group restores them.
+The integral is evaluated by a Lebedev rule on the sphere crossed with a uniform rule in the residual angle, which reaches a given algebraic order of accuracy with substantially fewer sample points than the tensor-product latitude--longitude grids of those architectures and keeps the numerical equivariance error of the nonlinearity at machine precision (Table~\ref{tab:s2_full_equivariance} and Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
 
 The remaining architectural component addresses close-contact physics.
 DPA4 decomposes the potential energy as a sum of a learned equivariant branch and an analytical short-range branch, $E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R)+E^{\mathrm{ZBL}}(Z,R)$, with the analytical branch given by the Ziegler--Biersack--Littmark (ZBL) screened-Coulomb pair potential~\cite{ziegler1985}.
@@ -43,7 +44,7 @@ Both branches contribute to the same scalar total energy and are differentiated 
     \caption{
         Overview of the DPA4 architecture.
         (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head.
-        Architectural designs A1--A3 act inside the EMFA SO(2) convolution and A4 (Lebedev-grid $\Sph$ nonlinearity) inside the equivariant FFN.
+        Architectural designs A1--A3 act inside the EMFA SO(2) convolution and A4 (the Wigner bilinear network) inside the equivariant FFN.
         (b) The shared edge cache precomputes per-edge quantities; the GIE stage initializes the $l=0$ slice through FiLM modulation by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbor directions onto real spherical harmonics weighted by a radial-species profile.
         (c) The EMFA SO(2) convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant product (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbors through envelope-gated attention (A3).
     }
