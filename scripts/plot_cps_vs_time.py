@@ -15,37 +15,36 @@ except ImportError:
 
 RMSD_BASELINE = 0.15
 PARAM_SIZE_SCALE = 16
-if sns is not None:
-    PALETTE = sns.color_palette("colorblind", 10).as_hex()
-else:
-    PALETTE = [
-        "#4878D0",
-        "#EE854A",
-        "#6ACC64",
-        "#D65F5F",
-        "#956CB4",
-        "#8C613C",
-        "#DC7EC0",
-        "#797979",
-        "#D5BB67",
-        "#82C6E2",
-    ]
 
+# DPA4 is drawn in the deep red that marks DPA4-Pro in the inference-throughput
+# figure, keeping the family identity consistent across figures. The remaining
+# families follow the same convention: DPA3 the Blues ramp, MACE the Greens ramp
+# and the Equiformer family neutral grays. Other baselines take muted accents.
+DPA4_COLOR = "#C91D13"
+if sns is not None:
+    MUTED = sns.color_palette("muted", 10).as_hex()
+    def _family(name, index=5):
+        return sns.color_palette(name, 8).as_hex()[index]
+    DPA3_COLOR = _family("Blues")
+    MACE_COLOR = _family("Greens")
+else:
+    MUTED = [
+        "#4878D0", "#EE854A", "#6ACC64", "#D65F5F", "#956CB4",
+        "#8C613C", "#DC7EC0", "#797979", "#D5BB67", "#82C6E2",
+    ]
+    DPA3_COLOR, MACE_COLOR = "#2b7bba", "#41a45c"
+
+EQV3_COLOR = "#3f3f3f"
+EQV2_COLOR = "#9a9a9a"
 COLORS = {
-    "blue": PALETTE[0],
-    "orange": PALETTE[1],
-    "green": PALETTE[2],
-    "red": PALETTE[3],
-    "purple": PALETTE[4],
-    "brown": PALETTE[5],
-    "pink": PALETTE[6],
-    "gray": PALETTE[7],
-    "yellow": PALETTE[8],
-    "cyan": PALETTE[9],
-    "teal": "#00897B",
+    "orange": MUTED[1],
+    "purple": MUTED[4],
+    "brown": MUTED[5],
+    "pink": MUTED[6],
+    "yellow": MUTED[8],
+    "cyan": MUTED[9],
 }
 MATRIS_COLOR = COLORS["brown"]
-DPA4_COLOR = "#C44E52"
 EXTRA_TRAINING_MODELS = {"eSEN-30M-MP", "EqV2 S DeNS", "EqV3+DeNS-MP"}
 
 
@@ -112,7 +111,7 @@ def draw_param_scale(ax, box_x, box_y, box_w, box_h):
 
     # Centers are not equally spaced: larger bubbles need more center distance
     # to keep the visible edge gaps balanced.
-    entries = [(1, "1M", 0.73), (10, "10M", 0.48), (20, "20M", 0.22)]
+    entries = [(1, "1M", 0.73), (10, "10M", 0.48), (25, "25M", 0.22)]
     for params_m, label, rel_y in entries:
         y = box_y + box_h * rel_y
         ax.scatter(
@@ -140,19 +139,19 @@ def draw_param_scale(ax, box_x, box_y, box_w, box_h):
 
 # x = A100 GPU-days, y = CPS score, params_m = model parameters in millions.
 models = {
-    "Nequix MP": dict(x=15, y=0.755, params_m=0.708, color=COLORS["green"], marker="o"),
-    "eSEN-30M-MP": dict(x=335, y=0.797, params_m=30.1, color=COLORS["orange"], marker="o"),
-    "EqV2 S DeNS": dict(x=228, y=0.522, params_m=31.2, color=COLORS["purple"], marker="o"),
-    "Eqnorm-MP": dict(x=83, y=0.756, params_m=1.31, color=COLORS["gray"], marker="o"),
-    "MACE-MP-0": dict(x=108, y=0.637, params_m=4.69, color=COLORS["pink"], marker="o"),
-    "HIENet": dict(x=120, y=0.707, params_m=7.51, color=COLORS["cyan"], marker="o"),
+    "Nequix MP": dict(x=15, y=0.755, params_m=0.708, color=COLORS["cyan"], marker="o"),
+    "eSEN-30M-MP": dict(x=335, y=0.797, params_m=30.1, color=COLORS["purple"], marker="o"),
+    "EqV2 S DeNS": dict(x=228, y=0.522, params_m=31.2, color=EQV2_COLOR, marker="o"),
+    "Eqnorm-MP": dict(x=83, y=0.756, params_m=1.31, color=COLORS["pink"], marker="o"),
+    "MACE-MP-0": dict(x=108, y=0.637, params_m=4.69, color=MACE_COLOR, marker="o"),
+    "HIENet": dict(x=120, y=0.707, params_m=7.51, color=COLORS["orange"], marker="o"),
     "SevenNet-l3i5": dict(x=381, y=0.714, params_m=1.17, color=COLORS["yellow"], marker="o"),
-    "DPA3": dict(x=104, y=0.718, params_m=4.81, color=COLORS["blue"], marker="o"),
-    "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=COLORS["teal"], marker="o"),
-    "DPA4-neo": dict(x=6.5, y=0.781, params_m=1.60, color=DPA4_COLOR, marker="o"),
-    "DPA4-air": dict(x=7.8, y=0.804, params_m=2.76, color=DPA4_COLOR, marker="o"),
-    "DPA4-plus": dict(x=41, y=0.822, params_m=5.40, color=DPA4_COLOR, marker="o"),
-    "DPA4-pro": dict(x=106.6, y=0.833, params_m=20.91, color=DPA4_COLOR, marker="o"),
+    "DPA3": dict(x=104, y=0.718, params_m=4.81, color=DPA3_COLOR, marker="o"),
+    "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=EQV3_COLOR, marker="o"),
+    "DPA4-neo": dict(x=8.6, y=0.782, params_m=1.125, color=DPA4_COLOR, marker="o"),
+    "DPA4-air": dict(x=16, y=0.811, params_m=5.148, color=DPA4_COLOR, marker="o"),
+    "DPA4-plus": dict(x=31, y=0.829, params_m=8.796, color=DPA4_COLOR, marker="o"),
+    "DPA4-pro": dict(x=233, y=0.842, params_m=25.211, color=DPA4_COLOR, marker="o"),
 }
 
 matris = {
@@ -162,9 +161,9 @@ matris = {
 
 def style_axis(ax):
     ax.set_xscale("log")
-    ax.set_xlim(5, 420)
-    ax.set_xticks([5, 10, 30, 60, 100, 200, 400])
-    ax.set_xticklabels(["5", "10", "30", "60", "100", "200", "400"])
+    ax.set_xlim(7, 470)
+    ax.set_xticks([10, 30, 60, 100, 200, 400])
+    ax.set_xticklabels(["10", "30", "60", "100", "200", "400"])
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.grid(True, which="major", linestyle="--", linewidth=0.6, color="#cccccc", alpha=0.7)
     ax.grid(True, which="minor", axis="x", linestyle=":", linewidth=0.35, color="#dddddd", alpha=0.45)
@@ -204,6 +203,70 @@ def plot_model_points(ax):
             alpha=0.94,
             zorder=4,
         )
+
+
+def trend_cost_at_cps(cps, lower, upper):
+    """
+    Locate where the DPA4 trend line reaches a given CPS.
+
+    The trend is drawn as a straight segment in the plotted coordinates, that is
+    linear in log10 of the training cost, so the interpolation is performed there.
+
+    Parameters
+    ----------
+    cps : float
+        Combined performance score to match.
+    lower, upper : str
+        Keys of the two DPA4 variants bracketing the requested score.
+
+    Returns
+    -------
+    float
+        Training cost in A100 GPU-days at which the trend line attains ``cps``.
+    """
+    x0, y0 = models[lower]["x"], models[lower]["y"]
+    x1, y1 = models[upper]["x"], models[upper]["y"]
+    frac = (cps - y0) / (y1 - y0)
+    return 10 ** (np.log10(x0) + frac * (np.log10(x1) - np.log10(x0)))
+
+
+def draw_speedup_arrow(ax, source, target_x, label_x, shrink_target):
+    """
+    Draw a horizontal arrow from a baseline to the DPA4 frontier at equal CPS.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axes.
+    source : dict
+        Entry of ``models`` from which the arrow starts.
+    target_x : float
+        Training cost at which the arrow ends, in A100 GPU-days.
+    label_x : float
+        Horizontal position of the speedup annotation.
+    shrink_target : float
+        Padding at the arrow head, in points.
+    """
+    y = source["y"]
+    ax.annotate(
+        "",
+        xy=(target_x, y),
+        xytext=(source["x"], y),
+        arrowprops=dict(arrowstyle="->", color="#6E6E6E", lw=1.0,
+                        shrinkA=15, shrinkB=shrink_target, zorder=1),
+        zorder=1,
+    )
+    ax.text(
+        label_x,
+        y - 0.004,
+        f"{source['x'] / target_x:.0f}x" if source["x"] / target_x >= 10
+        else f"{source['x'] / target_x:.1f}x",
+        fontsize=10.5,
+        color="#6E6E6E",
+        fontweight="bold",
+        va="top",
+        zorder=6,
+    )
 
 
 def draw_dpa4_trend(ax):
@@ -299,30 +362,19 @@ def main():
         color=DPA4_COLOR,
     )
 
-    speedup = models["eSEN-30M-MP"]["x"] / models["DPA4-air"]["x"]
-    arrow_y = models["eSEN-30M-MP"]["y"]
-    ax_top.annotate(
-        "",
-        xy=(models["DPA4-air"]["x"], arrow_y),
-        xytext=(models["eSEN-30M-MP"]["x"], arrow_y),
-        arrowprops=dict(
-            arrowstyle="->",
-            color=COLORS["gray"],
-            lw=1.0,
-            shrinkA=15,
-            shrinkB=11,
-            zorder=1,
-        ),
-        zorder=1,
+    draw_speedup_arrow(
+        ax_top,
+        source=models["EqV3+DeNS-MP"],
+        target_x=models["DPA4-plus"]["x"],
+        label_x=62,
+        shrink_target=11,
     )
-    ax_top.text(
-        55,
-        arrow_y + 0.006,
-        f"{speedup:.1f}x",
-        fontsize=10.5,
-        color=COLORS["gray"],
-        fontweight="bold",
-        zorder=6,
+    draw_speedup_arrow(
+        ax_top,
+        source=models["eSEN-30M-MP"],
+        target_x=trend_cost_at_cps(models["eSEN-30M-MP"]["y"], "DPA4-neo", "DPA4-air"),
+        label_x=42,
+        shrink_target=3,
     )
 
     legend_entries = [

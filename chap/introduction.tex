@@ -37,7 +37,7 @@ A shape-stable, compiler-friendly implementation of conservative energy-gradient
 In addition, Native ZBL Zone Bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, improving short-range force behavior at very close atomic distances where the potential-energy surface is sparsely sampled by training data.
 
 On Matbench Discovery~\cite{riebesell2025matbench}, DPA4 variants establish a new accuracy--efficiency frontier (Fig.~\ref{fig:cps}): the largest variant reaches state-of-the-art performance, while smaller variants approach the accuracy of much larger baselines with substantially fewer parameters and lower training cost.
-On SPICE-MACE-OFF~\cite{kovacs2023mace}, DPA4 variants establish a new accuracy--parameter frontier on organic-molecule force fields: the largest variant sets a new state of the art, while smaller variants surpass the strongest baseline with substantially fewer parameters (Table~\ref{table:spice}).
+On SPICE-MACE-OFF~\cite{kovacs2023mace}, DPA4 variants establish a new accuracy--parameter frontier on organic-molecule force fields: the largest variant sets a new state of the art, while the smallest variant matches a baseline of nearly three times its size (Table~\ref{table:spice}).
 Together, these results position DPA4 as a strong candidate to address the training-cost bottleneck of current LAMs without sacrificing generalizability.
 In this work DPA4 is trained in the single-task, per-dataset setting; multi-task LAM pretraining on top of this backbone is left as the natural next step (Section~\ref{sec:discussion}).
 

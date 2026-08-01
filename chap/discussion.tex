@@ -7,8 +7,8 @@ On the training side, a compiler-friendly implementation makes the energy-to-for
 It is this combined design, rather than any single component, that moves DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules.
 
 Across materials and molecular benchmarks, DPA4 delivers competitive accuracy at a fraction of the parameter count and training compute of leading baselines.
-On Matbench Discovery, DPA4-Pro reaches the top of the compliant leaderboard with $\sim31\%$ fewer parameters than EquiformerV3+DeNS-MP, while DPA4-Air (2.76\,M parameters) exceeds the eSEN-30M-MP baseline with $10.9\times$ fewer parameters and $42.9\times$ less training compute.
-On SPICE-MACE-OFF, DPA4-Plus (5.4\,M parameters) attains the lowest aggregate energy and force errors, lowering aggregate errors by $29\%$ and $30\%$ respectively relative to the 6.5\,M-parameter eSEN baseline.
+On Matbench Discovery, DPA4-Pro reaches the top of the compliant leaderboard in every ranked metric with $\sim17\%$ fewer parameters than EquiformerV3+DeNS-MP, while DPA4-Air (5.1\,M parameters) exceeds the eSEN-30M-MP baseline with $5.8\times$ fewer parameters and $20.9\times$ less training compute.
+On SPICE-MACE-OFF, DPA4-Plus (8.8\,M parameters) attains the lowest aggregate energy and force errors, lowering both by $32\%$ relative to the 6.5\,M-parameter eSEN baseline.
 All of these gains are obtained through the conservative energy-gradient path alone, without auxiliary DeNS or direct-force pretraining, showing that those auxiliary objectives are not the only route to competitive accuracy.
 Combined with the $\sim$3$\times$ compiler-driven training speedup, this makes compact, single-task energy-conservative potentials practical to train, ablate and redeploy in molecular-dynamics and structure-relaxation workflows.
 In addition, Native ZBL Zone Bridging follows the analytical ZBL force smoothly at close contact and removes the spurious force-switching artifact of external pair corrections.

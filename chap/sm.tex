@@ -34,53 +34,35 @@
 \section{Ablation study}
 \label{sec:sm-ablation}
 
-This section provides the complete ablation evidence behind
-Section~\ref{sec:ablation}. The first five subsections give the full
-mechanism-level sweeps for graph compilation, attention aggregation,
-multi-focus design, the low-rank edge--node SO(2)-equivariant
-product and $\Sph$ activation. The
-remaining subsections report model-selection and robustness studies. All ablations use the same
-WBM-subsampled evaluation protocol. Relative efficiency metrics are normalized
-within each controlled group under matched H20 hardware, batch-size,
-data-loading and precision settings. Unless otherwise noted,
-\textit{Train time (rel.)} denotes relative training wall-clock time, and
-\textit{Test time (rel.)} denotes the wall-clock time required to evaluate the
-full WBM-subsampled test set with the DeePMD-kit \texttt{dp test} command.
-Boldface and underlining denote the best and second-best values only for metrics
-in which ranking is explicitly highlighted. N/A denotes a parameter or option
-that is not applicable to the corresponding setting.
+This section provides the complete ablation evidence behind Section~\ref{sec:ablation}.
+The first five subsections give the full mechanism-level sweeps for graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant product and $\Sph$ activation.
+The remaining subsections report model-selection and robustness studies.
+All ablations use the same WBM-subsampled evaluation protocol.
+Relative efficiency metrics are normalized within each controlled group under matched H20 hardware, batch-size, data-loading and precision settings.
+Unless otherwise noted, \textit{Train time (rel.)
+} denotes relative training wall-clock time, and
+\textit{Test time (rel.)} denotes the wall-clock time of a full test pass over the
+WBM-subsampled test set in DeePMD-kit.
+Boldface and underlining denote the best and second-best values only for metrics in which ranking is explicitly highlighted.
+In the ablation tables, \cmark{} and \xmark{} denote an enabled and a disabled setting, respectively.
+N/A denotes a parameter or option that is not applicable to the corresponding setting.
 
 \subsection{Graph compilation and training precision}
 \label{sec:sm-compile-ablation}
 
-This ablation quantifies the systems-level benefit of graph compilation and
-reduced-precision tensor-core execution (Table~\ref{tab:dpa4_compile_ablation}). Relative to the non-compiled FP32
-baseline, bf16 AMP alone gives a 1.43$\times$ training speedup and reduces peak
-training memory by 59\%. Graph compilation provides a larger and complementary
-gain: compiled FP32 training gives a 1.61$\times$ speedup, and enabling TF32 in
-this compiled path increases the speedup to 1.82$\times$. The largest practical
-improvement is obtained by combining compilation with bf16 AMP, which gives a
-3.1$\times$ speedup and reduces peak memory by 60\%. Thus, the compiled
-mixed-precision path makes conservative energy-gradient training more than three times
-faster while using only about 40\% of the baseline peak GPU memory.
+This ablation quantifies the systems-level benefit of graph compilation and reduced-precision tensor-core execution (Table~\ref{tab:dpa4_compile_ablation}).
+Relative to the non-compiled FP32 baseline, bf16 AMP alone gives a 1.43$\times$ training speedup and reduces peak training memory by 59\%.
+Graph compilation provides a larger and complementary gain: compiled FP32 training gives a 1.61$\times$ speedup, and enabling TF32 in this compiled path increases the speedup to 1.82$\times$.
+The largest practical improvement is obtained by combining compilation with bf16 AMP, which gives a 3.1$\times$ speedup and reduces peak memory by 60\%.
+Thus, the compiled mixed-precision path makes conservative energy-gradient training more than three times faster while using only about 40\% of the baseline peak GPU memory.
 
 The corresponding accuracy changes are small compared with the efficiency gain.
-Against the FP32 baseline (27.603~meV/atom and 34.246~meV/\AA{}), bf16 AMP
-changes the energy and force MAEs by 1.7\% and 2.0\%, respectively. The
-compiled-bf16 setting, which gives the strongest speed and memory improvement,
-changes them by 2.7\% and 1.8\%; when TF32 is also enabled, the energy MAE
-changes by 2.8\% and the force MAE by only 0.1\%. These differences are
-consistent with small numerical and stochastic variation rather than systematic
-accuracy degradation. Although the random seed is fixed and
-\texttt{torch.compile} preserves the mathematical computation graph,
-compilation can change kernel fusion, hardware-specific kernel selection,
-reduction ordering, and tensor-core dispatch; bf16 AMP and TF32 also change the
-effective arithmetic used by eligible matrix operations. DPA4 limits this
-sensitivity by keeping geometric preprocessing and normalization operations
-such as RMSNorm in FP32, while allowing large matrix operations to use bf16 or
-TF32 where appropriate. We therefore enable \texttt{torch.compile}, bf16 AMP,
-and TF32 in the following ablations and benchmark experiments unless otherwise
-specified.
+Against the FP32 baseline (27.603~meV/atom and 34.246~meV/\AA{}), bf16 AMP changes the energy and force MAEs by 1.7\% and 2.0\%, respectively.
+The compiled-bf16 setting, which gives the strongest speed and memory improvement, changes them by 2.7\% and 1.8\%; when TF32 is also enabled, the energy MAE changes by 2.8\% and the force MAE by only 0.1\%.
+These differences are consistent with small numerical and stochastic variation rather than systematic accuracy degradation.
+Although the random seed is fixed and \texttt{torch.compile} preserves the mathematical computation graph, compilation can change kernel fusion, hardware-specific kernel selection, reduction ordering, and tensor-core dispatch; bf16 AMP and TF32 also change the effective arithmetic used by eligible matrix operations.
+DPA4 limits this sensitivity by keeping geometric preprocessing and normalization operations such as RMSNorm in FP32, while allowing large matrix operations to use bf16 or TF32 where appropriate.
+We therefore enable \texttt{torch.compile}, bf16 AMP, and TF32 in the following ablations and benchmark experiments unless otherwise specified.
 
 \begin{table}[ht]
     \centering
@@ -98,19 +80,19 @@ specified.
             \textbf{Train time (rel.)}$\downarrow$ &
             \makecell{\textbf{Peak train}\\\textbf{mem. (rel.)}$\downarrow$}                                         \\
             \midrule
-            False                                  & False & N/A   & 27.603 & 34.246 & 1.00          & 1.00          \\
-            False                                  & True  & N/A   & 28.081 & 34.936 & 0.70          & 0.41          \\
-            True                                   & False & False & 28.217 & 34.787 & 0.62          & 0.77          \\
-            True                                   & False & True  & 28.190 & 34.860 & 0.55          & 1.00          \\
-            True                                   & True  & False & 28.355 & 34.864 & \textbf{0.32} & \textbf{0.40} \\
-            True                                   & True  & True  & 28.364 & 34.275 & \textbf{0.32} & \textbf{0.40} \\
+            \xmark                                  & \xmark & N/A   & 27.603 & 34.246 & 1.00          & 1.00          \\
+            \xmark                                  & \cmark  & N/A   & 28.081 & 34.936 & 0.70          & 0.41          \\
+            \cmark                                   & \xmark & \xmark & 28.217 & 34.787 & 0.62          & 0.77          \\
+            \cmark                                   & \xmark & \cmark  & 28.190 & 34.860 & 0.55          & 1.00          \\
+            \cmark                                   & \cmark  & \xmark & 28.355 & 34.864 & \textbf{0.32} & \textbf{0.40} \\
+            \cmark                                   & \cmark  & \cmark  & 28.364 & 34.275 & \textbf{0.32} & \textbf{0.40} \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}
             \item[a] Train time (rel.) and peak train memory are normalized to the non-compiled
-            FP32 baseline measured on NVIDIA H20 hardware. Peak train memory denotes peak
-            GPU memory during training. N/A indicates that TF32 tensor cores are not
-            applicable for the non-compiled execution path.
+            FP32 baseline measured on NVIDIA H20 hardware.
+            Peak train memory denotes peak GPU memory during training.
+            N/A indicates that TF32 tensor cores are not applicable for the non-compiled execution path.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -119,18 +101,11 @@ specified.
 \subsection{Attention aggregation}
 \label{sec:sm-attention-aggregation}
 
-The attention ablation isolates the aggregation rule while holding the feature
-dimension and focus count fixed within each pair of rows
-(Table~\ref{tab:dpa4_attention_ablation}). Replacing scatter-sum
-aggregation with attention-weighted sum consistently reduces both energy and
-force MAEs across the 64-channel, 96-channel, and 96-channel 2-focus settings.
-The improvement is substantial and stable: energy MAE decreases by 8.3--9.3\%,
-and force MAE decreases by 4.7--6.8\% relative to the corresponding scatter-sum
-controls. The gain is obtained with a small computational cost, increasing
-training time by only 5--6\% and leaving test time within 1--5\% of the control
-models. This result supports the design choice of computing attention from
-rotationally invariant scalar channels: the model gains adaptive neighbor
-selection while preserving equivariance of the higher-order SO(2) features.
+The attention ablation isolates the aggregation rule while holding the feature dimension and focus count fixed within each pair of rows (Table~\ref{tab:dpa4_attention_ablation}).
+Replacing scatter-sum aggregation with attention-weighted sum consistently reduces both energy and force MAEs across the 64-channel, 96-channel, and 96-channel 2-focus settings.
+The improvement is substantial and stable: energy MAE decreases by 8.3--9.3\%, and force MAE decreases by 4.7--6.8\% relative to the corresponding scatter-sum controls.
+The gain is obtained with a small computational cost, increasing training time by only 5--6\% and leaving test time within 1--5\% of the control models.
+This result supports the design choice of computing attention from rotationally invariant scalar channels: the model gains adaptive neighbor selection while preserving equivariance of the higher-order SO(2) features.
 
 \begin{table}[ht]
     \centering
@@ -169,25 +144,14 @@ selection while preserving equivariance of the higher-order SO(2) features.
 \subsection{Multi-focus design}
 \label{sec:sm-multifocus}
 
-The multi-focus comparison separates per-focus feature width from the number of
-parallel equivariant focus channels (Table~\ref{tab:dpa4_focus_ablation}). Increasing the width of a single focus
-stream rapidly increases parameter count and inference cost, but the
-corresponding accuracy gains are uneven. By contrast, multi-focus variants
-increase the effective SO(2) convolution dimension through several narrower
-focus channels and often reach better accuracy--cost trade-offs. At an SO(2)
-dimension of 192, the 96-channel 2-focus model gives the best overall result,
-improving energy MAE from 29.418 to 26.994~meV/atom and force MAE from 39.529
-to 36.408~meV/\AA{} relative to the 64-channel 1-focus baseline. It also
-outperforms the 192-channel 1-focus model with more than 56\% fewer trainable
-parameters, approximately 23\% lower training time, and approximately 34\%
-lower inference time. All rows in this sweep use the same learning-rate
-setting; as larger-capacity variants often benefit from smaller tuned learning
-rates, the reported MAEs of the largest configurations may be mildly
-conservative. Under a shared training recipe, however, the 96-channel 2-focus
-configuration gives the most balanced point in this sweep. These trends are
-consistent with the intended role of focus competition, where parallel
-equivariant sub-channels specialize to different edge-local geometric motifs
-before the rotate-back step.
+The multi-focus comparison separates per-focus feature width from the number of parallel equivariant focus channels (Table~\ref{tab:dpa4_focus_ablation}).
+Increasing the width of a single focus stream rapidly increases parameter count and inference cost, but the corresponding accuracy gains are uneven.
+By contrast, multi-focus variants increase the effective SO(2) convolution dimension through several narrower focus channels and often reach better accuracy--cost trade-offs.
+At an SO(2) dimension of 192, the 96-channel 2-focus model gives the best overall result, improving energy MAE from 29.418 to 26.994~meV/atom and force MAE from 39.529 to 36.408~meV/\AA{} relative to the 64-channel 1-focus baseline.
+It also outperforms the 192-channel 1-focus model with more than 56\% fewer trainable parameters, approximately 23\% lower training time, and approximately 34\% lower inference time.
+All rows in this sweep use the same learning-rate setting; as larger-capacity variants often benefit from smaller tuned learning rates, the reported MAEs of the largest configurations may be mildly conservative.
+Under a shared training recipe, however, the 96-channel 2-focus configuration gives the most balanced point in this sweep.
+These trends are consistent with the intended role of focus competition, where parallel equivariant sub-channels specialize to different edge-local geometric motifs before the rotate-back step.
 
 \begin{table}[ht]
     \centering
@@ -220,8 +184,9 @@ before the rotate-back step.
         \end{tabular}
         \begin{tablenotes}
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the 64-channel
-            1-focus baseline. Params denotes the number of trainable parameters. All rows
-            use the same learning-rate setting.
+            1-focus baseline.
+            Params denotes the number of trainable parameters.
+            All rows use the same learning-rate setting.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -230,38 +195,17 @@ before the rotate-back step.
 \subsection{Low-rank edge--node \texorpdfstring{SO(2)}{SO2}-equivariant product}
 \label{sec:sm-radial-coupling}
 
-This ablation tests the low-rank edge--node SO(2)-equivariant product (A1),
-namely how edge-side angular information conditions the node-side SO(2) message
-in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
-The scalar-scaling baseline uses only the $l=0$ edge feature to scale edge
-messages across angular orders, whereas degree mixing builds a cross-degree
-kernel from the SO(2) Clebsch--Gordan coefficients and the $l>0$ edge spherical
-harmonics in the local frame, mixing input and output angular degrees at fixed
-$|m|$ before the SO(2) stack.
-Making this kernel channel-dependent improves expressivity, but a per-channel
-dense kernel would inflate the parameter count by a factor of the hidden width
-$H$.
-DPA4 instead parameterizes the kernel as a rank-$R$ factorization across the
-channel index, with $R$ scalar degree-pair coefficients contracted against a
-learnable channel basis of width $R\leq H$ (main-text Eq.~\ref{eq:dpa4-K-lowrank}).
-Even the rank-$R=1$ form captures most of the benefit: it reduces energy MAE
-from 28.493 to 27.611~meV/atom and force MAE from 38.349 to 35.689~meV/\AA{}
-relative to scalar scaling, corresponding to 3.1\% and 6.9\% improvements,
-respectively (Table~\ref{tab:dpa4_radial_degree_ablation}).
-This improvement is obtained at low additional cost, with training and test
-times increasing only to 1.12$\times$ and 1.10$\times$ the scalar-scaling
-baseline.
-A compact low-rank edge--node product therefore provides a favorable
-accuracy--throughput trade-off before the kernel is made more expressive.
+This ablation tests the low-rank edge--node SO(2)-equivariant product (A1), namely how edge-side angular information conditions the node-side SO(2) message in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
+The scalar-scaling baseline uses only the $l=0$ edge feature to scale edge messages across angular orders, whereas degree mixing builds a cross-degree kernel from the SO(2) Clebsch--Gordan coefficients and the $l>0$ edge spherical harmonics in the local frame, mixing input and output angular degrees at fixed $|m|$ before the SO(2) stack.
+Making this kernel channel-dependent improves expressivity, but a per-channel dense kernel would inflate the parameter count by a factor of the hidden width $H$.
+DPA4 instead parameterizes the kernel as a rank-$R$ factorization across the channel index, with $R$ scalar degree-pair coefficients contracted against a learnable channel basis of width $R\leq H$ (main-text Eq.~\ref{eq:dpa4-K-lowrank}).
+Even the rank-$R=1$ form captures most of the benefit: it reduces energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to 35.689~meV/\AA{} relative to scalar scaling, corresponding to 3.1\% and 6.9\% improvements, respectively (Table~\ref{tab:dpa4_radial_degree_ablation}).
+This improvement is obtained at low additional cost, with training and test times increasing only to 1.12$\times$ and 1.10$\times$ the scalar-scaling baseline.
+A compact low-rank edge--node product therefore provides a favorable accuracy--throughput trade-off before the kernel is made more expressive.
 
-The remaining rank sweep shows that a more expressive edge--node product is not
-monotonically better. Increasing the rank from 1 to 4 gives the best energy and
-force MAEs, but also raises the training cost to 1.86$\times$ the baseline;
-rank 8, rank 16, and the full kernel are still more expensive yet give worse
-force MAEs (Table~\ref{tab:dpa4_radial_degree_ablation}). These results suggest
-that compact per-channel kernels act as a structural regularizer, providing
-enough channel-specific angular mixing without introducing many weakly
-constrained radial--angular interactions.
+The remaining rank sweep shows that a more expressive edge--node product is not monotonically better.
+Increasing the rank from 1 to 4 gives the best energy and force MAEs, but also raises the training cost to 1.86$\times$ the baseline; rank 8, rank 16, and the full kernel are still more expensive yet give worse force MAEs (Table~\ref{tab:dpa4_radial_degree_ablation}).
+These results suggest that compact per-channel kernels act as a structural regularizer, providing enough channel-specific angular mixing without introducing many weakly constrained radial--angular interactions.
 
 \begin{table}[ht]
     \centering
@@ -279,21 +223,20 @@ constrained radial--angular interactions.
             \textbf{Train time (rel.)}$\downarrow$ &
             \textbf{Test time (rel.)}$\downarrow$ \\
             \midrule
-            Scalar scaling & False & N/A & 28.493 & 38.349 & 1.00 & 1.00 \\
-            Degree mixing & False & N/A & 28.494 & 37.212 & 1.09 & 1.06 \\
-            Degree mixing & True & 1 & 27.611 & \underline{35.689} & 1.12 & 1.10 \\
-            Degree mixing & True & 2 & \underline{26.983} & 36.127 & 1.66 & 1.13 \\
-            Degree mixing & True & 4 & \textbf{26.556} & \textbf{35.675} & 1.86 & 1.14 \\
-            Degree mixing & True & 8 & 27.106 & 36.662 & 2.27 & 1.19 \\
-            Degree mixing & True & 16 & 26.984 & 36.401 & 3.09 & 1.34 \\
-            Degree mixing & True & Full & 28.011 & 37.400 & 3.36 & 2.22 \\
+            Scalar scaling & \xmark & N/A & 28.493 & 38.349 & 1.00 & 1.00 \\
+            Degree mixing & \xmark & N/A & 28.494 & 37.212 & 1.09 & 1.06 \\
+            Degree mixing & \cmark & 1 & 27.611 & \underline{35.689} & 1.12 & 1.10 \\
+            Degree mixing & \cmark & 2 & \underline{26.983} & 36.127 & 1.66 & 1.13 \\
+            Degree mixing & \cmark & 4 & \textbf{26.556} & \textbf{35.675} & 1.86 & 1.14 \\
+            Degree mixing & \cmark & 8 & 27.106 & 36.662 & 2.27 & 1.19 \\
+            Degree mixing & \cmark & 16 & 26.984 & 36.401 & 3.09 & 1.34 \\
+            Degree mixing & \cmark & Full & 28.011 & 37.400 & 3.36 & 2.22 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the scalar-scaling
-            baseline. Scalar scaling uses only the $l=0$ edge feature, whereas degree
-            mixing uses higher-degree edge-equivariant features to mix angular degrees in the local
-            SO(2) frame.
+            baseline.
+            Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -302,23 +245,11 @@ constrained radial--angular interactions.
 
 \subsection{\texorpdfstring{$\Sph$}{S2} activation and quadrature}
 
-This ablation separates two coupled design choices in the spherical-grid
-nonlinearity: the model component to which $\Sph$ activation is applied and the
-quadrature rule used to project grid features back to equivariant coefficients
-(Table~\ref{tab:sm_quadrature_ablation}).
-When $\Sph$ activation is restricted to the FFN component, replacing the
-latitude--longitude product grid with the Lebedev rule slightly reduces the
-energy MAE while leaving the force MAE and computational cost essentially
-unchanged. Applying $\Sph$ activation additionally inside the SO(2)
-convolution component does not improve the overall accuracy--cost trade-off
-under this setting; with the product grid, both MAEs increase and the relative
-training and inference costs more than double. In this expanded activation
-configuration, Lebedev quadrature reduces the energy error and lowers the
-relative training and inference costs compared with the product grid, although
-the force MAE remains higher than in the FFN-only configuration. These results indicate that the FFN-only $\Sph$ activation
-configuration with Lebedev quadrature is both more accurate and cheaper than
-the SO(2)+FFN configurations tested here, and is therefore used in the
-released DPA4 variants.
+This ablation separates two coupled design choices in the spherical-grid nonlinearity: the model component to which $\Sph$ activation is applied and the quadrature rule used to project grid features back to equivariant coefficients (Table~\ref{tab:sm_quadrature_ablation}).
+When $\Sph$ activation is restricted to the FFN component, replacing the latitude--longitude product grid with the Lebedev rule slightly reduces the energy MAE while leaving the force MAE and computational cost essentially unchanged.
+Applying $\Sph$ activation additionally inside the SO(2) convolution component does not improve the overall accuracy--cost trade-off under this setting; with the product grid, both MAEs increase and the relative training and inference costs more than double.
+In this expanded activation configuration, Lebedev quadrature reduces the energy error and lowers the relative training and inference costs compared with the product grid, although the force MAE remains higher than in the FFN-only configuration.
+These results indicate that the FFN-only $\Sph$ activation configuration with Lebedev quadrature is both more accurate and cheaper than the SO(2)+FFN configurations tested here, and is therefore used in the released DPA4 variants.
 
 \begin{table}[ht]
     \centering
@@ -336,16 +267,64 @@ released DPA4 variants.
             \textbf{Train time (rel.)}$\downarrow$ &
             \textbf{Test time (rel.)}$\downarrow$                                                                           \\
             \midrule
-            False                                  & True & Product & \underline{29.225} & \textbf{38.055}    & 1.00 & 1.00 \\
-            False                                  & True & Lebedev & \textbf{28.992}    & \underline{38.103} & 0.98 & 1.01 \\
-            True                                   & True & Product & 31.074             & 39.522             & 2.41 & 2.23 \\
-            True                                   & True & Lebedev & 29.709             & 39.808             & 1.98 & 1.76 \\
+            \xmark                                  & \cmark & Product & \underline{29.225} & \textbf{38.055}    & 1.00 & 1.00 \\
+            \xmark                                  & \cmark & Lebedev & \textbf{28.992}    & \underline{38.103} & 0.98 & 1.01 \\
+            \cmark                                   & \cmark & Product & 31.074             & 39.522             & 2.41 & 2.23 \\
+            \cmark                                   & \cmark & Lebedev & 29.709             & 39.808             & 1.98 & 1.76 \\
             \bottomrule
         \end{tabular}
         \begin{tablenotes}
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the FFN-only $\Sph$ row
-            using the latitude--longitude product grid. The quadrature rule is used when projecting
-            $\Sph$-grid features back to equivariant coefficients.
+            using the latitude--longitude product grid.
+            The quadrature rule is used when projecting $\Sph$-grid features back to equivariant coefficients.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\FloatBarrier
+
+\subsection{Wigner bilinear network}
+
+This ablation isolates the two places where the Wigner bilinear network (WBN) enters an interaction block: the equivariant FFN, where the WBN grid replaces the $\Sph$-grid nonlinearity, and the post-aggregation message--node path, where a WBN grid couples the aggregated message with the destination node state (Table~\ref{tab:sm_wbn_ablation}).
+Each of the two insertions is assessed with the other held fixed.
+
+With the message node WBN disabled, the FFN nonlinearity produces the largest single effect: removing it raises the energy MAE by 2.77~meV/atom (7.4\%) and the force MAE by 1.51~meV/\AA{} (3.7\%) relative to the $\Sph$-grid FFN, and replacing that $\Sph$ grid by a WBN grid lowers both errors by a further 0.96~meV/atom (2.8\%) and 0.63~meV/\AA{} (1.6\%) for a 2\% increase in relative training time.
+Enabling the message node WBN helps at either FFN setting.
+On top of the $\Sph$-grid FFN it lowers the energy MAE by 0.79~meV/atom (2.3\%) and the force MAE by 1.10~meV/\AA{} (2.8\%), and on top of the WBN FFN it lowers the force MAE by a further 0.45~meV/\AA{} (1.2\%) while raising the energy MAE by 0.25~meV/atom (0.75\%).
+
+The three configurations that contain a WBN grid therefore differ by at most 0.75\% in energy MAE and 1.2\% in force MAE, three to ten times less than the 2.3--7.4\% effects established above, so this experiment does not separate them.
+Enabling both paths attains the lower force MAE of the two configurations that use a WBN grid in the FFN and is the setting used by the released DPA4 variants.
+The cost of the added capacity falls almost entirely on the parameter count rather than on runtime: across the table the parameter count grows from 1.2~M to 2.0~M while the relative test time grows by only 4\%.
+
+\begin{table}[ht]
+    \centering
+    \scriptsize
+    \begin{threeparttable}
+        \caption{Ablation of the Wigner bilinear network.\tnote{a}}
+        \label{tab:sm_wbn_ablation}
+        \begin{tabular}{@{}ccccccc@{}}
+            \toprule
+            \textbf{FFN nonlinearity}              &
+            \textbf{Message node WBN}              &
+            \textbf{E MAE}$\downarrow$             &
+            \textbf{F MAE}$\downarrow$             &
+            \textbf{Train time (rel.)}$\downarrow$ &
+            \textbf{Test time (rel.)}$\downarrow$  &
+            \textbf{Params}                                                                                  \\
+            \midrule
+            None        & \xmark & 37.213             & 40.653             & 1.00 & 1.00 & 1.2M \\
+            $\Sph$ grid & \xmark & 34.448             & 39.142             & 1.14 & 1.01 & 1.4M \\
+            WBN         & \xmark & \textbf{33.485}    & 38.517             & 1.16 & 1.02 & 1.9M \\
+            $\Sph$ grid & \cmark  & \underline{33.662} & \textbf{38.044}    & 1.24 & 1.02 & 1.6M \\
+            WBN         & \cmark  & 33.736             & \underline{38.069} & 1.23 & 1.04 & 2.0M \\
+            \bottomrule
+        \end{tabular}
+        \begin{tablenotes}
+            \item[a] Train time (rel.) and Test time (rel.) are normalized to the row without an FFN
+            nonlinearity.
+            The FFN nonlinearity column selects the grid on which the equivariant feed-forward
+            nonlinearity is evaluated; when a WBN grid is used in the FFN it supersedes the
+            $\Sph$-grid path.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -354,18 +333,10 @@ released DPA4 variants.
 
 \subsection{Layers}
 
-Interaction depth is the strongest determinant of accuracy among the structural
-hyperparameters (Tables~\ref{tab:sm_layers}--\ref{tab:sm_ffn_stack}). Both errors fall most rapidly over the first few interaction
-blocks and then with diminishing returns, while training and inference cost grow
-approximately linearly with depth (Table~\ref{tab:sm_layers}); the depth of each
-DPA4 variant is therefore chosen to balance accuracy against cost rather than to
-minimize the error alone. Within a block, additional SO(2) sublayers improve
-accuracy steadily at modest cost ($\sim$44\% training-time increase from 2 to
-5 SO(2) sublayers; Table~\ref{tab:sm_so2_stack}), whereas
-deepening the feed-forward sublayer produces only small and partly non-monotonic
-changes (Table~\ref{tab:sm_ffn_stack}). We accordingly retain a single
-feed-forward sublayer and tune the interaction depth and SO(2)-stack depth per
-variant.
+Interaction depth is the strongest determinant of accuracy among the structural hyperparameters (Tables~\ref{tab:sm_layers}--\ref{tab:sm_ffn_stack}).
+Both errors fall most rapidly over the first few interaction blocks and then with diminishing returns, while training and inference cost grow approximately linearly with depth (Table~\ref{tab:sm_layers}); the depth of each DPA4 variant is therefore chosen to balance accuracy against cost rather than to minimize the error alone.
+Within a block, additional SO(2) sublayers improve accuracy steadily at modest cost ($\sim$44\% training-time increase from 2 to 5 SO(2) sublayers; Table~\ref{tab:sm_so2_stack}), whereas deepening the feed-forward sublayer produces only small and partly non-monotonic changes (Table~\ref{tab:sm_ffn_stack}).
+We accordingly retain a single feed-forward sublayer and tune the interaction depth and SO(2)-stack depth per variant.
 
 \begin{table}[ht]
     \centering
@@ -444,22 +415,11 @@ variant.
 \FloatBarrier
 \subsection{Attention-aggregation design variants}
 
-These sweeps vary the attention parameterization around the default single-head
-design, toggling the value projection, the output projection, the pre-mixing,
-and the number of heads for the 64-channel, 96-channel and 96-channel
-two-focus configurations
-(Tables~\ref{tab:sm_attention_64}--\ref{tab:sm_attention_96x2}).
-The value projection is a learnable linear map applied to the message before
-the attention-weighted sum, the output projection is a channel mixing applied
-to the aggregated equivariant feature, and the pre-mixing is a cross-focus channel mixing
-applied to the input before computing attention.
-Across all three configurations, enabling attention with one or more heads
-consistently outperforms the no-attention scatter-sum baseline, in agreement
-with the main attention ablation. The minimal single-head form, without value,
-output or pre-mixing projections, attains the lowest or close to the lowest
-energy MAE; the additional projections and extra heads yield no consistent
-gain while increasing the parameter count. Single-head attention without
-further projections is therefore retained as the default.
+These sweeps vary the attention parameterization around the default single-head design, toggling the value projection, the output projection, the pre-mixing, and the number of heads for the 64-channel, 96-channel and 96-channel two-focus configurations (Tables~\ref{tab:sm_attention_64}--\ref{tab:sm_attention_96x2}).
+The value projection is a learnable linear map applied to the message before the attention-weighted sum, the output projection is a channel mixing applied to the aggregated equivariant feature, and the pre-mixing is a cross-focus channel mixing applied to the input before computing attention.
+Across all three configurations, enabling attention with one or more heads consistently outperforms the no-attention scatter-sum baseline, in agreement with the main attention ablation.
+The minimal single-head form, without value, output or pre-mixing projections, attains the lowest or close to the lowest energy MAE; the additional projections and extra heads yield no consistent gain while increasing the parameter count.
+Single-head attention without further projections is therefore retained as the default.
 
 \begin{table}[ht]
     \centering
@@ -472,17 +432,17 @@ further projections is therefore retained as the default.
         \textbf{Output proj.}      & \textbf{Pre mixing}        &
         \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        0                          & False                      & N/A                  & N/A   & N/A   & 30.691          & 40.072          \\
-        1                          & True                       & False                & False & False & \textbf{27.839} & 38.184          \\
-        1                          & True                       & False                & True  & False & 29.214          & 38.250          \\
-        1                          & True                       & True                 & False & False & 28.773          & 37.775          \\
-        1                          & True                       & True                 & True  & False & 28.656          & 37.688          \\
-        1                          & True                       & True                 & True  & True  & 28.985          & 37.242          \\
-        2                          & True                       & False                & False & False & 28.661          & 37.896          \\
-        2                          & True                       & False                & True  & False & \underline{28.634} & 38.035          \\
-        2                          & True                       & True                 & False & False & 28.958          & \underline{37.056} \\
-        2                          & True                       & True                 & True  & False & 28.936          & \textbf{36.939} \\
-        2                          & True                       & True                 & True  & True  & 28.811          & 37.168          \\
+        0                          & \xmark                      & N/A                  & N/A   & N/A   & 30.691          & 40.072          \\
+        1                          & \cmark                       & \xmark                & \xmark & \xmark & \textbf{27.839} & 38.184          \\
+        1                          & \cmark                       & \xmark                & \cmark  & \xmark & 29.214          & 38.250          \\
+        1                          & \cmark                       & \cmark                 & \xmark & \xmark & 28.773          & 37.775          \\
+        1                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.656          & 37.688          \\
+        1                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.985          & 37.242          \\
+        2                          & \cmark                       & \xmark                & \xmark & \xmark & 28.661          & 37.896          \\
+        2                          & \cmark                       & \xmark                & \cmark  & \xmark & \underline{28.634} & 38.035          \\
+        2                          & \cmark                       & \cmark                 & \xmark & \xmark & 28.958          & \underline{37.056} \\
+        2                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.936          & \textbf{36.939} \\
+        2                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.811          & 37.168          \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -498,22 +458,22 @@ further projections is therefore retained as the default.
         \textbf{Output proj.}      & \textbf{Pre mixing}        &
         \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        0                          & False                      & N/A                  & N/A   & N/A   & 30.068          & 38.407          \\
-        1                          & True                       & False                & False & False & \textbf{27.567} & 36.127          \\
-        1                          & True                       & False                & True  & False & 28.301          & 36.065          \\
-        1                          & True                       & True                 & False & False & 28.578          & 36.350          \\
-        1                          & True                       & True                 & True  & False & 28.430          & 36.321          \\
-        1                          & True                       & True                 & True  & True  & 28.975          & 36.225          \\
-        2                          & True                       & False                & False & False & 27.732          & 36.680          \\
-        2                          & True                       & False                & True  & False & 28.074          & 36.288          \\
-        2                          & True                       & True                 & False & False & \underline{27.571} & 36.119          \\
-        2                          & True                       & True                 & True  & False & 27.968          & \textbf{35.457} \\
-        2                          & True                       & True                 & True  & True  & 28.473          & 35.858          \\
-        3                          & True                       & False                & False & False & 28.170          & 36.419          \\
-        3                          & True                       & False                & True  & False & 28.016          & 36.017          \\
-        3                          & True                       & True                 & False & False & 27.593          & \underline{35.639} \\
-        3                          & True                       & True                 & True  & False & 27.722          & 35.809          \\
-        3                          & True                       & True                 & True  & True  & 28.126          & 36.100          \\
+        0                          & \xmark                      & N/A                  & N/A   & N/A   & 30.068          & 38.407          \\
+        1                          & \cmark                       & \xmark                & \xmark & \xmark & \textbf{27.567} & 36.127          \\
+        1                          & \cmark                       & \xmark                & \cmark  & \xmark & 28.301          & 36.065          \\
+        1                          & \cmark                       & \cmark                 & \xmark & \xmark & 28.578          & 36.350          \\
+        1                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.430          & 36.321          \\
+        1                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.975          & 36.225          \\
+        2                          & \cmark                       & \xmark                & \xmark & \xmark & 27.732          & 36.680          \\
+        2                          & \cmark                       & \xmark                & \cmark  & \xmark & 28.074          & 36.288          \\
+        2                          & \cmark                       & \cmark                 & \xmark & \xmark & \underline{27.571} & 36.119          \\
+        2                          & \cmark                       & \cmark                 & \cmark  & \xmark & 27.968          & \textbf{35.457} \\
+        2                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.473          & 35.858          \\
+        3                          & \cmark                       & \xmark                & \xmark & \xmark & 28.170          & 36.419          \\
+        3                          & \cmark                       & \xmark                & \cmark  & \xmark & 28.016          & 36.017          \\
+        3                          & \cmark                       & \cmark                 & \xmark & \xmark & 27.593          & \underline{35.639} \\
+        3                          & \cmark                       & \cmark                 & \cmark  & \xmark & 27.722          & 35.809          \\
+        3                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.126          & 36.100          \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -529,28 +489,28 @@ further projections is therefore retained as the default.
         \textbf{Output proj.}      & \textbf{Pre mixing}        &
         \textbf{E MAE}$\downarrow$ & \textbf{F MAE}$\downarrow$                                                                            \\
         \midrule
-        0                          & False                      & N/A                  & N/A   & N/A   & 30.935          & 36.639          \\
-        1                          & True                       & False                & False & False & \underline{28.083} & 34.158          \\
-        1                          & True                       & False                & True  & False & 28.449          & 34.508          \\
-        1                          & True                       & True                 & False & False & 28.363          & 34.460          \\
-        1                          & True                       & True                 & True  & False & 28.212          & 35.045          \\
-        1                          & True                       & True                 & True  & True  & 28.885          & 35.387          \\
-        2                          & True                       & False                & False & False & 28.335          & \underline{34.013} \\
-        2                          & True                       & False                & True  & False & 28.401          & 34.361          \\
-        2                          & True                       & True                 & False & False & \textbf{27.814} & \textbf{33.786} \\
-        2                          & True                       & True                 & True  & False & 28.440          & 34.440          \\
-        2                          & True                       & True                 & True  & True  & 28.968          & 35.507          \\
-        3                          & True                       & False                & False & False & 28.506          & 34.560          \\
-        3                          & True                       & False                & True  & False & 29.274          & 34.624          \\
-        3                          & True                       & True                 & False & False & 28.907          & 34.412          \\
-        3                          & True                       & True                 & True  & False & 28.609          & 34.869          \\
-        3                          & True                       & True                 & True  & True  & 28.957          & 34.719          \\
-        4                          & True                       & True                 & True  & True  & 28.736          & 34.603          \\
-        6                          & True                       & False                & False & False & 28.757          & 34.289          \\
-        6                          & True                       & False                & True  & False & 28.968          & 34.778          \\
-        6                          & True                       & True                 & False & False & 29.027          & 34.313          \\
-        6                          & True                       & True                 & True  & False & 28.397          & 34.541          \\
-        6                          & True                       & True                 & True  & True  & 29.483          & 34.889          \\
+        0                          & \xmark                      & N/A                  & N/A   & N/A   & 30.935          & 36.639          \\
+        1                          & \cmark                       & \xmark                & \xmark & \xmark & \underline{28.083} & 34.158          \\
+        1                          & \cmark                       & \xmark                & \cmark  & \xmark & 28.449          & 34.508          \\
+        1                          & \cmark                       & \cmark                 & \xmark & \xmark & 28.363          & 34.460          \\
+        1                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.212          & 35.045          \\
+        1                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.885          & 35.387          \\
+        2                          & \cmark                       & \xmark                & \xmark & \xmark & 28.335          & \underline{34.013} \\
+        2                          & \cmark                       & \xmark                & \cmark  & \xmark & 28.401          & 34.361          \\
+        2                          & \cmark                       & \cmark                 & \xmark & \xmark & \textbf{27.814} & \textbf{33.786} \\
+        2                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.440          & 34.440          \\
+        2                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.968          & 35.507          \\
+        3                          & \cmark                       & \xmark                & \xmark & \xmark & 28.506          & 34.560          \\
+        3                          & \cmark                       & \xmark                & \cmark  & \xmark & 29.274          & 34.624          \\
+        3                          & \cmark                       & \cmark                 & \xmark & \xmark & 28.907          & 34.412          \\
+        3                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.609          & 34.869          \\
+        3                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.957          & 34.719          \\
+        4                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 28.736          & 34.603          \\
+        6                          & \cmark                       & \xmark                & \xmark & \xmark & 28.757          & 34.289          \\
+        6                          & \cmark                       & \xmark                & \cmark  & \xmark & 28.968          & 34.778          \\
+        6                          & \cmark                       & \cmark                 & \xmark & \xmark & 29.027          & 34.313          \\
+        6                          & \cmark                       & \cmark                 & \cmark  & \xmark & 28.397          & 34.541          \\
+        6                          & \cmark                       & \cmark                 & \cmark  & \cmark  & 29.483          & 34.889          \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -558,13 +518,9 @@ further projections is therefore retained as the default.
 \FloatBarrier
 \subsection{Normalization placement}
 
-Normalization placement is examined by applying RMSNorm as pre-normalization,
-post-normalization or both within the SO(2) and feed-forward sublayers
-(Table~\ref{tab:sm_stability}). A single
-normalization per sublayer is consistently more accurate than applying both,
-which adds layers without benefit. SO(2) post-normalization combined with
-feed-forward pre-normalization yields the lowest energy MAE and close to the
-lowest force MAE, and this placement is used throughout.
+Normalization placement is examined by applying RMSNorm as pre-normalization, post-normalization or both within the SO(2) and feed-forward sublayers (Table~\ref{tab:sm_stability}).
+A single normalization per sublayer is consistently more accurate than applying both, which adds layers without benefit.
+SO(2) post-normalization combined with feed-forward pre-normalization yields the lowest energy MAE and close to the lowest force MAE, and this placement is used throughout.
 
 \begin{table}[ht]
     \centering
@@ -580,15 +536,15 @@ lowest force MAE, and this placement is used throughout.
         \textbf{E MAE}$\downarrow$                    &
         \textbf{F MAE}$\downarrow$                                                                      \\
         \midrule
-        True                                               & False & True  & False & \underline{28.493} & 37.683          \\
-        False                                              & True  & True  & False & \textbf{28.013} & \underline{37.624} \\
-        True                                               & False & False & True  & 30.237          & 38.608          \\
-        False                                              & True  & False & True  & 29.321          & \textbf{37.466} \\
-        True                                               & False & True  & True  & 29.322          & 38.548          \\
-        True                                               & True  & True  & False & 28.987          & 38.250          \\
-        False                                              & True  & True  & True  & 28.808          & 37.840          \\
-        True                                               & True  & False & True  & 29.841          & 39.068          \\
-        True                                               & True  & True  & True  & 30.215          & 39.208          \\
+        \cmark                                               & \xmark & \cmark  & \xmark & \underline{28.493} & 37.683          \\
+        \xmark                                              & \cmark  & \cmark  & \xmark & \textbf{28.013} & \underline{37.624} \\
+        \cmark                                               & \xmark & \xmark & \cmark  & 30.237          & 38.608          \\
+        \xmark                                              & \cmark  & \xmark & \cmark  & 29.321          & \textbf{37.466} \\
+        \cmark                                               & \xmark & \cmark  & \cmark  & 29.322          & 38.548          \\
+        \cmark                                               & \cmark  & \cmark  & \xmark & 28.987          & 38.250          \\
+        \xmark                                              & \cmark  & \cmark  & \cmark  & 28.808          & 37.840          \\
+        \cmark                                               & \cmark  & \xmark & \cmark  & 29.841          & 39.068          \\
+        \cmark                                               & \cmark  & \cmark  & \cmark  & 30.215          & 39.208          \\
         \bottomrule
     \end{tabular*}
 \end{table}
@@ -596,11 +552,8 @@ lowest force MAE, and this placement is used throughout.
 \FloatBarrier
 \subsection{Learning-rate scheduler comparison}
 
-Under otherwise identical settings, the warmup--stable--decay (WSD) schedule
-lowers both the energy and force MAEs relative to a cosine schedule
-(Table~\ref{tab:sm_training_recipe}). This advantage is consistent with its
-extended high-learning-rate phase and short terminal decay, and the WSD schedule
-is used for the released DPA4 variants.
+Under otherwise identical settings, the warmup--stable--decay (WSD) schedule lowers both the energy and force MAEs relative to a cosine schedule (Table~\ref{tab:sm_training_recipe}).
+This advantage is consistent with its extended high-learning-rate phase and short terminal decay, and the WSD schedule is used for the released DPA4 variants.
 
 \begin{table}[ht]
     \centering
@@ -620,119 +573,28 @@ is used for the released DPA4 variants.
 \end{table}
 
 \FloatBarrier
-\section{Supplementary inference benchmarks}
+\section{Inference benchmark protocol}
 \label{sec:sm-inference}
 
-The throughput trends reported in Section~\ref{sec:efficiency} use the ASE
-\texttt{inorganic\_500} structures. To check that they are not specific to that
-structure distribution, we repeat the sweep on the ASE \texttt{catalysts\_500}
-structures, which target surface and catalyst geometries from a different
-research domain.
+The throughput reported in Section~\ref{sec:efficiency} is measured on diamond supercells, which give a single-composition system whose size can be varied over more than two orders of magnitude while the local environment stays fixed; at the 6~\AA{} cutoff used by DPA4 every atom carries 158 neighbours, so the test is representative of a comparatively dense environment.
+Each point averages 30 single-point evaluations after warm-up, and the sweep for each model terminates at the largest supercell that fits in the memory of one GPU.
+MACE-Omat-Small and MACE-Omat-Medium are the \texttt{mace-omat-0-small} and \texttt{mace-omat-0-medium} checkpoints of the MACE-OMAT-0 release~\cite{batatia2025crosslearning}, obtained from \url{https://github.com/ACEsuit/mace-foundations}; the same checkpoints supply the MACE-Omat rows of Table~\ref{tab:omat24}.
+The EquiformerV3 timing uses the MPtrj checkpoint of the $L_{\max}=4$ architecture, which carries the same parameter count and layer structure as the OMat24 model of Table~\ref{tab:omat24} and therefore the same inference cost.
 
-All ASE inference benchmarks were run on the same NVIDIA H20 hardware and base
-system environment with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0. The
-benchmarks used the ASE calculator
-interface~\cite{ase-paper}; DPA4 calculators used compiled inference with
-Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy 2.4.4. The MACE
-baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning} used
-MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128; the OPT variants used
-NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
-EquiformerV3~\cite{liao2026equiformerv3} used the
-\texttt{atomicarchitects/equiformer\_v3} implementation at commit
-\texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128. All ASE baseline
-environments used ASE 3.28.0 and NumPy 2.4.4.
-
-
-% \FloatBarrier
-% \section{Supplementary inference benchmarks}
-
-% Supplementary inference benchmarks were conducted to assess whether the
-% throughput trends in Section~\ref{sec:efficiency} are robust to the simulated
-% structure and software interface. The main text reports the ASE
-% \texttt{inorganic\_500} comparison; here we provide the corresponding ASE
-% \texttt{catalysts\_500} sweep to test whether the calculator-interface trends
-% are robust to the repeated seed structure.
-
-% All ASE inference benchmarks were run on the same NVIDIA H20 hardware and base
-% system environment with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0. The
-% benchmarks used the ASE calculator
-% interface~\cite{ase-paper}; DPA4 calculators used compiled inference with
-% Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy 2.4.4. The MACE
-% baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning} used
-% MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128; the OPT variants used
-% NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
-% EquiformerV3~\cite{liao2026equiformerv3} used the
-% \texttt{atomicarchitects/equiformer\_v3} implementation at commit
-% \texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128. All ASE baseline
-% environments used ASE 3.28.0 and NumPy 2.4.4.
-
-% % LAMMPS inference benchmarks are excluded from the current manuscript draft.
-% \iffalse
-% \begin{figure}[p]
-%     \centering
-%     \includegraphics[width=\textwidth]{fig/inorganic.pdf}
-%     \caption{
-%         LAMMPS inference throughput on the LAMBench \texttt{inorganic\_500}
-%         test~\cite{peng2025lambench}.
-%         The benchmark repeats one inorganic seed structure to different system
-%         sizes and measures molecular-dynamics throughput through the
-%         LAMMPS--DeePMD-kit interface~\cite{thompson2022lammps,zeng2025deepmdv3}
-%         after warm-up.
-%     }
-%     \label{fig:sm_lmp_inorganic}
-% \end{figure}
-
-% \begin{figure}[p]
-%     \centering
-%     \includegraphics[width=\textwidth]{fig/catalysts.pdf}
-%     \caption{
-%         LAMMPS inference throughput on the LAMBench \texttt{catalysts\_500}
-%         test~\cite{peng2025lambench}.
-%         The benchmark repeats one catalyst seed structure to different system
-%         sizes and measures molecular-dynamics throughput through the
-%         LAMMPS--DeePMD-kit interface~\cite{thompson2022lammps,zeng2025deepmdv3}
-%         after warm-up.
-%     }
-%     \label{fig:sm_lmp_catalysts}
-% \end{figure}
-
-% The two LAMMPS sweeps provide a complementary molecular-dynamics view of
-% deployment throughput. Their ranking differs from the ASE calculator comparison
-% in the main text: in the LAMMPS path, the MACE baselines give the highest
-% throughput, and their advantage is most evident for the largest repeated
-% systems. This difference shows that end-to-end deployment speed depends not only
-% on the neural-network architecture but also on the molecular-dynamics driver,
-% neighbor-list path and model-interface implementation. DPA4-Neo and DPA4-Air
-% nevertheless retain practical molecular-dynamics throughput despite their
-% equivariant message passing.
-% \fi
-
-\begin{figure}[!ht]
-    \centering
-    \includegraphics[width=0.82\textwidth]{fig/ase-catalysts_500.pdf}
-    \caption{
-        ASE inference throughput on the LAMBench \texttt{catalysts\_500}
-        test~\cite{peng2025lambench}.
-        The protocol is identical to Fig.~\ref{fig:ase_inorganic_infer}
-        except for the repeated seed structure.
-        OPT denotes MACE inference with NVIDIA cuEquivariance-accelerated
-        equivariant kernels~\cite{nvidia_cuequivariance}.
-    }
-    \label{fig:sm_ase_catalysts}
-\end{figure}
+All ASE inference benchmarks were run on the same NVIDIA H20 hardware and base system environment with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0.
+The benchmarks used the ASE calculator interface~\cite{ase-paper}; DPA4 calculators used compiled inference with Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy 2.4.4.
+The MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning} used MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128; the cuEq variants used NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
+EquiformerV3~\cite{liao2026equiformerv3} used the \texttt{atomicarchitects/equiformer\_v3} implementation at commit \texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128.
+All ASE baseline environments used ASE 3.28.0 and NumPy 2.4.4.
 
 \section{Model and training configurations}
 
 \subsection{Ablation model configurations}
 
-Table~\ref{tab:sm_main_ablation_config} gives the configurations for the
-mechanism ablations: graph compilation, attention aggregation, multi-focus
-design, the low-rank edge--node SO(2)-equivariant product and $\Sph$
-activation. Table~\ref{tab:sm_supplementary_ablation_config} gives those for
-the model-selection and robustness ablations. Entries marked by ``--'' are the
-controlled variables within the corresponding experiment family; all other
-entries define the shared reference setting. Horizontal rules separate related
-groups of hyperparameters without adding category labels to the table body.
+Table~\ref{tab:sm_main_ablation_config} gives the configurations for the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant product, $\Sph$ activation, the Wigner bilinear network, and the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN grid in the FFN, the edge--node product and the attention aggregation.
+Table~\ref{tab:sm_supplementary_ablation_config} gives those for the model-selection and robustness ablations.
+Entries marked by ``--'' are the controlled variables within the corresponding experiment family; all other entries define the shared reference setting.
+Horizontal rules separate related groups of hyperparameters without adding category labels to the table body.
 
 \begin{table}[p]
     \centering
@@ -741,64 +603,59 @@ groups of hyperparameters without adding category labels to the table body.
     \caption{Ablation model configurations (1).}
     \label{tab:sm_main_ablation_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.9cm}C{1.9cm}C{1.9cm}C{1.9cm}C{1.9cm}C{1.9cm}@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.4cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}@{}}
             \toprule
-            \textbf{Hyperparameter} &
-            \makecell{\textbf{Compile/}\\\textbf{precision}} &
-            \textbf{Attention} &
-            \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} &
-            \makecell{\textbf{Edge--node}\\\textbf{product}} &
-            \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} \\
+            \textbf{Hyperparameter}      & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention}                                                     & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{product}} & \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} & \textbf{WBN} & \makecell{\textbf{Cumulative}\\\textbf{ablation}} \\
             \midrule
-            Feature dim. & 64 & 64/96/96 & -- & 64 & 64 \\
-            No. focuses & 1 & 1/1/2 & -- & 1 & 1 \\
-            No. layers & 3 & 3 & 2 & 3 & 3 \\
-            SO(2) layers & 4 & 4 & 4 & 4 & 4 \\
-            FFN layers & 1 & 1 & 1 & 1 & 1 \\
+            Feature dim.                 & 64                                               & 64/96/96                                                               & --                                              & 64                                               & 64                                          & 64 & 64 \\
+            No. focuses                  & 1                                                & 1/1/2                                                                  & --                                              & 1                                                & 1                                           & 1 & 1 \\
+            No. layers                   & 3                                                & 3                                                                      & 2                                               & 3                                                & 3                                           & 2 & 2 \\
+            SO(2) layers                 & 4                                                & 4                                                                      & 4                                               & 4                                                & 4                                           & 4 & 4 \\
+            FFN layers                   & 1                                                & 1                                                                      & 1                                               & 1                                                & 1                                           & 1 & 1 \\
             \midrule
-            Radial basis & Bessel & Bessel & Bessel & Bessel & Bessel \\
-            No. radial bases & 16 & 16 & 16 & 16 & 16 \\
-            $L_{\max}$ & 3 & 3 & 3 & 3 & 3 \\
-            $M_{\max}$ & 1 & 1 & 1 & 1 & 1 \\
+            Radial basis                 & Bessel                                           & Bessel                                                                 & Bessel                                          & Bessel                                           & Bessel                                      & Bessel & Bessel \\
+            No. radial bases             & 16                                               & 16                                                                     & 16                                              & 16                                               & 16                                          & 16 & 16 \\
+            $L_{\max}$                   & 3                                                & 3                                                                      & 3                                               & 3                                                & 3                                           & 2 & 2 \\
+            $M_{\max}$                   & 1                                                & 1                                                                      & 1                                               & 1                                                & 1                                           & 1 & 1 \\
             \midrule
-            Edge--node product & Degree mixing & Scalar scaling & Scalar scaling & -- & Degree mixing \\
-            Per-channel mod. & True & N/A & N/A & -- & True \\
-            Rank & 1 & N/A & N/A & -- & 1 \\
-            Attn. heads & 1 & -- & 1 & 1 & 1 \\
-            Value proj. & False & False & False & False & False \\
-            Output proj. & False & False & False & False & False \\
-            Pre mixing & False & False & False & False & False \\
-            FFN hidden dim. & Auto & Auto & Auto & Auto & Auto \\
-            S2 act. & FFN only & FFN only & FFN only & FFN only & -- \\
-            Quadrature & Lebedev & Lebedev & Product & Lebedev & -- \\
-            Norm. placement & Post \& Pre & Post \& Pre & Pre \& Pre & Post \& Pre & Pre \& Pre \\
-            Activation func. & SiLU & SiLU & SiLU & SiLU & SiLU \\
-            GLU & True & True & True & True & True \\
-            Output fitting dim. & Auto & Auto & Auto & Auto & Auto \\
-            Output fitting layers & 1 & 1 & 1 & 1 & 1 \\
+            Edge--node product\tnote{g}  & Degree mixing                                    & Scalar scaling                                                         & Scalar scaling                                  & --                                               & Degree mixing                               & Degree mixing & -- \\
+            Per-channel mod.             & True                                             & N/A                                                                    & N/A                                             & --                                               & True                                        & True & -- \\
+            Rank                         & 1                                                & N/A                                                                    & N/A                                             & --                                               & 1                                           & 2 & -- \\
+            Attn. heads                  & 1                                                & --                                                                     & 1                                               & 1                                                & 1                                           & 1 & -- \\
+            Attention value/output proj. & False                                            & False                                                                  & False                                           & False                                            & False                                       & False & False \\
+            Pre mixing                   & False                                            & False                                                                  & False                                           & False                                            & False                                       & False & False \\
+            Message node WBN    & False                                            & False                                                                  & False                                           & False                                            & False                                       & -- & -- \\
+            S2 act.                      & FFN only                                         & FFN only                                                               & FFN only                                        & FFN only                                         & --                                          & -- & -- \\
+            WBN in FFN                   & False                                            & False                                                                  & False                                           & False                                            & False                                       & -- & -- \\
+            Quadrature                   & Lebedev                                          & Lebedev                                                                & Product                                         & Lebedev                                          & --                                          & Lebedev & Lebedev \\
+            Norm. placement\tnote{e}     & Post \& Pre                                      & Post \& Pre                                                            & Pre \& Pre                                      & Post \& Pre                                      & Pre \& Pre                                  & Post \& Pre & Post \& Pre \\
+            Activation func.             & SiLU                                             & SiLU                                                                   & SiLU                                            & SiLU                                             & SiLU                                        & SiLU & SiLU \\
+            FFN hidden dim.              & Auto\tnote{f}                                    & Auto                                                                   & Auto                                            & Auto                                             & Auto                                        & Auto & Auto \\
+            SO(3) read-out               & False                                            & False                                                                  & False                                           & False                                            & False                                       & False & False \\
+            Output fitting dim.          & Auto                                             & Auto                                                                   & Auto                                            & Auto                                             & Auto                                        & Auto & Auto \\
+            Output fitting layers        & 1                                                & 1                                                                      & 1                                               & 1                                                & 1                                           & 1 & 1 \\
             \midrule
-            Compile & -- & True & True & True & True \\
-            bf16 AMP & -- & True & True & True & True \\
-            TF32 matmul & -- & True & True & True & True \\
-            LR scheduler & Cosine & Cosine & WSD & Cosine & Cosine \\
-            Max. LR & $4\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 \\
-            Decay ratio & N/A & N/A & 0.65 & N/A & N/A \\
-            Decay type & N/A & N/A & Cosine & N/A & N/A \\
-            Batch size (per GPU) & $\lceil 450/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$ & $\lceil 1000/N\rceil$ & $\lceil 700/N\rceil$ \\
-            Training steps & $1\times10^6$ & $1\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ \\
-            No. GPUs & 1 & 1 & 1 & 1 & 1 \\
+            Compile                      & --                                               & True                                                                   & True                                            & True                                             & True                                        & True & True \\
+            bf16 AMP                     & --                                               & True                                                                   & True                                            & True                                             & True                                        & True & True \\
+            TF32 matmul                  & --                                               & True                                                                   & True                                            & True                                             & True                                        & True & True \\
+            LR scheduler                 & Cosine                                           & Cosine                                                                 & WSD                                             & Cosine                                           & Cosine                                      & WSD & WSD \\
+            Max. LR                      & $4\times10^{-4}$                                 & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$}                              & $4\times10^{-4}$                                & $4.5\times10^{-4}$                               & $4.5\times10^{-4}$                          & $4\times10^{-4}$ & $4\times10^{-4}$ \\
+            Min. LR                      & $1\times10^{-6}$                                 & $1\times10^{-6}$                                                       & $1\times10^{-6}$                                & $1\times10^{-6}$                                 & $1\times10^{-6}$                            & $1\times10^{-6}$ & $1\times10^{-6}$ \\
+            Warmup ratio                 & 0.003                                            & 0.003                                                                  & 0.003                                           & 0.003                                            & 0.003                                       & 0.003 & 0.003 \\
+            Decay ratio                  & N/A                                              & N/A                                                                    & 0.65                                            & N/A                                              & N/A                                         & 0.65 & 0.65 \\
+            Decay type                   & N/A                                              & N/A                                                                    & Cosine                                          & N/A                                              & N/A                                         & Cosine & Cosine \\
+            Batch size (per GPU)\tnote{c} & $\lceil 450/N\rceil$                            & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$                      & $\lceil 1000/N\rceil$                            & $\lceil 700/N\rceil$                        & $\lceil 900/N\rceil$ & $\lceil 900/N\rceil$ \\
+            Training steps               & $1\times10^6$                                    & $1\times10^6$                                                          & $2\times10^6$                                   & $1\times10^6$                                    & $1\times10^6$                               & $5\times10^5$ & $1\times10^6$ \\
+            No. GPUs                     & 1                                                & 1                                                                      & 1                                               & 1                                                & 1                                           & 1 & 1 \\
             \midrule
-            Loss & MAE & MAE & MAE & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
-            Optimizer & HybridMuon & HybridMuon & HybridMuon & HybridMuon & HybridMuon \\
-            Muon mode & Slice & Slice & Slice & Slice & Slice \\
-            Magma Lite & True & True & True & True & True \\
-            Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ \\
+            Loss                         & MAE                                              & MAE                                                                    & MAE                                             & MAE                                              & MAE                                         & MAE & MAE \\
+            Loss weights $(E,F,V)$       & 20, 20, 5                                        & 20, 20, 5                                                              & 20, 20, 5                                       & 20, 20, 5                                        & 20, 20, 5                                   & 20, 20, 5 & 20, 20, 5 \\
+            Optimizer                    & HybridMuon                                       & HybridMuon                                                             & HybridMuon                                      & HybridMuon                                       & HybridMuon                                  & HybridMuon & HybridMuon \\
+            Muon mode                    & Slice                                            & Slice                                                                  & Slice                                           & Slice                                            & Slice                                       & Slice & Slice \\
+            Magma Lite                   & True                                             & True                                                                   & True                                            & True                                             & True                                        & True & True \\
+            Weight decay                 & $1\times10^{-3}$                                 & $1\times10^{-3}$                                                       & $1\times10^{-3}$                                & $1\times10^{-3}$                                 & $1\times10^{-3}$                            & $1\times10^{-3}$ & $1\times10^{-3}$ \\
             \midrule
-            Cutoff (\AA) & 6 & 6 & 6 & 6 & 6 \\
-            Max. neighbors & 384 & 384 & 384 & 384 & 384 \\
+            Cutoff (\AA)                 & 6                                                & 6                                                                      & 6                                               & 6                                                & 6                                           & 6 & 6 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
@@ -812,8 +669,7 @@ groups of hyperparameters without adding category labels to the table body.
             \item[e] In the normalization-placement entry, the first term refers to the SO(2)
             subblock and the second term to the FFN subblock.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
-            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
-            $4d_\mathrm{feat}$ otherwise.
+            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$.
             \item[g] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
             uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
@@ -829,14 +685,9 @@ groups of hyperparameters without adding category labels to the table body.
     \caption{Ablation model configurations (2).}
     \label{tab:sm_supplementary_ablation_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.1cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} &
-            \textbf{Layers} &
-            \makecell{\textbf{SO(2)}\\\textbf{stack}} &
-            \makecell{\textbf{FFN}\\\textbf{stack}} &
-            \textbf{Attention} &
-            \makecell{\textbf{Norm.}\\\textbf{placement}} &
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{2.1cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}C{1.7cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{Layers} & \makecell{\textbf{SO(2)}\\\textbf{stack}} & \makecell{\textbf{FFN}\\\textbf{stack}} & \textbf{Attention} & \makecell{\textbf{Norm.
+                }\\\textbf{placement}} &
             \makecell{\textbf{LR}\\\textbf{scheduler}} \\
             \midrule
             Feature dim. & 64 & 64 & 64 & 64/96/96 & 64 & 64 \\
@@ -854,15 +705,16 @@ groups of hyperparameters without adding category labels to the table body.
             Per-channel mod. & N/A & True & True & N/A & N/A & True \\
             Rank & N/A & 1 & 1 & N/A & N/A & 1 \\
             Attn. heads & 1 & 1 & 1 & -- & 1 & 1 \\
-            Value proj. & False & False & False & -- & False & False \\
-            Output proj. & False & False & False & -- & False & False \\
+            Attention value/output proj. & False & False & False & -- & False & False \\
             Pre mixing & False & False & False & -- & False & False \\
-            FFN hidden dim. & Auto & Auto & Auto & Auto & Auto & Auto \\
+            Message node WBN & False & False & False & False & False & False \\
             S2 act. & FFN only & FFN only & FFN only & FFN only & FFN only & FFN only \\
+            WBN in FFN & False & False & False & False & False & False \\
             Quadrature & Product & Lebedev & Lebedev & Lebedev & Product & Lebedev \\
             Norm. placement & Pre \& Pre & Post \& Pre & Post \& Pre & Post \& Pre & -- & Post \& Pre \\
             Activation func. & SiLU & SiLU & SiLU & SiLU & SiLU & SiLU \\
-            GLU & True & True & True & True & True & True \\
+            FFN hidden dim. & Auto & Auto & Auto & Auto & Auto & Auto \\
+            SO(3) read-out & False & False & False & False & False & False \\
             Output fitting dim. & Auto & Auto & Auto & Auto & Auto & Auto \\
             Output fitting layers & 1 & 1 & 1 & 1 & 1 & 1 \\
             \midrule
@@ -870,24 +722,10 @@ groups of hyperparameters without adding category labels to the table body.
             bf16 AMP & True & True & True & True & True & True \\
             TF32 matmul & True & True & True & True & True & True \\
             LR scheduler & Cosine & WSD & WSD & Cosine & WSD & -- \\
-            Max. LR & $5\times10^{-4}$ & $6.5\times10^{-4}$ & $4.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup steps & 5000 & 5000 & 5000 & 5000 & 5000 & 5000 \\
-            Decay ratio & N/A & 0.65 & 0.65 & N/A & 0.65 & -- \\
-            Decay type & N/A & Cosine & Cosine & N/A & Cosine & -- \\
-            Batch size (per GPU) & $\lceil 512/N\rceil$ & $\lceil 2100/N\rceil$ & $\lceil 900/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 1000/N\rceil$ & $\lceil 1000/N\rceil$ \\
-            Training steps & $2\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ \\
-            No. GPUs & 1 & 1 & 1 & 1 & 1 & 1 \\
-            \midrule
-            Loss & MAE & MAE & MAE & MAE & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
-            Optimizer & HybridMuon & HybridMuon & HybridMuon & HybridMuon & HybridMuon & HybridMuon \\
-            Muon mode & Slice & Slice & Slice & Slice & Slice & Slice \\
-            Magma Lite & True & True & True & True & True & True \\
-            Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ \\
-            \midrule
-            Cutoff (\AA) & 6 & 6 & 6 & 6 & 6 & 6 \\
-            Max. neighbors & 384 & 384 & 384 & 384 & 384 & 384 \\
+            Max.
+            LR & $5\times10^{-4}$ & $6.5\times10^{-4}$ & $4.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & N/A & 0.65 & 0.65 & N/A & 0.65 & -- \\ Decay type & N/A & Cosine & Cosine & N/A & Cosine & -- \\ Batch size (per GPU) & $\lceil 512/N\rceil$ & $\lceil 2100/N\rceil$ & $\lceil 900/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 1000/N\rceil$ & $\lceil 1000/N\rceil$ \\ Training steps & $2\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ \\ No.
+            GPUs & 1 & 1 & 1 & 1 & 1 & 1 \\ \midrule Loss & MAE & MAE & MAE & MAE & MAE & MAE \\ Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\ Optimizer & HybridMuon & HybridMuon & HybridMuon & HybridMuon & HybridMuon & HybridMuon \\ Muon mode & Slice & Slice & Slice & Slice & Slice & Slice \\ Magma Lite & True & True & True & True & True & True \\ Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ \\ \midrule Cutoff (\AA) & 6 & 6 & 6 & 6 & 6 & 6 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
@@ -901,8 +739,7 @@ groups of hyperparameters without adding category labels to the table body.
             \item[e] In the normalization-placement entry, the first term refers to the SO(2)
             subblock and the second term to the FFN subblock.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
-            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
-            $4d_\mathrm{feat}$ otherwise.
+            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$.
             \item[g] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
             uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
@@ -912,89 +749,69 @@ groups of hyperparameters without adding category labels to the table body.
 
 \subsection{Benchmark model configurations}
 
-Table~\ref{tab:sm_matbench_config} gives the model hyperparameters for the
-Matbench Discovery benchmark, and Table~\ref{tab:sm_spice_mace_off_config}
-those for the SPICE-MACE-OFF benchmark.
+Table~\ref{tab:sm_model_config} lists the model and systems configurations of the four released DPA4 size classes, which are shared by every benchmark reported in this work; only the training schedule varies between datasets.
+Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omol25_config} and \ref{tab:sm_spice_mace_off_config} give the training hyperparameters for the Matbench Discovery, OMat24, OMol25 and SPICE-MACE-OFF benchmarks, respectively.
 
 \begin{table}[p]
     \centering
     \scriptsize
     \setlength{\tabcolsep}{3pt}
-    \caption{Matbench Discovery model hyperparameters.}
-    \label{tab:sm_matbench_config}
+    \caption{DPA4 model and systems configurations of the four released size classes, shared by all benchmarks.}
+    \label{tab:sm_model_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{3.0cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
             \toprule
-            \textbf{Hyperparameter} &
-            \textbf{DPA4-Neo} &
-            \textbf{DPA4-Air} &
-            \textbf{DPA4-Plus} &
-            \textbf{DPA4-Pro} \\
+            \textbf{Hyperparameter}      & \textbf{DPA4-Mini} & \textbf{DPA4-Neo}  & \textbf{DPA4-Air}  & \textbf{DPA4-Plus} & \textbf{DPA4-Pro}  \\
             \midrule
-            Feature dim. & 64 & 64 & 64 & 64 \\
-            No. focuses & 1 & 1 & 1 & 2 \\
-            No. layers & 2 & 3 & 4 & 6 \\
-            SO(2) layers & 3 & 4 & 4 & 4 \\
-            FFN layers & 1 & 1 & 1 & 1 \\
+            Feature dim.                 & 32                 & 64                 & 64                 & 64                 & 128                \\
+            No. focuses                  & 1                  & 2                  & 1                  & 1                  & 2                  \\
+            No. layers                   & 2                  & 2                  & 3                  & 4                  & 6                  \\
+            SO(2) layers                 & 3                  & 3                  & 4                  & 4                  & 4                  \\
+            FFN layers                   & 1                  & 1                  & 1                  & 1                  & 1                  \\
             \midrule
-            Radial basis & Bessel & Bessel & Bessel & Bessel \\
-            No. radial bases & 16 & 16 & 16 & 16 \\
-            $L_{\max}$ & 3 & 3 & 4 & 5 \\
-            $M_{\max}$ & 1 & 1 & 1 & 1 \\
+            Radial basis                 & Bessel             & Bessel             & Bessel             & Bessel             & Bessel             \\
+            No. radial bases             & 16                 & 16                 & 16                 & 16                 & 16                 \\
+            $L_{\max}$                   & 2                  & 3                  & 3                  & 4                  & 5                  \\
+            $M_{\max}$                   & 1                  & 1                  & 1                  & 1                  & 1                  \\
             \midrule
-            Edge--node product & Degree mixing & Degree mixing & Degree mixing & Degree mixing \\
-            Per-channel mod. & True & True & True & True \\
-            Rank & 1 & 1 & 1 & 2 \\
-            Attn. heads & 1 & 1 & 1 & 1 \\
-            Value proj. & False & False & False & False \\
-            Output proj. & False & False & False & False \\
-            Pre mixing & False & False & False & False \\
-            S2 act. & FFN only & FFN only & FFN only & FFN only \\
-            Quadrature & Lebedev & Lebedev & Lebedev & Lebedev \\
-            Norm. placement & Post \& Pre & Post \& Pre & Post \& Pre & Post \& Pre \\
-            Activation func. & SiLU & SiLU & SiLU & SiLU \\
-            GLU & True & True & True & True \\
-            FFN hidden dim. & Auto & Auto & Auto & Auto \\
-            Output fitting dim. & Auto & Auto & Auto & Auto \\
-            Output fitting layers & 1 & 1 & 1 & 1 \\
+            Edge--node product\tnote{a}  & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
+            Per-channel mod.             & True               & True               & True               & True               & True               \\
+            Rank                         & 1                  & 1                  & 1                  & 2                  & 2                  \\
+            Attn. heads                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
+            Attention value/output proj. & False              & False              & False              & False              & False              \\
+            Pre mixing                   & False              & False              & False              & False              & False              \\
+            Message node WBN    & True               & True               & True               & True               & True               \\
+            WBN in FFN                   & True               & True               & True               & True               & True               \\
+            Quadrature                   & Lebedev            & Lebedev            & Lebedev            & Lebedev            & Lebedev            \\
+            Norm. placement\tnote{b}     & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        \\
+            Activation func.             & SiLU               & SiLU               & SiLU               & SiLU               & SiLU               \\
+            FFN hidden dim.              & Auto\tnote{c}      & Auto               & Auto               & Auto               & Auto               \\
+            SO(3) read-out               & True               & True               & True               & True               & False              \\
+            Output fitting dim.          & Auto               & Auto               & Auto               & Auto               & Auto               \\
+            Output fitting layers        & 1                  & 1                  & 1                  & 1                  & 1                  \\
             \midrule
-            Compile & True & True & True & True \\
-            bf16 AMP & True & True & True & True \\
-            TF32 matmul & True & True & True & True \\
-            LR scheduler & WSD & WSD & WSD & WSD \\
-            Max. LR & $6.5\times10^{-4}$ & $6\times10^{-4}$ & $5.5\times10^{-4}$ & $4.3\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup steps & 5000 & 5000 & 5000 & 5000 \\
-            Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 \\
-            Decay type & Cosine & Cosine & Cosine & Cosine \\
-            Batch size (per GPU) & $\lceil 2100/N\rceil$ & $\lceil 1500/N\rceil$ & $\lceil 1200/N\rceil$ & $\lceil 300/N\rceil$ \\
-            Training steps & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\
-            No. GPUs & 1 & 1 & 2 & 8 \\
+            Compile                      & True               & True               & True               & True               & True               \\
+            bf16 AMP                     & True               & True               & True               & True               & True               \\
+            TF32 matmul                  & True               & True               & True               & True               & True               \\
             \midrule
-            Loss & MAE & MAE & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
-            Optimizer & HybridMuon & HybridMuon & HybridMuon & HybridMuon \\
-            Muon mode & Slice & Slice & Slice & Slice \\
-            Magma Lite & True & True & True & True \\
-            Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ \\
+            Optimizer                    & HybridMuon         & HybridMuon         & HybridMuon         & HybridMuon         & HybridMuon         \\
+            Muon mode                    & Slice              & Slice              & Slice              & Slice              & Slice              \\
+            Magma Lite                   & True               & True               & True               & True               & True               \\
+            Weight decay                 & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   \\
             \midrule
-            Cutoff (\AA) & 6 & 6 & 6 & 6 \\
-            Max. neighbors & 384 & 384 & 384 & 384 \\
+            Cutoff (\AA)                 & 6                  & 6                  & 6                  & 6                  & 6                  \\
             \midrule
-            Params & 1.60M & 2.76M & 5.40M & 20.91M \\
+            Params                       & 0.66M              & 1.1M               & 5.1M               & 8.8M               & 25.2M             \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
-            \item[a] In the normalization-placement entry, the first term refers to the SO(2)
-            subblock and the second term to the FFN subblock.
-            \item[b] Auto denotes a hidden dimension inferred from the feature dimension and
-            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
-            $4d_\mathrm{feat}$ otherwise.
-            \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
-            up to the nearest integer.
-            \item[d] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
+            \item[a] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
             uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
             frame.
+            \item[b] In the normalization-placement entry, the first term refers to the SO(2)
+            subblock and the second term to the FFN subblock.
+            \item[c] Auto denotes a hidden dimension inferred from the feature dimension and
+            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -1003,77 +820,124 @@ those for the SPICE-MACE-OFF benchmark.
     \centering
     \scriptsize
     \setlength{\tabcolsep}{3pt}
-    \caption{SPICE-MACE-OFF model hyperparameters.}
-    \label{tab:sm_spice_mace_off_config}
+    \caption{Matbench Discovery training hyperparameters.}
+    \label{tab:sm_matbench_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.9cm}C{2.4cm}C{2.4cm}@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}@{}}
             \toprule
-            \textbf{Hyperparameter} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} \\
+            \textbf{Hyperparameter}     & \textbf{DPA4-Neo}         & \textbf{DPA4-Air}         & \textbf{DPA4-Plus}        & \textbf{DPA4-Pro}        \\
             \midrule
-            Feature dim. & 64 & 64 \\
-            No. focuses & 1 & 1 \\
-            No. layers & 3 & 4 \\
-            SO(2) layers & 4 & 4 \\
-            FFN layers & 1 & 1 \\
+            LR scheduler                & WSD                       & WSD                       & WSD                       & WSD                      \\
+            Max. LR                     & $7\times10^{-4}$          & $4.2\times10^{-4}$        & $4.7\times10^{-4}$        & $4.3\times10^{-4}$       \\
+            Min. LR                     & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$         \\
+            Warmup ratio                & 0.003                     & 0.003                     & 0.003                     & 0.003                    \\
+            Decay ratio                 & 0.65                      & 0.65                      & 0.65                      & 0.65                     \\
+            Decay type                  & Cosine                    & Cosine                    & Cosine                    & Cosine                   \\
+            Batch size (per GPU)\tnote{a} & $\lceil 3000/N\rceil$   & $\lceil 1800/N\rceil$     & $\lceil 1500/N\rceil$     & $\lceil 300/N\rceil$     \\
+            Training epochs             & 100                       & 100                       & 100                       & 140                      \\
+            No. GPUs                    & 2                         & 2                         & 4                         & 16                       \\
             \midrule
-            Radial basis & Bessel & Bessel \\
-            No. radial bases & 16 & 16 \\
-            $L_{\max}$ & 3 & 4 \\
-            $M_{\max}$ & 1 & 1 \\
-            \midrule
-            Edge--node product & Degree mixing & Degree mixing \\
-            Per-channel mod. & True & True \\
-            Rank & 1 & 1 \\
-            Attn. heads & 1 & 1 \\
-            Value proj. & False & False \\
-            Output proj. & False & False \\
-            Pre mixing & False & False \\
-            S2 act. & FFN only & FFN only \\
-            Quadrature & Lebedev & Lebedev \\
-            Norm. placement & Post \& Pre & Post \& Pre \\
-            Activation func. & SiLU & SiLU \\
-            GLU & True & True \\
-            FFN hidden dim. & Auto & Auto \\
-            Output fitting dim. & Auto & Auto \\
-            Output fitting layers & 1 & 1 \\
-            \midrule
-            Compile & True & True \\
-            bf16 AMP & True & True \\
-            TF32 matmul & True & True \\
-            LR scheduler & WSD & WSD \\
-            Max. LR & $5\times10^{-4}$ & $5\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup steps & 5000 & 5000 \\
-            Decay ratio & 0.65 & 0.65 \\
-            Decay type & Cosine & Cosine \\
-            Batch size (per GPU) & $\lceil 2000/N\rceil$ & $\lceil 2000/N\rceil$ \\
-            Training steps & $2\times10^6$ & $2\times10^6$ \\
-            No. GPUs & 1 & 1 \\
-            \midrule
-            Loss & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 15, 20, 0 & 15, 20, 0 \\
-            Optimizer & HybridMuon & HybridMuon \\
-            Muon mode & Slice & Slice \\
-            Magma Lite & True & True \\
-            Weight decay & $1\times10^{-3}$ & $1\times10^{-3}$ \\
-            \midrule
-            Cutoff (\AA) & 6 & 6 \\
-            Max. neighbors & 100 & 100 \\
-            \midrule
-            Params & 2.7M & 5.4M \\
+            Loss                        & MAE                       & MAE                       & MAE                       & MAE                      \\
+            Loss weights $(E,F,V)$      & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
-            \item[a] In the normalization-placement entry, the first term refers to the SO(2)
-            subblock and the second term to the FFN subblock.
-            \item[b] Auto denotes a hidden dimension inferred from the feature dimension and
-            rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$ when GLU is enabled and
-            $4d_\mathrm{feat}$ otherwise.
-            \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
+            \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
-            \item[d] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
-            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
-            frame.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[p]
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \caption{OMat24 training hyperparameters.}
+    \label{tab:sm_omat24_config}
+    \begin{threeparttable}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.8cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
+            \toprule
+            \textbf{Hyperparameter}       & \textbf{DPA4-Mini}     & \textbf{DPA4-Neo}     & \textbf{DPA4-Air}     & \textbf{DPA4-Plus}    & \textbf{DPA4-Pro}    \\
+            \midrule
+            LR scheduler                  & Cosine                 & Cosine                & Cosine                & Cosine                & Cosine               \\
+            Max. LR                       & $1\times10^{-3}$       & $8\times10^{-4}$      & $4\times10^{-4}$      & $3\times10^{-4}$      & $2\times10^{-4}$     \\
+            Min. LR                       & $1\times10^{-6}$       & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$     \\
+            Warmup ratio                  & 0.003                  & 0.003                 & 0.003                 & 0.003                 & 0.003                \\
+            Batch size (per GPU)\tnote{a} & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\
+            Training epochs               & 7                      & 7                     & 6                     & 5                     & 5                    \\
+            No. GPUs                      & 2                      & 2                     & 4                     & 4                     & 16                   \\
+            \midrule
+            Loss                          & MAE                    & MAE                   & MAE                   & MAE                   & MAE                  \\
+            Loss weights $(E,F,V)$        & 20, 20, 5              & 20, 20, 5             & 20, 20, 5             & 20, 20, 5             & 20, 20, 5            \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
+            up to the nearest integer.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[p]
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \caption{OMol25 training hyperparameters.}
+    \label{tab:sm_omol25_config}
+    \begin{threeparttable}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.8cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
+            \toprule
+            \textbf{Hyperparameter}       & \textbf{DPA4-Mini}     & \textbf{DPA4-Neo}     & \textbf{DPA4-Air}     & \textbf{DPA4-Plus}    & \textbf{DPA4-Pro}    \\
+            \midrule
+            LR scheduler                  & WSD                    & WSD                   & WSD                   & WSD                   & WSD                  \\
+            Max. LR                       & $6\times10^{-4}$       & $8\times10^{-4}$      & $3.5\times10^{-4}$    & $3.5\times10^{-4}$    & $3\times10^{-4}$     \\
+            Min. LR                       & $1\times10^{-6}$       & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$     \\
+            Warmup ratio                  & 0.003                  & 0.003                 & 0.003                 & 0.003                 & 0.003                \\
+            Decay ratio                   & 0.65                   & 0.65                  & 0.65                  & 0.65                  & 0.65                 \\
+            Decay type                    & Cosine                 & Cosine                & Cosine                & Cosine                & Cosine               \\
+            Batch size (per GPU)\tnote{a} & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\
+            Training epochs               & 18                     & 16                    & 14                    & 12                    & 10                   \\
+            No. GPUs                      & 4                      & 8                     & 16                    & 24                    & 32                   \\
+            \midrule
+            Loss                          & MAE                    & MAE                   & MAE                   & MAE                   & MAE                  \\
+            Loss weights $(E,F,V)$        & 10, 5, 0               & 10, 5, 0              & 10, 5, 0              & 10, 5, 0              & 10, 5, 0             \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
+            up to the nearest integer.
+        \end{tablenotes}
+    \end{threeparttable}
+\end{table}
+
+\begin{table}[p]
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \caption{SPICE-MACE-OFF training hyperparameters.}
+    \label{tab:sm_spice_mace_off_config}
+    \begin{threeparttable}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{3.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
+            \toprule
+            \textbf{Hyperparameter}       & \textbf{DPA4-Neo}     & \textbf{DPA4-Air}     & \textbf{DPA4-Plus}    \\
+            \midrule
+            LR scheduler                  & WSD                   & WSD                   & WSD                   \\
+            Max. LR                       & $8\times10^{-4}$      & $5\times10^{-4}$      & $3.5\times10^{-4}$    \\
+            Min. LR                       & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$      \\
+            Warmup ratio                  & 0.003                 & 0.003                 & 0.003                 \\
+            Decay ratio                   & 0.65                  & 0.65                  & 0.65                  \\
+            Decay type                    & Cosine                & Cosine                & Cosine                \\
+            Batch size (per GPU)\tnote{a} & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 1000/N\rceil$ \\
+            Training steps                & $2\times10^6$         & $2\times10^6$         & $2\times10^6$         \\
+            No. GPUs                      & 1                     & 1                     & 1                     \\
+            \midrule
+            Loss                          & MAE                   & MAE                   & MAE                   \\
+            Loss weights $(E,F,V)$        & 15, 20, 0             & 15, 20, 0             & 15, 20, 0             \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}
+            \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
+            up to the nearest integer.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}

@@ -331,6 +331,8 @@ TSWLatexianTemp*
 #*Notes.bib
 
 .DS_Store
+__pycache__/
+.vscode/
 
 *.pdf
 AGENTS.md
