@@ -2,7 +2,7 @@
 \label{sec:ablation}
 
 To establish that the accuracy--efficiency gains originate from the proposed mechanisms rather than from confounding hyperparameter choices, we ablate the architecture cumulatively: starting from the complete DPA4 interaction block, one component is switched off at a time, the model is retrained under an identical protocol, and each configuration is evaluated on a subsample of the WBM test set~\cite{WBM}.
-Figure~\ref{fig:ablation} reports the outcome; the complete sweeps, protocols and configurations are given in Supplementary Section~\ref{sec:sm-ablation}.
+Figure~\ref{fig:ablation} reports the outcome, with the underlying numbers in Supplementary Table~\ref{tab:sm_cumulative_ablation}; the complete sweeps, protocols and configurations are given in Supplementary Section~\ref{sec:sm-ablation}.
 
 Every component contributes, and the four together lower the energy and force MAEs by 21.8\% and 12.1\% relative to the fully ablated baseline (31.007 against 39.671~meV/atom and 39.169 against 44.581~meV/\AA{}).
 Envelope-gated attention (A3) is the largest single contributor: switching it off raises the energy MAE by 14.9\% and the force MAE by 6.1\%.
@@ -10,7 +10,7 @@ Because its weights are computed from rotationally invariant scalar channels, th
 The low-rank edge--node SO(2)-equivariant product (A1) accounts for 3.9\% and 5.2\%, and is thus worth more for forces than for energies, whereas the WBN grid inside the equivariant FFN (A4) accounts for 5.2\% and 2.5\% and shows the opposite balance.
 The second WBN grid, acting on the post-aggregation message--node path, adds a further 1.9\% in energy with no resolvable effect on forces (Fig.~\ref{fig:ablation}b).
 
-The cost of these four components falls almost entirely on the parameter count rather than on runtime: together they raise the parameter count by 1.7$\times$, from 1.19M to 2.05M, but the inference time by only 14\% (Fig.~\ref{fig:ablation}c).
+These four components cost little at inference: together they raise the parameter count by 1.7$\times$, from 1.19M to 2.05M, but the inference time by only 14\% (Fig.~\ref{fig:ablation}c).
 Each rung of the ladder therefore trades a few percent of inference time for a several-fold larger relative gain in accuracy.
 
 \begin{figure}[t]
