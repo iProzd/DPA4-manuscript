@@ -45,6 +45,8 @@ COLORS = {
     "cyan": MUTED[9],
 }
 MATRIS_COLOR = COLORS["brown"]
+NEQUIX_COLOR = COLORS["cyan"]
+NEQUIX_PFT_COLOR = "#3C8DAB"
 EXTRA_TRAINING_MODELS = {"eSEN-30M-MP", "EqV2 S DeNS", "EqV3+DeNS-MP"}
 
 
@@ -139,7 +141,8 @@ def draw_param_scale(ax, box_x, box_y, box_w, box_h):
 
 # x = A100 GPU-days, y = CPS score, params_m = model parameters in millions.
 models = {
-    "Nequix MP": dict(x=15, y=0.755, params_m=0.708, color=COLORS["cyan"], marker="o"),
+    "Nequix MP": dict(x=21, y=0.729, params_m=0.708, color=NEQUIX_COLOR, marker="o"),
+    "Nequix MP PFT": dict(x=27, y=0.755, params_m=0.708, color=NEQUIX_PFT_COLOR, marker="o"),
     "eSEN-30M-MP": dict(x=335, y=0.797, params_m=30.1, color=COLORS["purple"], marker="o"),
     "EqV2 S DeNS": dict(x=228, y=0.522, params_m=31.2, color=EQV2_COLOR, marker="o"),
     "Eqnorm-MP": dict(x=83, y=0.756, params_m=1.31, color=COLORS["pink"], marker="o"),
@@ -148,6 +151,7 @@ models = {
     "SevenNet-l3i5": dict(x=381, y=0.714, params_m=1.17, color=COLORS["yellow"], marker="o"),
     "DPA3": dict(x=104, y=0.718, params_m=4.81, color=DPA3_COLOR, marker="o"),
     "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=EQV3_COLOR, marker="o"),
+    "DPA4-mini": dict(x=5.8, y=0.733, params_m=0.660, color=DPA4_COLOR, marker="o"),
     "DPA4-neo": dict(x=8.6, y=0.782, params_m=1.125, color=DPA4_COLOR, marker="o"),
     "DPA4-air": dict(x=16, y=0.811, params_m=5.148, color=DPA4_COLOR, marker="o"),
     "DPA4-plus": dict(x=31, y=0.829, params_m=8.796, color=DPA4_COLOR, marker="o"),
@@ -161,9 +165,9 @@ matris = {
 
 def style_axis(ax):
     ax.set_xscale("log")
-    ax.set_xlim(7, 470)
-    ax.set_xticks([10, 30, 60, 100, 200, 400])
-    ax.set_xticklabels(["10", "30", "60", "100", "200", "400"])
+    ax.set_xlim(4.6, 470)
+    ax.set_xticks([5, 10, 30, 60, 100, 200, 400])
+    ax.set_xticklabels(["5", "10", "30", "60", "100", "200", "400"])
     ax.xaxis.set_minor_formatter(NullFormatter())
     ax.grid(True, which="major", linestyle="--", linewidth=0.6, color="#cccccc", alpha=0.7)
     ax.grid(True, which="minor", axis="x", linestyle=":", linewidth=0.35, color="#dddddd", alpha=0.45)
@@ -271,6 +275,7 @@ def draw_speedup_arrow(ax, source, target_x, label_x, shrink_target):
 
 def draw_dpa4_trend(ax):
     dpa4_xy = [
+        (models["DPA4-mini"]["x"], models["DPA4-mini"]["y"]),
         (models["DPA4-neo"]["x"], models["DPA4-neo"]["y"]),
         (models["DPA4-air"]["x"], models["DPA4-air"]["y"]),
         (models["DPA4-plus"]["x"], models["DPA4-plus"]["y"]),
@@ -311,20 +316,29 @@ def main():
         1,
         sharex=True,
         figsize=(6.4, 5.05),
-        gridspec_kw={"height_ratios": [1.05, 1.0], "hspace": 0.04},
+        gridspec_kw={"height_ratios": [2.0, 1.0], "hspace": 0.04},
     )
 
     for ax in (ax_top, ax_bottom):
         style_axis(ax)
         plot_model_points(ax)
 
-    ax_top.set_ylim(0.748, 0.862)
-    ax_top.set_yticks([0.76, 0.78, 0.80, 0.82, 0.84, 0.86])
-    ax_bottom.set_ylim(0.50, 0.735)
-    ax_bottom.set_yticks([0.50, 0.55, 0.60, 0.65, 0.70])
+    ax_top.set_ylim(0.695, 0.862)
+    ax_top.set_yticks([0.70, 0.72, 0.74, 0.76, 0.78, 0.80, 0.82, 0.84, 0.86])
+    ax_bottom.set_ylim(0.50, 0.665)
+    ax_bottom.set_yticks([0.50, 0.55, 0.60, 0.65])
     draw_axis_break(ax_top, ax_bottom)
     draw_dpa4_trend(ax_top)
 
+    ax_top.annotate(
+        "Mini",
+        xy=(models["DPA4-mini"]["x"], models["DPA4-mini"]["y"]),
+        xytext=(3, -15),
+        textcoords="offset points",
+        fontsize=10.5,
+        fontweight="bold",
+        color=DPA4_COLOR,
+    )
     ax_top.annotate(
         "Neo",
         xy=(models["DPA4-neo"]["x"], models["DPA4-neo"]["y"]),
@@ -379,6 +393,7 @@ def main():
 
     legend_entries = [
         ("Nequix MP", models["Nequix MP"]),
+        ("Nequix MP PFT", models["Nequix MP PFT"]),
         ("eSEN-30M-MP", models["eSEN-30M-MP"]),
         ("EqV2 S DeNS", models["EqV2 S DeNS"]),
         ("Eqnorm-MP", models["Eqnorm-MP"]),

@@ -69,14 +69,15 @@ Both branches contribute to the same scalar total energy and are differentiated 
             DPA4-Plus            & 0.829                           & 0.847                 & \underline{0.240}                          & \underline{0.070}                  & 8.8M            & 31                            & \xmark                 & EFSG                      \\
             DPA4-Air             & 0.811                           & 0.827                 & 0.266                                      & 0.074                              & 5.1M            & 16                            & \xmark                 & EFSG                      \\
             DPA4-Neo             & 0.782                           & 0.810                 & 0.353                                      & 0.079                              & 1.1M            & 8.6                           & \xmark                 & EFSG                      \\
+            DPA4-Mini            & 0.733                           & 0.776                 & 0.496                                      & 0.084                              & 0.66M           & 5.8                           & \xmark                 & EFSG                      \\
             \midrule
             EquiformerV3+DeNS-MP & \underline{0.830}               & \underline{0.863}     & 0.275                                      & \underline{0.070}                  & 30.3M           & 157                           & \cmark                 & EFSG                      \\
             eSEN-30M-MP          & 0.797                           & 0.831                 & 0.340                                      & 0.075                              & 30.1M           & 335                           & \cmark                 & EFSG                      \\
             MatRIS-10M-MP        & 0.778                           & 0.847                 & 0.489                                      & 0.072                              & 10.4M           & 224                           & \cmark                 & EFSGM                     \\
             Eqnorm MPtrj         & 0.756                           & 0.786                 & 0.408                                      & 0.084                              & 1.31M           & 83                            & \xmark                 & EFSG                      \\
-            Nequix MP PFT        & 0.755                           & 0.748                 & 0.307                                      & 0.087                              & 708k            & 5.8                           & \xmark                 & EFSHG                     \\
+            Nequix MP PFT        & 0.755                           & 0.748                 & 0.307                                      & 0.087                              & 708k            & 27\tnote{f}                   & \xmark                 & EFSHG                     \\
             Nequip-MP-L          & 0.730                           & 0.761                 & 0.466                                      & 0.086                              & 9.6M            & 41                            & \xmark                 & EFSG                      \\
-            Nequix MP            & 0.729                           & 0.751                 & 0.446                                      & 0.085                              & 708k            & 15                            & \xmark                 & EFSG                      \\
+            Nequix MP            & 0.729                           & 0.751                 & 0.446                                      & 0.085                              & 708k            & 21                            & \xmark                 & EFSG                      \\
             Allegro-MP-L         & 0.720                           & 0.751                 & 0.504                                      & 0.082                              & 18.7M           & 57                            & \xmark                 & EFSG                      \\
             DPA-3.1-MPtrj        & 0.718                           & 0.803                 & 0.650                                      & 0.080                              & 4.81M           & 104                           & \xmark                 & EFSG                      \\
             SevenNet-l3i5        & 0.714                           & 0.760                 & 0.550                                      & 0.085                              & 1.17M           & 381                           & \xmark                 & EFSG                      \\
@@ -99,6 +100,9 @@ Both branches contribute to the same scalar total energy and are differentiated 
             \item[d] \cmark{} marks models trained with the DeNS denoising objective~\cite{liao2024dens}.
             \item[e] Targets denotes the quantities each model is trained to predict, following the Matbench Discovery convention~\cite{riebesell2025matbench}: E, F, S, M and H denote energy, forces, stress, magnetic moments and Hessian, while the suffix G or D indicates whether forces and stress are obtained by energy gradient (conservative) or direct prediction.
             All DPA4 variants are EFSG.
+            \item[f] Nequix MP PFT is obtained by fine-tuning Nequix MP on force constants from
+            the MDR phonon database, co-trained with MPtrj~\cite{koker2026pft}; the reported cost is
+            the sum of the 21 GPU-days of the base model and the 5.8 GPU-days of fine-tuning.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -124,9 +128,10 @@ The smaller DPA4 variants extend this accuracy--cost trade-off across model scal
 DPA4-Plus reaches a CPS of 0.829 with 8.8M parameters, matching EquiformerV3+DeNS-MP to within 0.001 CPS while using 3.4$\times$ fewer parameters and 5.1$\times$ less training compute (31 versus 157 A100-equivalent GPU-days).
 DPA4-Air reaches a CPS of 0.811 with 5.1M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 5.8$\times$ smaller model and 20.9$\times$ less training compute (16 versus 335 GPU-days).
 DPA4-Neo contains only 1.1M parameters but still reaches a CPS of 0.782, above MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 9.2$\times$ smaller model and a training budget of 8.6 GPU-days.
+DPA4-Mini, the smallest variant at 0.66M parameters, reaches a CPS of 0.733 for 5.8 GPU-days, above the Nequip-MP-L and Nequix MP entries of Table~\ref{tab:matbench} (0.730 and 0.729 CPS) at 7.1$\times$ and 3.6$\times$ less training compute.
 
 Within the DPA4 series, the accuracy--cost curve in Fig.~\ref{fig:cps} flattens sharply at the top end.
-The step from DPA4-Plus to DPA4-Pro multiplies the parameter count by 2.9 and the training budget by 7.5 (31 to 233 GPU-days) yet raises CPS by only 0.013, whereas the Neo--Air and Air--Plus steps gain 0.029 and 0.018 CPS for 1.9$\times$ each.
+The step from DPA4-Plus to DPA4-Pro multiplies the parameter count by 2.9 and the training budget by 7.5 (31 to 233 GPU-days) yet raises CPS by only 0.013, whereas the Mini--Neo, Neo--Air and Air--Plus steps gain 0.049, 0.029 and 0.018 CPS for 1.5$\times$, 1.9$\times$ and 1.9$\times$ the budget.
 DPA4-Plus therefore sits at the knee of the frontier: it is the smallest and cheapest model in the table that matches the accuracy of the strongest baseline, while DPA4-Pro converts a disproportionate compute investment into the remaining margin at the top of the leaderboard.
 The training cost also grows sublinearly with model size at the lower end, rising by only 1.9$\times$ from Neo to Air against a 4.6$\times$ increase in parameters, because neighbor-list construction, geometric preprocessing and memory traffic occupy a larger fraction of each step once the arithmetic workload no longer saturates the GPU.
 For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS.

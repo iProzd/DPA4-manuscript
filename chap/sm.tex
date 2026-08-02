@@ -872,22 +872,22 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \caption{Matbench Discovery training hyperparameters.}
     \label{tab:sm_matbench_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.55cm}C{1.55cm}C{1.55cm}C{1.55cm}@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
             \toprule
-            \textbf{Hyperparameter}     & \textbf{DPA4-Neo}         & \textbf{DPA4-Air}         & \textbf{DPA4-Plus}        & \textbf{DPA4-Pro}        \\
+            \textbf{Hyperparameter}     & \textbf{DPA4-Mini} & \textbf{DPA4-Neo}         & \textbf{DPA4-Air}         & \textbf{DPA4-Plus}        & \textbf{DPA4-Pro}        \\
             \midrule
-            LR scheduler                & WSD                       & WSD                       & WSD                       & WSD                      \\
-            Max. LR                     & $7\times10^{-4}$          & $4.2\times10^{-4}$        & $4.7\times10^{-4}$        & $4.3\times10^{-4}$       \\
-            Min. LR                     & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$         \\
-            Warmup ratio                & 0.003                     & 0.003                     & 0.003                     & 0.003                    \\
-            Decay ratio                 & 0.65                      & 0.65                      & 0.65                      & 0.65                     \\
-            Decay type                  & Cosine                    & Cosine                    & Cosine                    & Cosine                   \\
-            Batch size (per GPU)\tnote{a} & $\lceil 3000/N\rceil$   & $\lceil 1800/N\rceil$     & $\lceil 1500/N\rceil$     & $\lceil 300/N\rceil$     \\
-            Training epochs             & 100                       & 100                       & 100                       & 140                      \\
-            No. GPUs                    & 2                         & 2                         & 4                         & 16                       \\
+            LR scheduler                & WSD & WSD                       & WSD                       & WSD                       & WSD                      \\
+            Max. LR                     & $2\times10^{-3}$ & $7\times10^{-4}$          & $4.2\times10^{-4}$        & $4.7\times10^{-4}$        & $4.3\times10^{-4}$       \\
+            Min. LR                     & $1\times10^{-6}$ & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$         \\
+            Warmup ratio                & 0.003 & 0.003                     & 0.003                     & 0.003                     & 0.003                    \\
+            Decay ratio                 & 0.65 & 0.65                      & 0.65                      & 0.65                      & 0.65                     \\
+            Decay type                  & Cosine & Cosine                    & Cosine                    & Cosine                    & Cosine                   \\
+            Batch size (per GPU)\tnote{a} & $\lceil 7000/N\rceil$ & $\lceil 3000/N\rceil$   & $\lceil 1800/N\rceil$     & $\lceil 1500/N\rceil$     & $\lceil 300/N\rceil$     \\
+            Training epochs             & 150 & 100                       & 100                       & 100                       & 140                      \\
+            No. GPUs                    & 1 & 2                         & 2                         & 4                         & 16                       \\
             \midrule
-            Loss                        & MAE                       & MAE                       & MAE                       & MAE                      \\
-            Loss weights $(E,F,V)$      & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                \\
+            Loss                        & MAE & MAE                       & MAE                       & MAE                       & MAE                      \\
+            Loss weights $(E,F,V)$      & 20, 20, 5 & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
