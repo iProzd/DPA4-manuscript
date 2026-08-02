@@ -18,7 +18,7 @@ In parallel, an equivariant branch projects each neighbor direction onto real sp
 This gives the model chemical and geometric context from the outset, rather than forcing all local-environment information to be discovered through iterated message passing.
 The construction details are given in Section~\ref{sec:gie}.
 
-The EMFA (Edge-conditioned, Multi-Focus, Attention) SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbors to update the node features.
+The EMFA (Edge-equivariant, Multi-Focus, Attention) SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbors to update the node features.
 Mathematical details are given in Section~\ref{sec:so2}.
 In the local frame, the convolution applies the low-rank edge--node SO(2)-equivariant product (A1), which exploits the simpler SO(2) Clebsch--Gordan structure to replace the costly SO(3) Clebsch--Gordan tensor product.
 The product depends on the full set of per-edge equivariant features at degrees $l=0,\dots,L$, in contrast to similar SO(2)-equivariant constructions in eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3} where the product depends only on invariant ($l=0$) edge features.

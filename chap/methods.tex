@@ -290,7 +290,9 @@ channel index $c$,
     K^{(r)}_{l,l',|m|}(\widetilde{\rho}_{ij})\,B_{r,c}, \label{eq:dpa4-K-lowrank} \end{equation} with rank $R\leq H$, learnable scalar coefficients $K^{(r)}_{l,l',|m|}(\widetilde{\rho}_{ij})\in\mathbb{R}$ (each a linear functional of $\widetilde{\rho}_{ij}$), and a learnable channel basis $B\in\mathbb{R}^{R\times H}$.
 The diagonal special case $\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})=\widetilde{\rho}_{ij,l,c}\, \delta_{l,l'}$ reduces to per-degree scalar radial modulation.
 Because $\mathcal{K}$ depends only on rotation-invariant radial-species information and never mixes different $|m|$, the $(-m,+m)$ pair continues to transform as a single two-dimensional real SO(2) representation.
-Equations \eqref{eq:dpa4-radial-coupling}--\eqref{eq:dpa4-K-lowrank} together realize a direct edge--node SO(2)-equivariant multiplication at low parameter and compute cost, replacing the Clebsch--Gordan tensor product of a standard SO(3)-equivariant convolution while retaining the same expressive capacity for cross-$l$ coupling at fixed $|m|$.
+Equations \eqref{eq:dpa4-radial-coupling}--\eqref{eq:dpa4-K-lowrank} together realize a direct edge--node SO(2)-equivariant multiplication at low parameter and compute cost, replacing the Clebsch--Gordan tensor product of a standard SO(3)-equivariant convolution.
+Under the edge-local reduction, that tensor product is exactly an SO(2) map that mixes angular degrees within each fixed $|m|$ stratum~\cite{passaro2023reducing}.
+The cross-degree entries $l\neq l'$ of $\mathcal{K}$ are therefore not an enhancement of the reduction but what makes it faithful to the product it replaces: a kernel constrained to be diagonal in $l$, as it is when only the invariant $l=0$ edge feature drives it, spans a strict subspace of the couplings available at that stratum.
 
 \paragraph{Multi-focus design for message nonlinearity.}
 The in-frame edge feature is processed by two distinct nonlinear mechanisms that together realize the architectural design A2.

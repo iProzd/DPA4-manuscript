@@ -19,7 +19,7 @@ Each rung of the ladder therefore trades a few percent of inference time for a s
     \caption{
         Cumulative ablation of the DPA4 architectural components.
         The matrix states which components each configuration retains: a filled marker denotes a component that is present and an open marker one that has been switched off, so that reading downwards accumulates the removals of the rows above.
-        MN denotes the WBN grid on the post-aggregation message--node path, WBN the grid inside the equivariant FFN (A4), EC the low-rank edge-conditioned edge--node SO(2)-equivariant product (A1), and Attn the envelope-gated attention aggregation (A3).
+        MN denotes the WBN grid on the post-aggregation message--node path, WBN the grid inside the equivariant FFN (A4), EC the low-rank edge--node SO(2)-equivariant product (A1), and Attn the envelope-gated attention aggregation (A3).
         (a--c) Per-atom energy MAE, force MAE and inference time of each configuration relative to the complete architecture; the segments of a bar are the increments contributed by the individual removals, in the order of the matrix columns.
         Inference time is the wall-clock time of a full test pass over the WBM subsample.
         Every configuration uses a single focus stream: the multi-focus design (A2) redistributes a fixed angular budget across parallel streams rather than adding a branch, and is therefore compared at matched SO(2) width in Supplementary Section~\ref{sec:sm-ablation}.
