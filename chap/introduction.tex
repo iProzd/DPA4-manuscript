@@ -1,16 +1,19 @@
 \section{Introduction}
 
-Machine-learning interatomic potentials (MLIPs) are increasingly moving from case-specific models trained on dedicated density-functional-theory (DFT) data to large pretrained atomistic foundation models~\cite{yuan2026foundation}, also called large atomistic models (LAMs), that are intended to serve as broad DFT surrogates for molecular simulation, materials discovery and molecular design~\cite{merchant2023scaling}.
-The architectural lineage reflects this change: the Behler--Parrinello neural-network potential~\cite{behler2007generalized}, Gaussian approximation potentials~\cite{bartok2010gaussian}, SchNet~\cite{schutt2017schnet}, PhysNet~\cite{unke2019physnet} and Deep Potential~\cite{zhang2018deep,wang2018deepmd} characterize the case-specific era, while M3GNet~\cite{chen2022universal}, CHGNet~\cite{deng2023chgnet}, MACE~\cite{batatia2022mace,kovacs2023mace}, MatterSim~\cite{yang2024mattersim}, Orb~\cite{neumann2024orb,rhodes2025orbv3}, UMA~\cite{wood2025umafamilyuniversalmodels} and the DPA series~\cite{zhang2022dpa,zhang2024dpa2,zhang2025dpa3} characterize the LAM era.
+Machine-learning interatomic potentials (MLIPs) are moving from case-specific models trained on dedicated density-functional-theory (DFT) data to pretrained atomistic foundation models~\cite{yuan2026foundation}, also called large atomistic models (LAMs), intended as broad DFT surrogates for simulation, materials discovery and molecular design~\cite{merchant2023scaling}.
+The lineage runs from the descriptor- and kernel-based potentials of the case-specific era~\cite{behler2007generalized,bartok2010gaussian,schutt2017schnet,unke2019physnet,zhang2018deep,wang2018deepmd} to the graph neural network models that define the LAM era~\cite{chen2022universal,deng2023chgnet,batatia2022mace,kovacs2023mace,yang2024mattersim,neumann2024orb,rhodes2025orbv3,liao2023equiformerv2,liao2026equiformerv3,wood2025umafamilyuniversalmodels,zhang2024dpa2,zhang2025dpa3}.
 
-Although LAMs have demonstrated their potential to revolutionize materials and molecular design, training such models is prohibitively expensive: UMA-M~\cite{wood2025umafamilyuniversalmodels}, built on the eSEN architecture~\cite{fu2025esen}, required 129{,}024 H200 GPU-hours to train, posing a substantial barrier to both training and downstream use.
+That promise is expensive to realize: pretraining UMA-M~\cite{wood2025umafamilyuniversalmodels}, built on the eSEN architecture~\cite{fu2025esen}, required 129{,}024 H200 GPU-hours.
+The barrier is not confined to pretraining: fine-tuning to a target domain runs the same architecture, so the per-step expense that makes pretraining costly is paid again by every downstream user.
 This motivates the question whether comparable accuracy can be reached at substantially lower training cost.
 % The next challenge is no longer accuracy alone, but the joint optimization of accuracy, efficiency and physical robustness.
+
 On the accuracy side, equivariant architectures carry directional information as first-class features that transform under SO(3), instead of compressing it immediately into rotation-invariant features; NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace}, the Equiformer family~\cite{liao2022equiformer,liao2023equiformerv2,liao2026equiformerv3} and eSEN~\cite{fu2025esen} have shown that explicit directional features substantially improve data efficiency and benchmark accuracy.
-On the efficiency side, the cost of expressive SE(3)-equivariant models is often dominated by Clebsch--Gordan tensor products, whose cost grows rapidly with angular order.
+On the efficiency side, the expense of SE(3)-equivariant models is dominated by Clebsch--Gordan tensor products, whose cost grows rapidly with angular order.
 % This cost becomes a bottleneck when the target is not a single specialized potential, but an MLIP architecture that can scale to broad training sets and serve as the backbone of future LAMs.
 eSCN showed that SO(3)-equivariant convolutions can be reduced to equivalent edge-local SO(2) operations~\cite{passaro2023reducing}, a strategy also used by recent high-performing models such as eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3}.
-In these constructions, edge information is often introduced through invariant radial or scalar channels, whereas more expressive edge--node interactions typically require more intensive algebraic operations in the residual SO(2) basis.
+In these constructions the edge modulates the node feature diagonally: the degree-$l$ edge feature multiplies only the degree-$l$ node feature, whereas a Clebsch--Gordan product couples every edge degree to every node degree.
+That restriction, and not the reduction to SO(2), is where expressive power is lost; letting the edge couple different degrees recovers it.
 
 Beyond architectural cost, a practical constraint shapes the training strategy of these models.
 Conservative energy-gradient training is difficult to accelerate because the force loss differentiates through the energy model, requiring a double-backward pass; training stacks developed for large language models, which are tuned for single-backward gradients, do not transfer directly to this setting.
@@ -30,20 +33,17 @@ This two-stage protocol adds substantial engineering complexity to LAM training,
     \label{fig:cps}
 \end{figure}
 
-Here we introduce DPA4, an SE(3)-equivariant interatomic-potential architecture that achieves leading accuracy at substantially lower model and training cost on inorganic-crystal and organic-molecule benchmarks, built on an EMFA (Edge-equivariant, Multi-Focus, Attention) SO(2) convolution.
+Here we introduce DPA4, an SE(3)-equivariant interatomic-potential architecture that achieves leading accuracy at substantially lower model and training cost on inorganic-crystal and organic-molecule benchmarks, built on an EMFA (Edge--node product, Multi-Focus, Attention) SO(2) convolution.
 Its architectural innovations, co-designed for efficiency and accuracy, are (A1) a low-rank edge--node SO(2)-equivariant product in an edge-local frame, (A2) a multi-focus design for message nonlinearity, (A3) envelope-gated attention for message aggregation --- the E, MF and A of EMFA --- and (A4) a Wigner bilinear network (WBN) for the SO(3)-equivariant nonlinearity.
 A1--A3 raise generalization accuracy at low computational cost relative to standard SO(2)-equivariant baselines; A4 provides a nonlinearity that is provably complete in its full-frame form and, evaluated by exact Lebedev--uniform quadrature on the rotation group, equivariant to machine precision.
 A shape-stable, compiler-friendly implementation of conservative energy-gradient training makes the energy-to-force path compatible with \texttt{torch.compile} and gives up to $\sim 3$ times wall-clock training speedup in controlled ablations.
 In addition, Native ZBL Zone Bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, improving short-range force behavior at very close atomic distances where the potential-energy surface is sparsely sampled by training data.
 
-On Matbench Discovery~\cite{riebesell2025matbench}, DPA4 variants establish a new accuracy--efficiency frontier (Fig.~\ref{fig:cps}): the largest variant reaches state-of-the-art performance, while smaller variants approach the accuracy of much larger baselines with substantially fewer parameters and lower training cost.
-On SPICE-MACE-OFF~\cite{kovacs2023mace}, DPA4 variants establish a new accuracy--parameter frontier on organic-molecule force fields: the largest variant sets a new state of the art, while the smallest variant matches a baseline of nearly three times its size (Table~\ref{table:spice}).
-Together, these results position DPA4 as a strong candidate to address the training-cost bottleneck of current LAMs without sacrificing generalizability.
+Across four datasets spanning inorganic crystals and organic molecules, DPA4 variants define a new accuracy--cost frontier.
+On Matbench Discovery~\cite{riebesell2025matbench}, the five variants trace that frontier from 5.8 to 233 A100-equivalent GPU-days (Fig.~\ref{fig:cps}), and no baseline matches any of them at less than four times its training budget.
+At the top, the 25.2M-parameter DPA4-Pro leads every ranked metric of the compliant leaderboard, and on the much larger OMat24 dataset~\cite{barroso2024open} it attains the lowest energy error of all models compared, with 6.1$\times$ fewer parameters than the next most accurate model and 27.8$\times$ fewer than the largest.
+Lower down, the 8.8M-parameter DPA4-Plus matches the strongest Matbench baseline with 3.4$\times$ fewer parameters and 5.1$\times$ less training compute, is bettered on the out-of-distribution split of OMol25~\cite{levine2025open} only by a 1.4B-parameter model, and attains the lowest aggregate errors on SPICE-MACE-OFF~\cite{kovacs2023mace} (Table~\ref{table:spice}).
+All of this is obtained through conservative energy-gradient training alone, without the denoising or direct-force pretraining on which the strongest baselines rely, offering a way past the training-cost bottleneck of current LAMs without sacrificing generalizability.
 In this work DPA4 is trained in the single-task, per-dataset setting; multi-task LAM pretraining on top of this backbone is left as the natural next step (Section~\ref{sec:discussion}).
-
-The remainder of the paper is organized as follows.
-Section~\ref{sec:results} first gives an overview of the DPA4 architecture, then reports its accuracy on Matbench Discovery and SPICE-MACE-OFF, its training and inference efficiency, its native ZBL coupling behaviour, and controlled ablations of the main architectural and systems components.
-Section~\ref{sec:discussion} discusses the implications and limitations of these results.
-Section~\ref{sec:methods} describes the architecture, datasets, training protocol and compiled conservative-force implementation in detail.
 
 % =============================================================
