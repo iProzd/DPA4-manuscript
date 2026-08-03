@@ -35,7 +35,7 @@
 \label{sec:sm-ablation}
 
 This section provides the complete ablation evidence behind Section~\ref{sec:ablation}.
-The first subsection reports the cumulative ablation behind main-text Fig.~\ref{fig:ablation}, and the following six give the full mechanism-level sweeps for graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant product, $\Sph$ activation and the Wigner bilinear network.
+The first subsection reports the cumulative ablation behind main-text Fig.~\ref{fig:ablation}, and the following six give the full mechanism-level sweeps for graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, $\Sph$ activation and the Wigner bilinear network.
 The remaining subsections report model-selection and robustness studies.
 All ablations use the same WBM-subsampled evaluation protocol.
 Relative efficiency metrics are normalized within each controlled group under matched H20 hardware, batch-size, data-loading and precision settings.
@@ -68,7 +68,7 @@ The energy error increases monotonically along the chain, whereas the force erro
             \toprule
             \makecell{\textbf{Message}\\\textbf{node WBN}}       &
             \makecell{\textbf{WBN in}\\\textbf{FFN}}             &
-            \makecell{\textbf{Edge--node}\\\textbf{product}}     &
+            \makecell{\textbf{Edge--node}\\\textbf{degree coupling}}     &
             \makecell{\textbf{Attention}\\\textbf{aggregation}}  &
             \textbf{E MAE}$\downarrow$                           &
             \textbf{F MAE}$\downarrow$                           &
@@ -86,8 +86,8 @@ The energy error increases monotonically along the chain, whereas the force erro
         \begin{tablenotes}
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the complete
             architecture of the first row.
-            A disabled edge--node product denotes the scalar-scaling form that applies only the
-            $l=0$ radial profile to all angular channels, and a disabled attention aggregation
+            A disabled edge--node degree coupling denotes the scalar-scaling form that applies each
+            degree-$l$ radial profile only to the degree-$l$ channels, and a disabled attention aggregation
             denotes scatter-sum aggregation.
             All rows use a single focus stream.
         \end{tablenotes}
@@ -241,18 +241,18 @@ These trends are consistent with the intended role of focus competition, where p
 \end{table}
 
 \FloatBarrier
-\subsection{Low-rank edge--node \texorpdfstring{SO(2)}{SO2}-equivariant product}
+\subsection{Low-rank edge--node \texorpdfstring{SO(2)}{SO2}-equivariant degree coupling}
 \label{sec:sm-radial-coupling}
 
-This ablation tests the low-rank edge--node SO(2)-equivariant product (A1), namely how edge-side angular information conditions the node-side SO(2) message in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
-The scalar-scaling baseline uses only the $l=0$ edge feature to scale edge messages across angular orders, whereas degree mixing builds a cross-degree kernel from the SO(2) Clebsch--Gordan coefficients and the $l>0$ edge spherical harmonics in the local frame, mixing input and output angular degrees at fixed $|m|$ before the SO(2) stack.
+This ablation tests the low-rank edge--node SO(2)-equivariant degree coupling (A1), namely how edge-side angular information conditions the node-side SO(2) message in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
+The scalar-scaling baseline applies each degree-$l$ radial profile only to the degree-$l$ channels, whereas degree mixing builds a cross-degree kernel as a learnable function of the same degree-indexed profiles, mixing input and output angular degrees at fixed $|m|$ before the SO(2) stack.
 Making this kernel channel-dependent improves expressivity, but a per-channel dense kernel would inflate the parameter count by a factor of the hidden width $H$.
 DPA4 instead parameterizes the kernel as a rank-$R$ factorization across the channel index, with $R$ scalar degree-pair coefficients contracted against a learnable channel basis of width $R\leq H$ (main-text Eq.~\ref{eq:dpa4-K-lowrank}).
 Even the rank-$R=1$ form captures most of the benefit: it reduces energy MAE from 28.493 to 27.611~meV/atom and force MAE from 38.349 to 35.689~meV/\AA{} relative to scalar scaling, corresponding to 3.1\% and 6.9\% improvements, respectively (Table~\ref{tab:dpa4_radial_degree_ablation}).
 This improvement is obtained at low additional cost, with training and test times increasing only to 1.12$\times$ and 1.10$\times$ the scalar-scaling baseline.
-A compact low-rank edge--node product therefore provides a favorable accuracy--throughput trade-off before the kernel is made more expressive.
+A compact low-rank edge--node degree coupling therefore provides a favorable accuracy--throughput trade-off before the kernel is made more expressive.
 
-The remaining rank sweep shows that a more expressive edge--node product is not monotonically better.
+The remaining rank sweep shows that a more expressive edge--node degree coupling is not monotonically better.
 Increasing the rank from 1 to 4 gives the best energy and force MAEs, but also raises the training cost to 1.86$\times$ the baseline; rank 8, rank 16, and the full kernel are still more expensive yet give worse force MAEs (Table~\ref{tab:dpa4_radial_degree_ablation}).
 These results suggest that compact per-channel kernels act as a structural regularizer, providing enough channel-specific angular mixing without introducing many weakly constrained radial--angular interactions.
 
@@ -260,11 +260,11 @@ These results suggest that compact per-channel kernels act as a structural regul
     \centering
     \scriptsize
     \begin{threeparttable}
-        \caption{Ablation of the low-rank edge--node SO(2)-equivariant product.\tnote{a}}
+        \caption{Ablation of the low-rank edge--node SO(2)-equivariant degree coupling.\tnote{a}}
         \label{tab:dpa4_radial_degree_ablation}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
-            \textbf{Edge--node product} &
+            \makecell{\textbf{Edge--node}\\\textbf{degree coupling}} &
             \textbf{Per-channel ker.} &
             \textbf{Rank} &
             \textbf{E MAE}$\downarrow$ &
@@ -285,7 +285,7 @@ These results suggest that compact per-channel kernels act as a structural regul
         \begin{tablenotes}
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the scalar-scaling
             baseline.
-            Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2) frame.
+            Scalar scaling applies each degree-$l$ radial profile only to the degree-$l$ channels, whereas degree mixing uses the profiles to mix angular degrees in the local SO(2) frame.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -640,7 +640,7 @@ All ASE baseline environments used ASE 3.28.0 and NumPy 2.4.4.
 
 \subsection{Ablation model configurations}
 
-Table~\ref{tab:sm_main_ablation_config} gives the configurations for the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN grid in the FFN, the edge--node product and the attention aggregation, and for the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant product, $\Sph$ activation and the Wigner bilinear network.
+Table~\ref{tab:sm_main_ablation_config} gives the configurations for the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN grid in the FFN, the edge--node degree coupling and the attention aggregation, and for the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, $\Sph$ activation and the Wigner bilinear network.
 Table~\ref{tab:sm_supplementary_ablation_config} gives those for the model-selection and robustness ablations.
 Entries marked by ``--'' are the controlled variables within the corresponding experiment family; all other entries define the shared reference setting.
 Horizontal rules separate related groups of hyperparameters without adding category labels to the table body.
@@ -654,7 +654,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.4cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}@{}}
             \toprule
-            \textbf{Hyperparameter}       & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention}                                                           & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{product}} & \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} & \textbf{WBN} \\
+            \textbf{Hyperparameter}       & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention}                                                           & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} & \textbf{WBN} \\
             \midrule
             Feature dim.                  & 64                                                & 64                                               & 64/96/96                                                                     & --                                              & 64                                               & 64                                          & 64 \\
             No. focuses                   & 1                                                 & 1                                                & 1/1/2                                                                        & --                                              & 1                                                & 1                                           & 1 \\
@@ -667,7 +667,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             $L_{\max}$                    & 2                                                 & 3                                                & 3                                                                            & 3                                               & 3                                                & 3                                           & 2 \\
             $M_{\max}$                    & 1                                                 & 1                                                & 1                                                                            & 1                                               & 1                                                & 1                                           & 1 \\
             \midrule
-            Edge--node product\tnote{g}   & --                                                & Degree mixing                                    & Scalar scaling                                                               & Scalar scaling                                  & --                                               & Degree mixing                               & Degree mixing \\
+            Edge--node degree coupling\tnote{g}   & --                                                & Degree mixing                                    & Scalar scaling                                                               & Scalar scaling                                  & --                                               & Degree mixing                               & Degree mixing \\
             Per-channel mod.              & --                                                & True                                             & N/A                                                                          & N/A                                             & --                                               & True                                        & True \\
             Rank                          & --                                                & 1                                                & N/A                                                                          & N/A                                             & --                                               & 1                                           & 2 \\
             Attn. heads                   & --                                                & 1                                                & --                                                                           & 1                                               & 1                                                & 1                                           & 1 \\
@@ -719,8 +719,8 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             subblock and the second term to the FFN subblock.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$.
-            \item[g] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
-            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
+            \item[g] Scalar scaling applies each degree-$l$ radial profile only to the degree-$l$
+            channels, whereas degree mixing uses the profiles to mix angular degrees in the local SO(2)
             frame.
         \end{tablenotes}
     \end{threeparttable}
@@ -750,7 +750,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             $L_{\max}$ & 3 & 3 & 3 & 3 & 3 & 3 \\
             $M_{\max}$ & 1 & 1 & 1 & 1 & 1 & 1 \\
             \midrule
-            Edge--node product & Scalar scaling & Degree mixing & Degree mixing & Scalar scaling & Scalar scaling & Degree mixing \\
+            Edge--node degree coupling & Scalar scaling & Degree mixing & Degree mixing & Scalar scaling & Scalar scaling & Degree mixing \\
             Per-channel mod. & N/A & True & True & N/A & N/A & True \\
             Rank & N/A & 1 & 1 & N/A & N/A & 1 \\
             Attn. heads & 1 & 1 & 1 & -- & 1 & 1 \\
@@ -789,8 +789,8 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             subblock and the second term to the FFN subblock.
             \item[f] Auto denotes a hidden dimension inferred from the feature dimension and
             rounded up to a multiple of 32: $(8/3)d_\mathrm{feat}$.
-            \item[g] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
-            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
+            \item[g] Scalar scaling applies each degree-$l$ radial profile only to the degree-$l$
+            channels, whereas degree mixing uses the profiles to mix angular degrees in the local SO(2)
             frame.
         \end{tablenotes}
     \end{threeparttable}
@@ -823,7 +823,7 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
             $L_{\max}$                   & 2                  & 3                  & 3                  & 4                  & 5                  \\
             $M_{\max}$                   & 1                  & 1                  & 1                  & 1                  & 1                  \\
             \midrule
-            Edge--node product\tnote{a}  & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
+            Edge--node degree coupling\tnote{a}  & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
             Per-channel mod.             & True               & True               & True               & True               & True               \\
             Rank                         & 1                  & 1                  & 1                  & 2                  & 2                  \\
             Attn. heads                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
@@ -854,8 +854,8 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}
-            \item[a] Scalar scaling uses only the $l=0$ edge feature, whereas degree mixing
-            uses higher-degree edge-equivariant features to mix angular degrees in the local SO(2)
+            \item[a] Scalar scaling applies each degree-$l$ radial profile only to the degree-$l$
+            channels, whereas degree mixing uses the profiles to mix angular degrees in the local SO(2)
             frame.
             \item[b] In the normalization-placement entry, the first term refers to the SO(2)
             subblock and the second term to the FFN subblock.

@@ -31,7 +31,7 @@ Forces and virials are obtained by differentiating the scalar energy in Eq.~\eqr
 In the learned branch $E_{\Theta}^{\mathrm{NN}}$, the atomic species $Z$ and positions $R$ are encoded into per-atom irreducible representations in the real space $V_{\leq L}\otimes\mathbb{R}^{C}$ by a Geometry-Informed Embedding (GIE) stage (Sec.~\ref{sec:gie}), updated through $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and read out as a scalar energy by an atomic energy head.
 Here $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$ with $V_l$ the $(2l+1)$-dimensional irreducible representation of SO(3); the $l=0$ subspace is invariant and is used for scalar readout, while $l>0$ subspaces transform equivariantly and carry angular information.
 Each interaction block is a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms.
-The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant product (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the EMFA SO(2) convolution (Sec.~\ref{sec:so2}); the Wigner bilinear network (A4) acts inside the FFN (Sec.~\ref{sec:s2-method}).
+The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant degree coupling (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the EMFA SO(2) convolution (Sec.~\ref{sec:so2}); the Wigner bilinear network (A4) acts inside the FFN (Sec.~\ref{sec:s2-method}).
 Short-range repulsion couples the learned and analytical branches through Native ZBL Zone Bridging (Sec.~\ref{sec:zbl_method}).
 
 \subsubsection{Geometric inputs to the learned branch}
@@ -229,7 +229,7 @@ Equation~\eqref{eq:dpa4-gie} is SO(3)-equivariant because every prefactor is rot
 \label{sec:so2}
 
 Each interaction block applies the EMFA SO(2) convolution $\mathcal{C}_{\theta}$, an SO(3)-equivariant convolution that takes the per-atom node features $\mathbf{h}_j\in V_{\le L}\otimes\mathbb{R}^{C}$, $j=1,\dots,N$, and returns a per-atom update $(\mathcal{C}_{\theta}\mathbf{h})_i\in V_{\le L}\otimes\mathbb{R}^{C}$ obtained by aggregating information from the neighbors of atom $i$.
-The operator is built in six stages: (i) transport each source node feature into a per-edge SO(2) gauge aligning the bond direction with a fixed reference axis; (ii) construct an in-frame edge feature through a \emph{low-rank edge--node SO(2)-equivariant product} (A1); (iii) introduce message nonlinearity through a \emph{multi-focus design} (A2): $F$ parallel per-focus SO(2) stacks reweighted by a cross-focus softmax competition, whose gated activations within each stack and softmax over focuses act as two complementary nonlinear elements; (iv) lift the in-frame feature back to the global frame as the per-edge equivariant message; (v) aggregate neighbor messages with envelope-gated attention (A3) modulated by a destination-side output gate; and (vi) project the result back to representation width through a channel post-mixer.
+The operator is built in six stages: (i) transport each source node feature into a per-edge SO(2) gauge aligning the bond direction with a fixed reference axis; (ii) construct an in-frame edge feature through a \emph{low-rank edge--node SO(2)-equivariant degree coupling} (A1); (iii) introduce message nonlinearity through a \emph{multi-focus design} (A2): $F$ parallel per-focus SO(2) stacks reweighted by a cross-focus softmax competition, whose gated activations within each stack and softmax over focuses act as two complementary nonlinear elements; (iv) lift the in-frame feature back to the global frame as the per-edge equivariant message; (v) aggregate neighbor messages with envelope-gated attention (A3) modulated by a destination-side output gate; and (vi) project the result back to representation width through a channel post-mixer.
 The closed form of $\mathcal{C}_{\theta}$ collecting all six stages is given as Eq.~\eqref{eq:dpa4-conv} at the end of the subsection.
 
 \paragraph{Edge-local frame.}
@@ -264,11 +264,11 @@ $P_M$ selects the retained $m$-strata to dimension $D_M$
 (Eq.~\eqref{eq:sm-trunc-index}).
 Let $\widetilde{\rho}_{ij}\in\mathbb{R}^{(L+1)\times H}$ be the radial-species feature $\rho_{ij}$ of Eq.~\eqref{eq:dpa4-rho} lifted from representation width $C$ to hidden width $H$ by a degree-wise channel map $L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H}$ applied independently at each degree $l$ (Eq.~\eqref{eq:sm-degree-linear}).
 
-\paragraph{Low-rank edge--node SO(2)-equivariant product.}
+\paragraph{Low-rank edge--node SO(2)-equivariant degree coupling.}
 This stage realizes the architectural design A1.
 In the local frame, the edge angular feature $Y_l(\widehat{\mathbf{r}}_{ij})$ collapses to its $m=0$ component for every degree $l$, so $\widetilde{\rho}_{ij}$ serves as the radial-modulated $m=0$ slice of the per-degree edge SO(2) irreps.
 The
-edge--node product takes these edge-side SO(2) irreps and multiplies them with
+edge--node degree coupling takes these edge-side SO(2) irreps and multiplies them with
 the node-side SO(2)-equivariant irreps $\mathbf{x}_{ij}$ via a learnable linear
 map that, at each fixed $|m|$-stratum, mixes the different angular degrees $l$
 without coupling different $|m|$,

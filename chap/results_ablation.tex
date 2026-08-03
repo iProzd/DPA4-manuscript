@@ -7,7 +7,7 @@ Figure~\ref{fig:ablation} reports the outcome, with the underlying numbers in Su
 Every component contributes, and the four together lower the energy and force MAEs by 21.8\% and 12.1\% relative to the fully ablated baseline (31.007 against 39.671~meV/atom and 39.169 against 44.581~meV/\AA{}).
 Envelope-gated attention (A3) is the largest single contributor: switching it off raises the energy MAE by 14.9\% and the force MAE by 6.1\%.
 Because its weights are computed from rotationally invariant scalar channels, this gain reflects adaptive neighbor weighting rather than any relaxation of SO(3) equivariance.
-The low-rank edge--node SO(2)-equivariant product (A1) accounts for 3.9\% and 5.2\%, and is thus worth more for forces than for energies, whereas the WBN grid inside the equivariant FFN (A4) accounts for 5.2\% and 2.5\% and shows the opposite balance.
+The low-rank edge--node SO(2)-equivariant degree coupling (A1) accounts for 3.9\% and 5.2\%, and is thus worth more for forces than for energies, whereas the WBN grid inside the equivariant FFN (A4) accounts for 5.2\% and 2.5\% and shows the opposite balance.
 The second WBN grid, acting on the post-aggregation message--node path, adds a further 1.9\% in energy with no resolvable effect on forces (Fig.~\ref{fig:ablation}b).
 
 These four components cost little at inference: together they raise the parameter count by 1.7$\times$, from 1.19M to 2.05M, but the inference time by only 14\% (Fig.~\ref{fig:ablation}c).
@@ -19,7 +19,7 @@ Each rung of the ladder therefore trades a few percent of inference time for a s
     \caption{
         Cumulative ablation of the DPA4 architectural components.
         The matrix states which components each configuration retains: a filled marker denotes a component that is present and an open marker one that has been switched off, so that reading downwards accumulates the removals of the rows above.
-        MN denotes the WBN grid on the post-aggregation message--node path, WBN the grid inside the equivariant FFN (A4), EC the low-rank edge--node SO(2)-equivariant product (A1), and Attn the envelope-gated attention aggregation (A3).
+        MN denotes the WBN grid on the post-aggregation message--node path, WBN the grid inside the equivariant FFN (A4), EC the low-rank edge--node SO(2)-equivariant degree coupling (A1), and Attn the envelope-gated attention aggregation (A3).
         (a--c) Per-atom energy MAE, force MAE and inference time of each configuration relative to the complete architecture; the segments of a bar are the increments contributed by the individual removals, in the order of the matrix columns.
         Inference time is the wall-clock time of a full test pass over the WBM subsample.
         Every configuration uses a single focus stream: the multi-focus design (A2) redistributes a fixed angular budget across parallel streams rather than adding a branch, and is therefore compared at matched SO(2) width in Supplementary Section~\ref{sec:sm-ablation}.
@@ -35,8 +35,8 @@ Widening the single stream beyond this point yields no further benefit: the 256-
 Allocating the same angular budget to focus channels that compete over distinct edge-local motifs therefore provides a more parameter-efficient and more readily optimized route for scaling the SO(2) representation than widening a single stream.
 
 The mechanism behind the A1 rung of Fig.~\ref{fig:ablation} is the way the per-degree edge radial profiles modulate the node message in the local SO(2) frame.
-The ablated variant applies only the $l=0$ radial profile as a scalar multiplier for all angular channels, whereas the full form lets the degree-indexed profiles parameterize a cross-degree kernel that mixes input and output degrees within each fixed $|m|$ stratum.
-This kernel is built from the SO(2) Clebsch--Gordan coefficients and the $l>0$ edge spherical harmonics in the local frame (Section~\ref{sec:so2}), and is factorized across channels to keep the additional cost small.
+The ablated variant applies the profiles degree-diagonally, the degree-$l$ profile scaling only the degree-$l$ channels, whereas the full form lets them parameterize a cross-degree kernel that mixes input and output degrees within each fixed $|m|$ stratum.
+This kernel is a learnable function of the degree-indexed edge radial profiles, conserving $|m|$ as SO(2) equivariance requires (Section~\ref{sec:so2}), and is factorized across channels to keep the additional cost small.
 A low rank suffices: the released variants use rank 1 or 2 (Supplementary Table~\ref{tab:sm_model_config}), and the full rank sweep is reported in Supplementary Table~\ref{tab:dpa4_radial_degree_ablation}.
 
 The quadrature rule on which the WBN (A4) is evaluated sets the numerical equivariance of the nonlinearity, and the comparison below isolates that choice from the design of the nonlinearity itself.
