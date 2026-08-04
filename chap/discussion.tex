@@ -1,17 +1,19 @@
 \section{Discussion}
 \label{sec:discussion}
 
-DPA4 shows that the accuracy--cost trade-off of equivariant interatomic potentials can be substantially improved when the architecture and the conservative energy-gradient training path are co-designed as one energy-conservative system.
-On the architectural side, the EMFA SO(2) convolution avoids the full cost of SO(3) Clebsch--Gordan tensor products while remaining more expressive than prior SO(2) reductions, and a Wigner bilinear network supplies a nonlinearity that couples all degrees at once and, on an exact Lebedev quadrature grid, preserves SO(3)-equivariance to machine precision.
-On the training side, a compiler-friendly implementation makes the energy-to-force path compatible with \texttt{torch.compile} and removes the systems overhead that usually limits expressive equivariant models.
-It is this combined design, rather than any single component, that moves DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and onto a better accuracy--parameter frontier across both inorganic crystals and organic molecules.
+DPA4 shows that the accuracy--cost trade-off of equivariant interatomic potentials can be substantially improved by targeted architectural design.
+Inside the EMFA SO(2) convolution, which avoids the full cost of SO(3) Clebsch--Gordan tensor products while remaining more expressive than prior SO(2) reductions, the edge--node degree coupling (A1), the multi-focus design (A2) and the envelope-gated attention (A3) each raise accuracy at low cost.
+The Wigner bilinear network (A4) supplies the nonlinearity: it couples all angular degrees at once, in its full form approximates any continuous SO(3)-equivariant map, and, evaluated by exact Lebedev--uniform quadrature, is equivariant to machine precision.
+Complementing the architecture, a compiler-friendly implementation makes the conservative energy-to-force path compatible with \texttt{torch.compile} and removes the systems overhead that usually limits expressive equivariant models.
+The cumulative ablation confirms that every mechanism contributes (Section~\ref{sec:ablation}); together, these designs move DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and a better accuracy--parameter frontier across inorganic crystals and organic molecules.
 
-Across materials and molecular benchmarks, DPA4 delivers competitive accuracy at a fraction of the parameter count and training compute of leading baselines.
-On Matbench Discovery, DPA4-Pro reaches the top of the compliant leaderboard in every ranked metric with $\sim17\%$ fewer parameters than EquiformerV3+DeNS-MP, while DPA4-Air (5.1\,M parameters) exceeds the eSEN-30M-MP baseline with $5.9\times$ fewer parameters and $20.9\times$ less training compute.
-On SPICE-MACE-OFF, DPA4-Plus (8.8\,M parameters) attains the lowest aggregate energy and force errors, lowering them by $36\%$ and $32\%$ relative to the 6.5\,M-parameter eSEN baseline.
-All of these gains are obtained through the conservative energy-gradient path alone, without auxiliary DeNS or direct-force pretraining, showing that those auxiliary objectives are not the only route to competitive accuracy.
-Combined with the $\sim$3$\times$ compiler-driven training speedup, this makes compact, single-task energy-conservative potentials practical to train, ablate and redeploy in molecular-dynamics and structure-relaxation workflows.
-In addition, Native ZBL Zone Bridging follows the analytical ZBL force smoothly at close contact and removes the spurious force-switching artifact of external pair corrections.
+Across materials and molecular benchmarks, DPA4 reaches leading accuracy at a fraction of the parameter count and training cost of the strongest baselines.
+On Matbench Discovery, DPA4-Pro leads every ranked metric of the compliant leaderboard, and the five variants define an accuracy--cost frontier that no baseline matches at less than four times its training budget.
+On OMat24, DPA4-Pro attains the lowest validation energy MAE of all models compared, with $6.1\times$ and $27.8\times$ fewer parameters than the two next most accurate models.
+On the out-of-distribution split of OMol25, DPA4-Plus is bettered only by a 1.4B-parameter multitask model.
+On SPICE-MACE-OFF, DPA4-Plus lowers the aggregate energy and force errors of the best published model by $36\%$ and $32\%$.
+These results are obtained through the conservative energy-gradient path alone, without the denoising or direct-force pretraining stages on which the strongest baselines rely; the compiled implementation removes the double-backward overhead that motivated such two-stage protocols.
+This makes compact, single-task energy-conservative potentials practical to train, ablate and redeploy in molecular-dynamics and structure-relaxation workflows.
 
 % \WH{I comment out this paragraph. it is off the accuracy-cost story line.}
 % Native ZBL Zone Bridging targets a complementary failure mode rather than the benchmark accuracy itself.
@@ -19,6 +21,7 @@ In addition, Native ZBL Zone Bridging follows the analytical ZBL force smoothly 
 % This was demonstrated only in a local dimer test, and long-time molecular-dynamics validation---energy drift, collision stability and damage evolution---remains future work.
 % More broadly, we establish DPA4 here as a generalist backbone architecture in the single-task, per-dataset setting; its realization as a fully pretrained large atomistic model under large-scale multitask training and heterogeneous DFT datasets, together with autonomous active-learning convergence and closed-loop deployment, remains to be established.
 
+DPA4 is established here as a backbone architecture in the single-task, per-dataset setting; its behavior under large-scale multitask pretraining on heterogeneous DFT data remains to be established.
 An important next step is therefore to use DPA4 as a backbone for LAM pretraining and downstream adaptation while preserving its conservative energy-gradient training efficiency.
 The relevant question is then not only whether a single pretrained model reaches a higher benchmark score, but whether accurate target-domain potentials can be generated, validated and refined repeatedly at low cost.
 Such low-cost, repeated refinement is an ingredient for more automated, agentic potential development and, ultimately, for closing the loop between computation and experiment, so that simulation-driven model updates and laboratory feedback iteratively refine one another.

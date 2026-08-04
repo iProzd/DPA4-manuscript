@@ -351,9 +351,12 @@ Beyond model size, these gains come at low training cost: DPA4-Neo, DPA4-Air and
     \label{fig:infer_diamond}
 \end{figure}
 
-The low training cost documented in the preceding sections is supported by the compiled conservative energy-gradient implementation.
-In controlled ablations, \texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed precision gives a 3.1$\times$ wall-clock training speedup and reduces peak training memory to about 40\% of the FP32 baseline (Table~\ref{tab:dpa4_compile_ablation}).
-This systems-level gain is obtained without replacing energy-based force matching by a direct-force surrogate.
+The low training cost documented in the preceding sections rests on a systems contribution of this work: conservative energy-gradient training that runs entirely inside compiled GPU code.
+The obstacle is the mixed second derivative required by force supervision --- the training gradient differentiates the energy-derived forces $-\partial E_{\Theta}/\partial\mathbf{R}$ once more with respect to the parameters --- which a standard compiled forward/backward stack does not expose inside the compiled region.
+DPA4 resolves this by executing the energy-to-force derivative during symbolic tracing, so that the compiled graph itself contains the energy evaluation and its coordinate derivative, and the outer backward pass differentiates the force residual with respect to the parameters (Section~\ref{sec:compiled-training}).
+Making this path robust requires a set of dedicated systems measures: a shape-stable compact edge representation under symbolic shapes, surgical removal of the autograd detach nodes that would sever the force-loss gradient, a compilation cache keyed by graph topology, and Inductor settings compatible with higher-order autograd (Section~\ref{sec:compiled-training}).
+In controlled ablations, the compiled path under \texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed precision gives a 3.1$\times$ wall-clock training speedup and reduces peak training memory to about 40\% of the FP32 baseline (Table~\ref{tab:dpa4_compile_ablation}).
+The gain is obtained without replacing energy-based force matching by a direct-force surrogate: the compiled path preserves the scalar energy-to-force relation of the uncompiled model.
 
 Inference efficiency is evaluated through the ASE calculator interface~\cite{ase-paper}, which provides a common end-to-end route for single-point energy, force and stress evaluation across DPA4, DPA3, MACE and EquiformerV3 baselines.
 The DPA4 calculators use compiled inference.

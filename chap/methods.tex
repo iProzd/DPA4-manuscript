@@ -654,6 +654,7 @@ The Muon path further uses match-RMS scaling following scalable Muon training pr
 Complete model- and dataset-specific hyperparameters are reported in Supplementary Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
 \subsection{Compiled conservative energy-gradient training}
+\label{sec:compiled-training}
 
 The training implementation compiles the conservative energy-gradient path without changing the energy-based definition of forces.
 The main obstacle is
@@ -669,11 +670,40 @@ that force supervision differentiates through
     \label{eq:dpa4-double-backward}
 \end{equation}
 so the training gradient contains a coordinate--parameter mixed derivative.
-We first trace the energy-to-force derivative with \texttt{make\_fx} into a tensor graph, then lower this graph with PyTorch Inductor~\cite{ansel2024pytorch2}.
-The compiled lower graph contains the energy evaluation and its coordinate derivative; the outer backward pass then differentiates the force residual with respect to model parameters.
+A standard compiled forward/backward stack captures the forward graph and its first reverse-mode derivative, but it does not directly expose a nested coordinate derivative inside the compiled region.
+DPA4 resolves this by first executing the energy-to-force derivative during symbolic tracing and then lowering the resulting tensor graph with PyTorch Inductor~\cite{ansel2024pytorch2}: the compiled graph contains the energy evaluation and its coordinate derivative, and the outer backward pass differentiates the force residual with respect to model parameters.
 
-The neighbor representation is kept shape-stable, and inactive neighbors are represented by exactly silent contributions.
-The compiled path therefore preserves the scalar energy-to-force relation of the uncompiled model, rather than replacing conservative force matching with a direct-force surrogate.
+\paragraph{Tracing the conservative lower graph.}
+The compiled function wraps the lower energy computation as a tensor-only map: from extended coordinates, atom types, neighbor indices and optional conditioning tensors to energies, forces and virials.
+Before entering the traced function, the extended coordinates are rebound to a fresh leaf tensor.
+This restart removes any upstream graph carried by data loading or neighbor construction while preserving a well-defined coordinate endpoint for $\partial E/\partial R$.
+During training, the force construction keeps the coordinate-derivative graph alive; the outer loss backward pass can therefore differentiate the force residual into the model parameters, realizing the mixed derivative in Eq.~\eqref{eq:dpa4-double-backward}.
+
+\paragraph{Symbolic tracing and higher-order differentiability.}
+The implementation traces the conservative lower graph with symbolic shapes and real tensor inputs.
+Real inputs are needed because compact edge construction contains data-dependent operations; after that control flow is resolved, the runtime dimensions are represented symbolically.
+The trace uses a small five-frame representative batch chosen to avoid known symbolic-dimension collisions with singleton axes, charge--spin width, Cartesian coordinates and virial components.
+The SiLU backward operation is decomposed into elementary pointwise operations before tracing, so the compiler receives an explicit first-derivative graph when the optimizer later requests a second derivative.
+
+\paragraph{Preserving the force-loss gradient.}
+When the coordinate derivative is traced in training mode, autograd inserts detach nodes around saved forward activations.
+In the traced FX graph these nodes would become ordinary tensor operations and would sever the path from the force loss back to the parameters.
+DPA4 removes only the detach nodes matching the saved-tensor topology and keeps user-intended detach operations unchanged.
+The edited graph is then rebuilt into a fresh FX graph before compilation, so all compiler passes see a consistent node topology.
+
+\paragraph{Dynamic edge representation and cache structure.}
+The padded DeePMD neighbor list is converted inside the graph into a compact edge list.
+Edge vectors are formed by differentiable indexed selection from the extended coordinate tensor, and a single masked sentinel edge is appended to every batch.
+The sentinel edge guarantees a nonempty edge tensor under symbolic shapes while contributing exactly zero to downstream reductions.
+Compiled callables are cached by graph topology, including training versus evaluation, the presence of atomic virial outputs and coordinate-correction inputs.
+This multi-slot cache avoids recompilation when training is periodically interrupted by validation, while keeping distinct output signatures in separate compiled graphs.
+
+\paragraph{Inductor configuration.}
+The traced graph is lowered with dynamic-shape compilation.
+The compiled path uses deterministic compilation settings rather than autotuning, enables shape padding for fluctuating symbolic dimensions and disables compiler features that interfere with higher-order autograd metadata or produce unstable large fused reduction kernels for this higher-order graph.
+Training and evaluation use separate fusion limits because the training graph contains the second-derivative branch whereas the evaluation graph does not.
+
+This systems design keeps the conservative training path inside compiled GPU code while preserving the scalar energy-to-force relation of the uncompiled model, rather than replacing conservative force matching with a direct-force surrogate.
 In controlled ablations, compiled mixed-precision training gives up to a 3.1$\times$ wall-clock speedup with no systematic accuracy degradation (Table~\ref{tab:dpa4_compile_ablation}).
 
 % =============================================================
