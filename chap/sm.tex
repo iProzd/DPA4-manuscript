@@ -59,12 +59,11 @@ Conversely, the four components together raise the parameter count by 1.7$\times
 The energy error increases monotonically along the chain, whereas the force error does not: removing the message node WBN leaves it marginally lower, so the two WBN insertions are separated by the force metric only in the controlled comparison of Table~\ref{tab:sm_wbn_ablation}.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Cumulative ablation of the DPA4 architectural components.\tnote{a}}
         \label{tab:sm_cumulative_ablation}
-        \begin{tabular}{@{}ccccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccccc@{}}
             \toprule
             \makecell{\textbf{Message}\\\textbf{node WBN}}       &
             \makecell{\textbf{WBN in}\\\textbf{FFN}}             &
@@ -82,13 +81,12 @@ The energy error increases monotonically along the chain, whereas the force erro
             \xmark & \xmark & \xmark & \cmark & 34.529             & 42.004             & 0.80 & 0.90 & 1.21M \\
             \xmark & \xmark & \xmark & \xmark & 39.671             & 44.581             & 0.72 & 0.88 & 1.19M \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the complete
             architecture of the first row.
-            A disabled edge--node degree coupling denotes the scalar-scaling form that applies each
-            degree-$l$ radial profile only to the degree-$l$ channels, and a disabled attention aggregation
-            denotes scatter-sum aggregation.
+            A disabled edge--node degree coupling denotes the scalar-scaling form that applies each degree-$l$ radial profile only to the degree-$l$ channels, and a disabled attention aggregation denotes scatter-sum aggregation.
             All rows use a single focus stream.
         \end{tablenotes}
     \end{threeparttable}
@@ -114,12 +112,11 @@ DPA4 limits this sensitivity by keeping geometric preprocessing and normalizatio
 We therefore enable \texttt{torch.compile}, bf16 AMP, and TF32 in the following ablations and benchmark experiments unless otherwise specified.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Ablation of graph compilation and training precision.\tnote{a}}
         \label{tab:dpa4_compile_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
             \textbf{Compile}                       &
             \textbf{bf16 AMP}                      &
@@ -136,8 +133,9 @@ We therefore enable \texttt{torch.compile}, bf16 AMP, and TF32 in the following 
             \cmark                                   & \cmark  & \xmark & 28.355 & 34.864 & \textbf{0.32} & \textbf{0.40} \\
             \cmark                                   & \cmark  & \cmark  & 28.364 & 34.275 & \textbf{0.32} & \textbf{0.40} \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Train time (rel.) and peak train memory are normalized to the non-compiled
             FP32 baseline measured on NVIDIA H20 hardware.
             Peak train memory denotes peak GPU memory during training.
@@ -157,12 +155,11 @@ The gain is obtained with a small computational cost, increasing training time b
 This result supports the design choice of computing attention from rotationally invariant scalar channels: the model gains adaptive neighbor selection while preserving equivariance of the higher-order SO(2) features.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Ablation of attention aggregation.\tnote{a}}
         \label{tab:dpa4_attention_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
             \textbf{Feature dim.}                  &
             \textbf{No. focuses}                   &
@@ -181,8 +178,9 @@ This result supports the design choice of computing attention from rotationally 
             96                                     & 2 & Scatter sum            & 30.935          & 36.639          & 1.00 & 1.00 \\
             96                                     & 2 & Attention-weighted sum & \textbf{28.083} & \textbf{34.158} & 1.06 & 1.02 \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Within each feature-dimension and focus-count setting, Train time (rel.) and
             Test time (rel.) are normalized to the corresponding scatter-sum aggregation.
         \end{tablenotes}
@@ -203,12 +201,11 @@ Under a shared training recipe, however, the 96-channel 2-focus configuration gi
 These trends are consistent with the intended role of focus competition, where parallel equivariant sub-channels specialize to different edge-local geometric motifs before the rotate-back step.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Ablation of SO(2) feature width and focus count.\tnote{a}}
         \label{tab:dpa4_focus_ablation}
-        \begin{tabular}{@{}cccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccc@{}}
             \toprule
             \textbf{Feature dim.}                  &
             \textbf{No. focuses}                   &
@@ -230,8 +227,9 @@ These trends are consistent with the intended role of focus competition, where p
             256                                    & 1 & 256 & 28.409             & 36.670             & 4.50 & 5.17 & 28.4M \\
             96                                     & 3 & 288 & \underline{27.168} & \underline{36.429} & 3.25 & 3.62 & 9.8M  \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the 64-channel
             1-focus baseline.
             Params denotes the number of trainable parameters.
@@ -257,8 +255,7 @@ Increasing the rank from 1 to 4 gives the best energy and force MAEs, but also r
 These results suggest that compact per-channel kernels act as a structural regularizer, providing enough channel-specific angular mixing without introducing many weakly constrained radial--angular interactions.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Ablation of the low-rank edge--node SO(2)-equivariant degree coupling.\tnote{a}}
         \label{tab:dpa4_radial_degree_ablation}
@@ -282,7 +279,8 @@ These results suggest that compact per-channel kernels act as a structural regul
             Degree mixing & \cmark & Full & 28.011 & 37.400 & 3.36 & 2.22 \\
             \bottomrule
         \end{tabular*}
-        \begin{tablenotes}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the scalar-scaling
             baseline.
             Scalar scaling applies each degree-$l$ radial profile only to the degree-$l$ channels, whereas degree mixing uses the profiles to mix angular degrees in the local SO(2) frame.
@@ -301,12 +299,11 @@ In this expanded activation configuration, Lebedev quadrature reduces the energy
 These results indicate that the FFN-only $\Sph$ activation configuration with Lebedev quadrature is both more accurate and cheaper than the SO(2)+FFN configurations tested here, and is therefore used in the released DPA4 variants.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Ablation of $\Sph$ activation placement and quadrature rule.\tnote{a}}
         \label{tab:sm_quadrature_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
             \textbf{SO(2) S2 act.}                 &
             \textbf{FFN S2 act.}                   &
@@ -321,8 +318,9 @@ These results indicate that the FFN-only $\Sph$ activation configuration with Le
             \cmark                                   & \cmark & Product & 31.074             & 39.522             & 2.41 & 2.23 \\
             \cmark                                   & \cmark & Lebedev & 29.709             & 39.808             & 1.98 & 1.76 \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the FFN-only $\Sph$ row
             using the latitude--longitude product grid.
             The quadrature rule is used when projecting $\Sph$-grid features back to equivariant coefficients.
@@ -346,12 +344,11 @@ Enabling both paths attains the lower force MAE of the two configurations that u
 The cost of the added capacity falls almost entirely on the parameter count rather than on runtime: across the table the parameter count grows from 1.2~M to 2.0~M while the relative test time grows by only 4\%.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \begin{threeparttable}
         \caption{Ablation of the Wigner bilinear network.\tnote{a}}
         \label{tab:sm_wbn_ablation}
-        \begin{tabular}{@{}ccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
             \textbf{FFN nonlinearity}              &
             \textbf{Message node WBN}              &
@@ -367,13 +364,12 @@ The cost of the added capacity falls almost entirely on the parameter count rath
             $\Sph$ grid & \cmark  & \underline{33.662} & \textbf{38.044}    & 1.24 & 1.02 & 1.6M \\
             WBN         & \cmark  & 33.736             & \underline{38.069} & 1.23 & 1.04 & 2.0M \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the row without an FFN
             nonlinearity.
-            The FFN nonlinearity column selects the grid on which the equivariant feed-forward
-            nonlinearity is evaluated; when a WBN grid is used in the FFN it supersedes the
-            $\Sph$-grid path.
+            The FFN nonlinearity column selects the grid on which the equivariant feed-forward nonlinearity is evaluated; when a WBN grid is used in the FFN it supersedes the $\Sph$-grid path.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -388,8 +384,7 @@ Within a block, additional SO(2) sublayers improve accuracy steadily at modest c
 We accordingly retain a single feed-forward sublayer and tune the interaction depth and SO(2)-stack depth per variant.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of interaction-block depth.}
     \label{tab:sm_layers}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccc@{}}
@@ -420,8 +415,7 @@ We accordingly retain a single feed-forward sublayer and tune the interaction de
 \end{table}
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of SO(2)-stack depth per interaction block.}
     \label{tab:sm_so2_stack}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccc@{}}
@@ -441,8 +435,7 @@ We accordingly retain a single feed-forward sublayer and tune the interaction de
 \end{table}
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of FFN-stack depth per interaction block.}
     \label{tab:sm_ffn_stack}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccc@{}}
@@ -471,8 +464,7 @@ The minimal single-head form, without value, output or pre-mixing projections, a
 Single-head attention without further projections is therefore retained as the default.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of attention-aggregation variants for the 64-channel, 1-focus configuration.}
     \label{tab:sm_attention_64}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
@@ -497,8 +489,7 @@ Single-head attention without further projections is therefore retained as the d
 \end{table}
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of attention-aggregation variants for the 96-channel, 1-focus configuration.}
     \label{tab:sm_attention_96}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
@@ -528,8 +519,7 @@ Single-head attention without further projections is therefore retained as the d
 \end{table}
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of attention-aggregation variants for the 96-channel, 2-focus configuration.}
     \label{tab:sm_attention_96x2}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
@@ -572,8 +562,7 @@ A single normalization per sublayer is consistently more accurate than applying 
 SO(2) post-normalization combined with feed-forward pre-normalization yields the lowest energy MAE and close to the lowest force MAE, and this placement is used throughout.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of SO(2) and FFN normalization placement.}
     \label{tab:sm_stability}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccc@{}}
@@ -605,8 +594,7 @@ Under otherwise identical settings, the warmup--stable--decay (WSD) schedule low
 This advantage is consistent with its extended high-learning-rate phase and short terminal decay, and the WSD schedule is used for the released DPA4 variants.
 
 \begin{table}[ht]
-    \centering
-    \scriptsize
+    \PaperTableStyle
     \caption{Ablation of the learning-rate scheduler.}
     \label{tab:sm_training_recipe}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccc@{}}
@@ -652,9 +640,9 @@ Horizontal rules separate related groups of hyperparameters without adding categ
     \caption{Ablation model configurations (1).}
     \label{tab:sm_main_ablation_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.4cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}@{}}
-            \toprule
-            \textbf{Hyperparameter}       & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention}                                                           & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{$\Sph$/}\\\textbf{quad.}} & \textbf{WBN} \\
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{2.4cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention} & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{$\Sph$/}\\\textbf{quad.
+                }} & \textbf{WBN} \\
             \midrule
             Feature dim.                  & 64                                                & 64                                               & 64/96/96                                                                     & --                                              & 64                                               & 64                                          & 64 \\
             No. focuses                   & 1                                                 & 1                                                & 1/1/2                                                                        & --                                              & 1                                                & 1                                           & 1 \\
@@ -688,14 +676,10 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             bf16 AMP                      & True                                              & --                                               & True                                                                         & True                                            & True                                             & True                                        & True \\
             TF32 matmul                   & True                                              & --                                               & True                                                                         & True                                            & True                                             & True                                        & True \\
             LR scheduler                  & WSD                                               & Cosine                                           & Cosine                                                                       & WSD                                             & Cosine                                           & Cosine                                      & WSD \\
-            Max. LR                       & $4\times10^{-4}$                                  & $4\times10^{-4}$                                 & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$}                                    & $4\times10^{-4}$                                & $4.5\times10^{-4}$                               & $4.5\times10^{-4}$                          & $4\times10^{-4}$ \\
-            Min. LR                       & $1\times10^{-6}$                                  & $1\times10^{-6}$                                 & $1\times10^{-6}$                                                             & $1\times10^{-6}$                                & $1\times10^{-6}$                                 & $1\times10^{-6}$                            & $1\times10^{-6}$ \\
-            Warmup ratio                  & 0.003                                             & 0.003                                            & 0.003                                                                        & 0.003                                           & 0.003                                            & 0.003                                       & 0.003 \\
-            Decay ratio                   & 0.65                                              & N/A                                              & N/A                                                                          & 0.65                                            & N/A                                              & N/A                                         & 0.65 \\
-            Decay type                    & Cosine                                            & N/A                                              & N/A                                                                          & Cosine                                          & N/A                                              & N/A                                         & Cosine \\
-            Batch size (per GPU)\tnote{c} & $\lceil 900/N\rceil$                              & $\lceil 450/N\rceil$                             & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$                            & $\lceil 1000/N\rceil$                            & $\lceil 700/N\rceil$                        & $\lceil 900/N\rceil$ \\
-            Training steps                & $1\times10^6$                                     & $1\times10^6$                                    & $1\times10^6$                                                                & $2\times10^6$                                   & $1\times10^6$                                    & $1\times10^6$                               & $5\times10^5$ \\
-            No. GPUs                      & 1                                                 & 1                                                & 1                                                                            & 1                                               & 1                                                & 1                                           & 1 \\
+            Max.
+            LR & $4\times10^{-4}$ & $4\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & N/A & N/A & 0.65 & N/A & N/A & 0.65 \\ Decay type & Cosine & N/A & N/A & Cosine & N/A & N/A & Cosine \\ Batch size (per GPU)\tnote{c} & $\lceil 900/N\rceil$ & $\lceil 450/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$ & $\lceil 1000/N\rceil$ & $\lceil 700/N\rceil$ & $\lceil 900/N\rceil$ \\ Training steps & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $5\times10^5$ \\ No.
+            GPUs                      & 1                                                 & 1                                                & 1                                                                            & 1                                               & 1                                                & 1                                           & 1 \\
             \midrule
             Loss                          & MAE                                               & MAE                                              & MAE                                                                          & MAE                                             & MAE                                              & MAE                                         & MAE \\
             Loss weights $(E,F,V)$        & 20, 20, 5                                         & 20, 20, 5                                        & 20, 20, 5                                                                    & 20, 20, 5                                       & 20, 20, 5                                        & 20, 20, 5                                   & 20, 20, 5 \\
@@ -808,11 +792,9 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \caption{DPA4 model and systems configurations of the four released size classes, shared by all benchmarks.}
     \label{tab:sm_model_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{3.0cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
-            \toprule
-            \textbf{Hyperparameter}      & \textbf{DPA4-Mini} & \textbf{DPA4-Neo}  & \textbf{DPA4-Air}  & \textbf{DPA4-Plus} & \textbf{DPA4-Pro}  \\
-            \midrule
-            Feature dim.                 & 32                 & 64                 & 64                 & 64                 & 128                \\
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{3.0cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule Feature dim.
+            & 32                 & 64                 & 64                 & 64                 & 128                \\
             No. focuses                  & 1                  & 2                  & 1                  & 1                  & 2                  \\
             No. layers                   & 2                  & 2                  & 3                  & 4                  & 6                  \\
             SO(2) layers                 & 3                  & 3                  & 4                  & 4                  & 4                  \\
@@ -866,31 +848,22 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
 \end{table}
 
 \begin{table}[p]
-    \centering
-    \scriptsize
-    \setlength{\tabcolsep}{3pt}
+    \PaperTableStyle
     \caption{Matbench Discovery training hyperparameters.}
     \label{tab:sm_matbench_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
-            \toprule
-            \textbf{Hyperparameter}     & \textbf{DPA4-Mini} & \textbf{DPA4-Neo}         & \textbf{DPA4-Air}         & \textbf{DPA4-Plus}        & \textbf{DPA4-Pro}        \\
-            \midrule
-            LR scheduler                & WSD & WSD                       & WSD                       & WSD                       & WSD                      \\
-            Max. LR                     & $2\times10^{-3}$ & $7\times10^{-4}$          & $4.2\times10^{-4}$        & $4.7\times10^{-4}$        & $4.3\times10^{-4}$       \\
-            Min. LR                     & $1\times10^{-6}$ & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$          & $1\times10^{-6}$         \\
-            Warmup ratio                & 0.003 & 0.003                     & 0.003                     & 0.003                     & 0.003                    \\
-            Decay ratio                 & 0.65 & 0.65                      & 0.65                      & 0.65                      & 0.65                     \\
-            Decay type                  & Cosine & Cosine                    & Cosine                    & Cosine                    & Cosine                   \\
-            Batch size (per GPU)\tnote{a} & $\lceil 7000/N\rceil$ & $\lceil 3000/N\rceil$   & $\lceil 1800/N\rceil$     & $\lceil 1500/N\rceil$     & $\lceil 300/N\rceil$     \\
-            Training epochs             & 150 & 100                       & 100                       & 100                       & 140                      \\
-            No. GPUs                    & 1 & 2                         & 2                         & 4                         & 16                       \\
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{2.5cm}C{1.75cm}C{1.75cm}C{1.75cm}C{1.75cm}C{1.75cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & WSD & WSD & WSD & WSD & WSD \\ Max.
+            LR & $2\times10^{-3}$ & $7\times10^{-4}$ & $4.2\times10^{-4}$ & $4.7\times10^{-4}$ & $4.3\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 7000/N\rceil$ & $\lceil 3000/N\rceil$ & $\lceil 1800/N\rceil$ & $\lceil 1500/N\rceil$ & $\lceil 300/N\rceil$ \\ Training epochs & 150 & 100 & 100 & 100 & 140 \\ No.
+            GPUs                    & 1 & 2                         & 2                         & 4                         & 16                       \\
             \midrule
             Loss                        & MAE & MAE                       & MAE                       & MAE                       & MAE                      \\
             Loss weights $(E,F,V)$      & 20, 20, 5 & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                 & 20, 20, 5                \\
             \bottomrule
         \end{tabular*}
-        \begin{tablenotes}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
         \end{tablenotes}
@@ -898,29 +871,22 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
 \end{table}
 
 \begin{table}[p]
-    \centering
-    \scriptsize
-    \setlength{\tabcolsep}{3pt}
+    \PaperTableStyle
     \caption{OMat24 training hyperparameters.}
     \label{tab:sm_omat24_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.8cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
-            \toprule
-            \textbf{Hyperparameter}       & \textbf{DPA4-Mini}     & \textbf{DPA4-Neo}     & \textbf{DPA4-Air}     & \textbf{DPA4-Plus}    & \textbf{DPA4-Pro}    \\
-            \midrule
-            LR scheduler                  & Cosine                 & Cosine                & Cosine                & Cosine                & Cosine               \\
-            Max. LR                       & $1\times10^{-3}$       & $8\times10^{-4}$      & $4\times10^{-4}$      & $3\times10^{-4}$      & $2\times10^{-4}$     \\
-            Min. LR                       & $1\times10^{-6}$       & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$     \\
-            Warmup ratio                  & 0.003                  & 0.003                 & 0.003                 & 0.003                 & 0.003                \\
-            Batch size (per GPU)\tnote{a} & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\
-            Training epochs               & 7                      & 7                     & 6                     & 5                     & 5                    \\
-            No. GPUs                      & 2                      & 2                     & 4                     & 4                     & 16                   \\
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{2.8cm}C{1.75cm}C{1.75cm}C{1.75cm}C{1.75cm}C{1.75cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & Cosine & Cosine & Cosine & Cosine & Cosine \\ Max.
+            LR & $1\times10^{-3}$ & $8\times10^{-4}$ & $4\times10^{-4}$ & $3\times10^{-4}$ & $2\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Batch size (per GPU)\tnote{a} & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\ Training epochs & 7 & 7 & 6 & 5 & 5 \\ No.
+            GPUs                      & 2                      & 2                     & 4                     & 4                     & 16                   \\
             \midrule
             Loss                          & MAE                    & MAE                   & MAE                   & MAE                   & MAE                  \\
             Loss weights $(E,F,V)$        & 20, 20, 5              & 20, 20, 5             & 20, 20, 5             & 20, 20, 5             & 20, 20, 5            \\
             \bottomrule
         \end{tabular*}
-        \begin{tablenotes}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
         \end{tablenotes}
@@ -928,31 +894,22 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
 \end{table}
 
 \begin{table}[p]
-    \centering
-    \scriptsize
-    \setlength{\tabcolsep}{3pt}
+    \PaperTableStyle
     \caption{OMol25 training hyperparameters.}
     \label{tab:sm_omol25_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{2.8cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}C{1.5cm}@{}}
-            \toprule
-            \textbf{Hyperparameter}       & \textbf{DPA4-Mini}     & \textbf{DPA4-Neo}     & \textbf{DPA4-Air}     & \textbf{DPA4-Plus}    & \textbf{DPA4-Pro}    \\
-            \midrule
-            LR scheduler                  & WSD                    & WSD                   & WSD                   & WSD                   & WSD                  \\
-            Max. LR                       & $6\times10^{-4}$       & $8\times10^{-4}$      & $3.5\times10^{-4}$    & $3.5\times10^{-4}$    & $3\times10^{-4}$     \\
-            Min. LR                       & $1\times10^{-6}$       & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$     \\
-            Warmup ratio                  & 0.003                  & 0.003                 & 0.003                 & 0.003                 & 0.003                \\
-            Decay ratio                   & 0.65                   & 0.65                  & 0.65                  & 0.65                  & 0.65                 \\
-            Decay type                    & Cosine                 & Cosine                & Cosine                & Cosine                & Cosine               \\
-            Batch size (per GPU)\tnote{a} & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\
-            Training epochs               & 18                     & 16                    & 14                    & 12                    & 10                   \\
-            No. GPUs                      & 4                      & 8                     & 16                    & 24                    & 32                   \\
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{2.8cm}C{1.75cm}C{1.75cm}C{1.75cm}C{1.75cm}C{1.75cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & WSD & WSD & WSD & WSD & WSD \\ Max.
+            LR & $6\times10^{-4}$ & $8\times10^{-4}$ & $3.5\times10^{-4}$ & $3.5\times10^{-4}$ & $3\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\ Training epochs & 18 & 16 & 14 & 12 & 10 \\ No.
+            GPUs                      & 4                      & 8                     & 16                    & 24                    & 32                   \\
             \midrule
             Loss                          & MAE                    & MAE                   & MAE                   & MAE                   & MAE                  \\
             Loss weights $(E,F,V)$        & 10, 5, 0               & 10, 5, 0              & 10, 5, 0              & 10, 5, 0              & 10, 5, 0             \\
             \bottomrule
         \end{tabular*}
-        \begin{tablenotes}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
         \end{tablenotes}
@@ -960,31 +917,22 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
 \end{table}
 
 \begin{table}[p]
-    \centering
-    \scriptsize
-    \setlength{\tabcolsep}{3pt}
+    \PaperTableStyle
     \caption{SPICE-MACE-OFF training hyperparameters.}
     \label{tab:sm_spice_mace_off_config}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}L{3.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
-            \toprule
-            \textbf{Hyperparameter}       & \textbf{DPA4-Neo}     & \textbf{DPA4-Air}     & \textbf{DPA4-Plus}    \\
-            \midrule
-            LR scheduler                  & WSD                   & WSD                   & WSD                   \\
-            Max. LR                       & $8\times10^{-4}$      & $5\times10^{-4}$      & $3.5\times10^{-4}$    \\
-            Min. LR                       & $1\times10^{-6}$      & $1\times10^{-6}$      & $1\times10^{-6}$      \\
-            Warmup ratio                  & 0.003                 & 0.003                 & 0.003                 \\
-            Decay ratio                   & 0.65                  & 0.65                  & 0.65                  \\
-            Decay type                    & Cosine                & Cosine                & Cosine                \\
-            Batch size (per GPU)\tnote{a} & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 1000/N\rceil$ \\
-            Training steps                & $2\times10^6$         & $2\times10^6$         & $2\times10^6$         \\
-            No. GPUs                      & 1                     & 1                     & 1                     \\
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
+                L{3.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} \\ \midrule LR scheduler & WSD & WSD & WSD \\ Max.
+            LR & $8\times10^{-4}$ & $5\times10^{-4}$ & $3.5\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 1000/N\rceil$ \\ Training steps & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\ No.
+            GPUs                      & 1                     & 1                     & 1                     \\
             \midrule
             Loss                          & MAE                   & MAE                   & MAE                   \\
             Loss weights $(E,F,V)$        & 15, 20, 0             & 15, 20, 0             & 15, 20, 0             \\
             \bottomrule
         \end{tabular*}
-        \begin{tablenotes}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[a] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
         \end{tablenotes}

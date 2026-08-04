@@ -28,6 +28,15 @@
 
 \setlength{\belowcaptionskip}{5pt}
 
+% Benchmark and ablation tables share the OMat24 typography and spacing.
+\newcommand{\PaperTableStyle}{%
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}%
+    \renewcommand{\arraystretch}{1.10}%
+}
+\newcommand{\PaperTableNotesStyle}{\scriptsize}
+
 \newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
 \newcolumntype{C}[1]{>{\PreserveBackslash\centering}p{#1}}
 \newcolumntype{R}[1]{>{\PreserveBackslash\raggedleft}p{#1}}

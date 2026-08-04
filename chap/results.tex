@@ -54,14 +54,12 @@ Both branches contribute to the same scalar total energy and are differentiated 
 \subsection{Matbench Discovery materials benchmark}
 \label{sec:matbench}
 
-\begin{table}
-    \scriptsize
-    \centering
-    \setlength{\tabcolsep}{6.5pt}
+\begin{table}[p]
+    \PaperTableStyle
     \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.}
     \label{tab:matbench}
     \begin{threeparttable}
-        \begin{tabular}{@{} l *{4}{c} c c c c @{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
             \toprule
             \textbf{Model}       & \textbf{CPS}$\uparrow$\tnote{a} & \textbf{F1}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$\tnote{b} & \textbf{RMSD}$\downarrow$\tnote{b} & \textbf{Params} & \textbf{Train. cost}\tnote{c} & \textbf{DeNS}\tnote{d} & \textbf{Targets}\tnote{e} \\
             \midrule
@@ -70,7 +68,9 @@ Both branches contribute to the same scalar total energy and are differentiated 
             DPA4-Air             & 0.811                           & 0.827                 & 0.266                                      & 0.074                              & 5.1M            & 16                            & \xmark                 & EFSG                      \\
             DPA4-Neo             & 0.782                           & 0.810                 & 0.353                                      & 0.079                              & 1.1M            & 8.6                           & \xmark                 & EFSG                      \\
             DPA4-Mini            & 0.733                           & 0.776                 & 0.496                                      & 0.084                              & 0.66M           & 5.8                           & \xmark                 & EFSG                      \\
+            \addlinespace[0.25em]
             \midrule
+            \addlinespace[0.15em]
             EquiformerV3+DeNS-MP & \underline{0.830}               & \underline{0.863}     & 0.275                                      & \underline{0.070}                  & 30.3M           & 157                           & \cmark                 & EFSG                      \\
             eSEN-30M-MP          & 0.797                           & 0.831                 & 0.340                                      & 0.075                              & 30.1M           & 335                           & \cmark                 & EFSG                      \\
             MatRIS-10M-MP        & 0.778                           & 0.847                 & 0.489                                      & 0.072                              & 10.4M           & 224                           & \cmark                 & EFSGM                     \\
@@ -89,8 +89,9 @@ Both branches contribute to the same scalar total energy and are differentiated 
             M3GNet               & 0.428                           & 0.569                 & 1.409                                      & 0.112                              & 228k            & --                            & \xmark                 & EFSG                      \\
             CHGNet               & 0.400                           & 0.613                 & 1.717                                      & 0.095                              & 413k            & --                            & \xmark                 & EFSGM                     \\
             \bottomrule
-        \end{tabular}
-        \begin{tablenotes}
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
             \item[] Leaderboard entries comprise all compliant models accessed before August 1, 2026.
             Boldface and underlining denote the best and second-best value of each ranked metric.
             \item[a] CPS, the combined performance score of the leaderboard, aggregates F1, $\kappa$SRME and RMSD with weights 0.5, 0.4 and 0.1~\cite{riebesell2025matbench}.
@@ -144,10 +145,7 @@ This does not diminish the usefulness of the benchmark; rather, it suggests that
 \label{sec:omat24}
 
 \begin{table}[t]
-    \centering
-    \footnotesize
-    \setlength{\tabcolsep}{3pt}
-    \renewcommand{\arraystretch}{1.10}
+    \PaperTableStyle
     \caption{Results on the OMat24 validation set.}
     \label{tab:omat24}
     \begin{threeparttable}
@@ -183,7 +181,7 @@ This does not diminish the usefulness of the benchmark; rather, it suggests that
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
-            \scriptsize
+            \PaperTableNotesStyle
             \item[] Boldface and underlining denote the best and second-best value of each evaluation metric; values that coincide at the reported precision carry the same mark.
             \item[a] Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning.
             \item[b] Values are mean absolute errors in meV per atom for energy, meV/\AA\ for forces and meV/\AA$^3$ for stress; lower values are better.
@@ -216,10 +214,7 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
 \label{sec:omol25}
 
 \begin{table}[t]
-    \centering
-    \footnotesize
-    \setlength{\tabcolsep}{3pt}
-    \renewcommand{\arraystretch}{1.10}
+    \PaperTableStyle
     \caption{Results on the OMol25 out-of-distribution composition validation split.}
     \label{tab:omol25}
     \begin{threeparttable}
@@ -246,7 +241,7 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
-            \scriptsize
+            \PaperTableNotesStyle
             \item[] All models are trained on the $\sim$104M-structure OMol25 release, termed OMol-0 in the dataset paper~\cite{levine2025open} and used for the UMA-1.1 models.
             Baseline values are taken from the UMA report~\cite{wood2025umafamilyuniversalmodels} for the same split and the same metric definitions.
             Boldface and underlining denote the best and second-best value of each metric.
@@ -281,36 +276,42 @@ Reference energies and forces were computed at the $\omega$B97M-D3(BJ)/def2-TZVP
 We use the same train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
 Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted average MAE (LWAMAE) with equal weights, equivalent to the geometric mean of subset MAEs.
 
-\begin{table}
-    \scriptsize
-    \centering
-    \setlength{\tabcolsep}{3pt}
+\begin{table}[tp]
+    \PaperTableStyle
     \caption{SPICE-MACE-OFF small-molecule benchmark performance, including equal-weight LWAMAE as the geometric mean across subsets.}
     \label{table:spice}
     \begin{threeparttable}
-        \begin{spacing}{1.15}
-            \begin{tabular}{l | R{0.70cm}
-                R{0.70cm} | R{0.70cm}R{0.70cm} | R{0.70cm}R{0.70cm} | R{0.70cm}R{0.70cm} | R{0.70cm}R{0.70cm} | R{0.70cm}R{0.70cm} | R{0.70cm}R{0.70cm} | R{0.70cm}R{0.70cm}} \toprule                        & \multicolumn{2}{c|}{MACE(M)} & \multicolumn{2}{c|}{MACE(L)} & \multicolumn{2}{c|}{eSEN}  & \multicolumn{2}{c|}{eSEN}  & \multicolumn{2}{c|}{DPA3-L24} & \multicolumn{2}{c|}{DPA4-Neo} & \multicolumn{2}{c|}{DPA4-Air} & \multicolumn{2}{c}{DPA4-Plus}                                                                                                      \\ \hline \textbf{Dataset} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} & \textbf{E~~~} & \textbf{F~~~} \\ PubChem & 0.91 & 20.57 & 0.88 & 14.75 & 0.22 & 6.10 & \underline{0.15} & 4.21 & 0.24 & 8.47 & 0.24 & 5.92 & \textbf{0.13} & \textbf{3.59} & \textbf{0.13} & \underline{3.88} \\ DES370K M.
-                                                                                                                                                                                                                                            & 0.63                         & 9.36                         & 0.59                       & 6.58                       & 0.17                          & 1.85                          & \textbf{0.13}                 & 1.24                          & 0.18 & 3.15 & 0.17 & 2.13 & 0.17             & \underline{1.22} & \underline{0.16} & \textbf{0.92} \\
-                                                                                                                                                                                                            DES370K D.                      & 0.58                         & 9.02                         & 0.54                       & 6.62                       & 0.20                          & 2.77                          & \underline{0.15}              & 2.12                          & 0.23 & 3.19 & 0.18 & 2.16 & \textbf{0.11}    & \underline{1.23} & \textbf{0.11}    & \textbf{1.00} \\
-                                                                                                                                                                                                            Dipeptides                      & 0.52                         & 14.27                        & 0.42                       & 10.19                      & 0.10                          & 3.04                          & 0.07                          & 2.00                          & 0.13 & 4.81 & 0.10 & 3.10 & \underline{0.06} & \underline{1.68} & \textbf{0.04}    & \textbf{1.29} \\
-                                                                                                                                                                                                            Sol. AA                         & 1.21                         & 23.26                        & 0.98                       & 19.43                      & 0.30                          & 5.76                          & 0.25                          & 3.68                          & 0.31 & 8.77 & 0.27 & 6.69 & \underline{0.13} & \underline{3.59} & \textbf{0.09}    & \textbf{2.70} \\
-                                                                                                                                                                                                            Water                           & 0.76                         & 15.27                        & 0.83                       & 13.57                      & 0.24                          & 3.88                          & \underline{0.15}              & 2.50                          & 0.32 & 6.89 & 0.30 & 4.46 & 0.16             & \underline{2.47} & \textbf{0.12}    & \textbf{1.89} \\
-                                                                                                                                                                                                            QMugs                           & 0.69                         & 23.58                        & 0.54                       & 16.93                      & 0.16                          & 5.70                          & 0.12                          & 3.78                          & 0.17 & 8.66 & 0.12 & 5.36 & \underline{0.07} & \underline{2.91} & \textbf{0.05}    & \textbf{2.18} \\
-                                                                                                                                                                                                            \hline
-                                                                                                                                                                                                            LWAMAE\tnote{a}                 & 0.73                         & 15.42                        & 0.65                       & 11.66                      & 0.19                          & 3.83                          & 0.14                          & 2.58                          & 0.22 & 5.78 & 0.18 & 3.89 & \underline{0.11} & \underline{2.18} & \textbf{0.09}    & \textbf{1.75} \\
-                                                                                                                                                                                                            \hline
-                                                                                                                                                                                                            \textbf{\# Params}              & \multicolumn{2}{c|}{2.3 M}   & \multicolumn{2}{c|}{6.9 M}   & \multicolumn{2}{c|}{3.2 M} & \multicolumn{2}{c|}{6.5 M} & \multicolumn{2}{c|}{4.9 M}    & \multicolumn{2}{c|}{1.1 M}    & \multicolumn{2}{c|}{5.1 M}    & \multicolumn{2}{c}{8.8 M}                                                                                                          \\
-                                                                                                                                                                                                            \textbf{Training cost}\tnote{b} & \multicolumn{2}{c|}{10}      & \multicolumn{2}{c|}{14}      & \multicolumn{2}{c|}{/}     & \multicolumn{2}{c|}{/}     & \multicolumn{2}{c|}{288}      & \multicolumn{2}{c|}{7}        & \multicolumn{2}{c|}{7.8}      & \multicolumn{2}{c}{9}                                                                                                              \\
-                                                                                                                                                                                                            \bottomrule
-            \end{tabular}
-            \begin{tablenotes}
-                \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy (E) MAEs are in meV/atom and force (F) MAEs are in meV/\AA.
-                Boldface and underlining denote the best and second-best value of each dataset--target pair; values that coincide at the reported precision carry the same mark.
-                \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
-                \item[b] Training cost denotes the equivalent GPU-days on A100 GPUs; a slash (/) indicates that no public training cost information was found.
-            \end{tablenotes}
-        \end{spacing}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
+            \toprule
+            \textbf{Dataset} & \textbf{MACE (M)} & \textbf{MACE (L)} & \textbf{eSEN (3.2M)} & \textbf{eSEN (6.5M)} & \textbf{DPA3-L24} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} \\
+            \midrule
+            \multicolumn{9}{@{}l}{\textit{Energy MAE (meV/atom)}} \\
+            \addlinespace[0.15em]
+            PubChem         & 0.91 & 0.88 & 0.22 & \underline{0.15} & 0.24 & 0.24 & \textbf{0.13}    & \textbf{0.13} \\
+            DES370K M.      & 0.63 & 0.59 & 0.17 & \textbf{0.13}    & 0.18 & 0.17 & 0.17             & \underline{0.16} \\
+            DES370K D.      & 0.58 & 0.54 & 0.20 & \underline{0.15} & 0.23 & 0.18 & \textbf{0.11}    & \textbf{0.11} \\
+            Dipeptides      & 0.52 & 0.42 & 0.10 & 0.07             & 0.13 & 0.10 & \underline{0.06} & \textbf{0.04} \\
+            Sol.
+            AA & 1.21 & 0.98 & 0.30 & 0.25 & 0.31 & 0.27 & \underline{0.13} & \textbf{0.09} \\ Water & 0.76 & 0.83 & 0.24 & \underline{0.15} & 0.32 & 0.30 & 0.16 & \textbf{0.12} \\ QMugs & 0.69 & 0.54 & 0.16 & 0.12 & 0.17 & 0.12 & \underline{0.07} & \textbf{0.05} \\ LWAMAE\tnote{a} & 0.73 & 0.65 & 0.19 & 0.14 & 0.22 & 0.18 & \underline{0.11} & \textbf{0.09} \\ \addlinespace[0.25em] \midrule \addlinespace[0.15em] \multicolumn{9}{@{}l}{\textit{Force MAE (meV/\AA)}} \\ \addlinespace[0.15em] PubChem & 20.57 & 14.75 & 6.10 & 4.21 & 8.47 & 5.92 & \textbf{3.59} & \underline{3.88} \\ DES370K M.
+            & 9.36  & 6.58  & 1.85 & 1.24 & 3.15 & 2.13 & \underline{1.22} & \textbf{0.92} \\
+            DES370K D.      & 9.02  & 6.62  & 2.77 & 2.12 & 3.19 & 2.16 & \underline{1.23} & \textbf{1.00} \\
+            Dipeptides      & 14.27 & 10.19 & 3.04 & 2.00 & 4.81 & 3.10 & \underline{1.68} & \textbf{1.29} \\
+            Sol. AA         & 23.26 & 19.43 & 5.76 & 3.68 & 8.77 & 6.69 & \underline{3.59} & \textbf{2.70} \\
+            Water           & 15.27 & 13.57 & 3.88 & 2.50 & 6.89 & 4.46 & \underline{2.47} & \textbf{1.89} \\
+            QMugs           & 23.58 & 16.93 & 5.70 & 3.78 & 8.66 & 5.36 & \underline{2.91} & \textbf{2.18} \\
+            LWAMAE\tnote{a} & 15.42 & 11.66 & 3.83 & 2.58 & 5.78 & 3.89 & \underline{2.18} & \textbf{1.75} \\
+            \midrule
+            \textbf{Params}                  & 2.3M & 6.9M & 3.2M & 6.5M & 4.9M & 1.1M & 5.1M & 8.8M \\
+            \textbf{Training cost}\tnote{b} & 10   & 14   & --   & --   & 288  & 7    & 7.8  & 9 \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
+            \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy MAEs are in meV/atom and force MAEs are in meV/\AA.
+            Boldface and underlining denote the best and second-best value of each dataset--target pair; values that coincide at the reported precision carry the same mark.
+            \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
+            \item[b] Training cost denotes the equivalent GPU-days on A100 GPUs; a dash indicates that no public training cost information was found.
+        \end{tablenotes}
     \end{threeparttable}
 \end{table}
 
