@@ -4,7 +4,7 @@
     Its EMFA (Edge--node degree coupling, Multi-Focus, Attention) convolution acts in an edge-local frame where the rotation-equivariant message reduces exactly to SO(2), and there couples edge and node features across all pairs of angular degrees rather than degree by degree.
     The nonlinearity is a Wigner bilinear network, which in its full form approximates any rotation-equivariant map to arbitrary accuracy and, evaluated on an exact quadrature grid, is equivariant to machine precision.
     DPA4 leads every ranked metric of the Matbench Discovery leaderboard and attains the lowest OMat24 energy error of all models compared; its 8.8M-parameter variant matches EquiformerV3+DeNS-MP at 3.4$\times$ fewer parameters and 5.1$\times$ less training compute.
-    On the out-of-distribution split of OMol25 that variant is bettered only by a 1.4B-parameter multitask model, and on SPICE-MACE-OFF it lowers aggregate energy and force errors by 32\% against the best published model.
+    On the out-of-distribution split of OMol25 that variant is bettered only by a 1.4B-parameter multitask model, and on SPICE-MACE-OFF it lowers aggregate energy and force errors by 36\% and 32\% against the best published model.
     All variants are trained through the conservative energy-gradient path with no denoising or direct-force stage, made practical by a compiled double-backward implementation that is threefold faster.
     Leaderboard-class accuracy therefore becomes reachable in days on a single card, for inorganic crystals and organic molecules alike.
 \end{abstract}

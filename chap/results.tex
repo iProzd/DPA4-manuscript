@@ -57,7 +57,8 @@ Both branches contribute to the same scalar total energy and are differentiated 
 
 \begin{table}[p]
     \PaperTableStyle
-    \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.}
+    \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.
+        The five DPA4 variants, trained on MPtrj in the compliant setting, are compared with all compliant leaderboard entries on the ranked metrics CPS, F1, $\kappa$SRME and RMSD, together with parameter counts and training cost.}
     \label{tab:matbench}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
@@ -116,21 +117,21 @@ The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric sensiti
 Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
 Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
 
-Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} shows the corresponding accuracy--efficiency frontier in terms of CPS versus training cost.
+Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} shows the corresponding accuracy--cost frontier in terms of CPS versus training cost.
 DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.842 with an F1 score of 0.865, a $\kappa$SRME of 0.227 and an RMSD of 0.068~\AA{} at 25.2M parameters.
 It is the leading compliant model in every ranked metric of the leaderboard, spanning stability classification, thermal conductivity and relaxation quality.
 Its CPS exceeds that of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} by 0.012 (0.842 versus 0.830) while using 17\% fewer parameters (25.2M versus 30.3M).
 
-This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked by dashed marker outlines in Fig.~\ref{fig:cps}.
+This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked in the DeNS column of Table~\ref{tab:matbench} and by dashed marker outlines in Fig.~\ref{fig:cps}.
 DeNS~\cite{liao2024dens} has been shown to improve equivariant force fields by denoising non-equilibrium structures, and EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3} further combines this strategy with direct-force pretraining.
 DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy-gradient path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
-This result suggests that the DPA4 architecture itself contributes to the improved accuracy rather than relying on an auxiliary denoising or direct-force objective.
+This suggests that the accuracy advantage originates in the architecture itself rather than in an auxiliary denoising or direct-force objective.
 
 The smaller DPA4 variants extend this accuracy--cost trade-off across model scales, matching or surpassing much larger baselines at a small fraction of their model size and training budget.
 DPA4-Plus reaches a CPS of 0.829 with 8.8M parameters, matching EquiformerV3+DeNS-MP to within 0.001 CPS while using 3.4$\times$ fewer parameters and 5.1$\times$ less training compute (31 versus 157 A100-equivalent GPU-days).
-DPA4-Air reaches a CPS of 0.811 with 5.1M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 5.8$\times$ smaller model and 20.9$\times$ less training compute (16 versus 335 GPU-days).
-DPA4-Neo contains only 1.1M parameters but still reaches a CPS of 0.782, above MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 9.2$\times$ smaller model and a training budget of 8.6 GPU-days.
-DPA4-Mini, the smallest variant at 0.66M parameters, reaches a CPS of 0.733 for 5.8 GPU-days, above the Nequip-MP-L and Nequix MP entries of Table~\ref{tab:matbench} (0.730 and 0.729 CPS) at 7.1$\times$ and 3.6$\times$ less training compute.
+DPA4-Air reaches a CPS of 0.811 with 5.1M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 5.9$\times$ smaller model and 20.9$\times$ less training compute (16 versus 335 GPU-days).
+DPA4-Neo contains only 1.1M parameters but still reaches a CPS of 0.782, above MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 9.5$\times$ smaller model and 26$\times$ less training compute (8.6 versus 224 GPU-days).
+DPA4-Mini, the smallest variant at 0.66M parameters, reaches a CPS of 0.733 at a training budget of 5.8 GPU-days, above the Nequip-MP-L and Nequix MP entries of Table~\ref{tab:matbench} (0.730 and 0.729 CPS) at 7.1$\times$ and 3.6$\times$ less training compute.
 
 Within the DPA4 series, the accuracy--cost curve in Fig.~\ref{fig:cps} flattens sharply at the top end.
 The step from DPA4-Plus to DPA4-Pro multiplies the parameter count by 2.9 and the training budget by 7.5 (31 to 233 GPU-days) yet raises CPS by only 0.013, whereas the Mini--Neo, Neo--Air and Air--Plus steps gain 0.049, 0.029 and 0.018 CPS for 1.5$\times$, 1.9$\times$ and 1.9$\times$ the budget.
@@ -139,15 +140,18 @@ The training cost also grows sublinearly with model size at the lower end, risin
 For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS.
 Rescaled by the peak-FLOP ratio, the 16 GPU-day budget of DPA4-Air corresponds to roughly three days on such hardware, which makes DPA4-Air and DPA4-Neo practical for high-throughput workflows.
 
-As the leading compliant models are now separated by relatively small CPS differences, further optimization of the fixed-MPtrj Matbench Discovery leaderboard may have limited practical value once models reach the present accuracy--efficiency frontier.
-This does not diminish the usefulness of the benchmark; rather, it suggests that future comparisons may be more informative when they also consider non-compliant settings with broader DFT training datasets, additional fine-tuning data or different deployment objectives.
+With the leading compliant models now separated by only small CPS margins, substantial further gains in accuracy are likely to require training data beyond the fixed MPtrj set.
+The compliant setting nevertheless remains the appropriate basis for the present comparison: holding the training data fixed across models attributes the observed CPS differences to the architectures themselves.
+Within this setting, the accuracy--cost frontier remains open in the cost direction, namely how far equal accuracy can be attained at further reduced training cost.
 
 \subsection{OMat24 inorganic materials benchmark}
 \label{sec:omat24}
 
 \begin{table}[t]
     \PaperTableStyle
-    \caption{Results on the OMat24 validation set.}
+    \caption{Results on the OMat24 validation set.
+        The five DPA4 size classes, trained on OMat24 through the conservative energy-gradient objective, are compared with published baselines on energy, force and stress mean absolute errors, together with parameter counts and training cost.
+        The Prediction column distinguishes conservative models, whose forces are energy gradients, from models using direct force prediction or direct-force pre-training.}
     \label{tab:omat24}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} c c c c c c c @{}}
@@ -195,20 +199,22 @@ This does not diminish the usefulness of the benchmark; rather, it suggests that
     \end{threeparttable}
 \end{table}
 
-OMat24~\cite{barroso2024open} is a large-scale inorganic materials dataset built from non-equilibrium sampling of the Materials Project chemical space, and its validation split has become a common reference point for single-dataset comparisons of recent equivariant architectures.
-Because the dataset is much larger and more diverse than MPtrj, it separates architectures by their capacity to fit a broad potential-energy surface rather than by their behaviour on a fixed relaxation task.
-We therefore train the five DPA4 size classes on OMat24 with the shared architecture of Supplementary Table~\ref{tab:sm_model_config} and report energy, force and stress MAEs on the validation set.
+OMat24~\cite{barroso2024open} is a large-scale inorganic materials dataset of over 100 million DFT calculations, obtained by non-equilibrium sampling --- rattling, ab initio molecular dynamics and the relaxation of rattled structures --- starting from structures in the Alexandria database~\cite{schmidt2023alexandria}.
+Its validation split has become a common reference point for single-dataset comparisons of recent equivariant architectures.
+Because the dataset is much larger and more diverse than MPtrj, it separates architectures by their capacity to fit a broad potential-energy surface.
+We therefore train the five DPA4 size classes on OMat24 with the architecture configurations of Supplementary Table~\ref{tab:sm_model_config}, shared across all benchmarks, and report energy, force and stress MAEs on the validation set.
 
 Table~\ref{tab:omat24} shows that DPA4-Pro attains the lowest energy MAE of all models compared, 9.4~meV/atom, with 25.2M parameters.
-This is below EquiformerV2-L~\cite{liao2023equiformerv2,barroso2024open} (9.6~meV/atom, 154M parameters) and UMA-L~\cite{wood2025umafamilyuniversalmodels} (9.7~meV/atom, 700M parameters), that is, a 6.1$\times$ and 27.8$\times$ smaller model, respectively.
+The next most accurate models, EquiformerV2-L~\cite{liao2023equiformerv2,barroso2024open} (9.6~meV/atom, 154M parameters) and UMA-L~\cite{wood2025umafamilyuniversalmodels} (9.7~meV/atom, 700M parameters), are 6.1$\times$ and 27.8$\times$ larger.
 Its force MAE of 42.7~meV/\AA{} is the second lowest, behind EquiformerV3 with $L_{\max}=6$~\cite{liao2026equiformerv3} (41.6~meV/\AA{}, 49M parameters), and only the larger EquiformerV2 models reach a lower stress MAE (2.3 against 2.4~meV/\AA$^3$).
 All DPA4 entries predict forces as energy gradients, whereas the strongest baselines rely on direct force prediction or on direct-force pre-training followed by gradient fine-tuning.
-The training budgets differ by close to an order of magnitude as well: DPA4-Pro required 1,474 H100-equivalent GPU-hours against 9,197 for EquiformerV3 with $L_{\max}=6$.
+The training budgets also differ substantially: DPA4-Pro required 1,474 H100-equivalent GPU-hours, 6.2$\times$ below the 9,197 of EquiformerV3 with $L_{\max}=6$.
 
-The smaller variants preserve this ordering across a wide range of model sizes.
-DPA4-Plus reaches 9.8~meV/atom and 45.6~meV/\AA{} with 8.8M parameters, a lower energy MAE than every baseline except EquiformerV2-L and UMA-L, both of which are more than an order of magnitude larger, and it does so at 368 H100-equivalent GPU-hours, 13.0$\times$ below the 4,782 GPU-hours of EquiformerV3 with $L_{\max}=4$.
-DPA4-Air matches the 30M-parameter eSEN baseline~\cite{fu2025esen} in energy (10.6 versus 10.7~meV/atom) with 5.8$\times$ fewer parameters.
-DPA4-Neo and DPA4-Mini extend the comparison below 1.2M parameters, a regime in which no public OMat24 baseline is available, and still reach 12.3 and 14.0~meV/atom.
+The smaller variants preserve this accuracy-versus-size ordering across a wide range of model sizes.
+DPA4-Plus reaches 9.8~meV/atom and 45.6~meV/\AA{} with 8.8M parameters, a lower energy MAE than every baseline except EquiformerV2-L and UMA-L, both more than an order of magnitude larger.
+Its training cost of 368 H100-equivalent GPU-hours is 4.0$\times$ below that of DPA4-Pro at an energy MAE only 0.4~meV/atom higher, making DPA4-Plus, as on Matbench Discovery, the most favorable accuracy--cost balance in the series.
+DPA4-Air matches the 30M-parameter eSEN baseline~\cite{fu2025esen} in energy (10.6 versus 10.7~meV/atom) with 5.9$\times$ fewer parameters.
+DPA4-Neo and DPA4-Mini extend the comparison below 1.2M parameters, a regime in which no public OMat24 baseline is available, and still reach 12.3 and 14.0~meV/atom, below the 16.3~meV/atom of the larger 9.1M-parameter MACE-Omat-Medium.
 Together with the Matbench Discovery results, this shows that the accuracy--parameter advantage of DPA4 persists when the training set is enlarged from MPtrj to OMat24.
 
 \subsection{OMol25 molecular benchmark}
@@ -271,15 +277,16 @@ The advantage on this dataset is therefore concentrated in the energy channel an
 \subsection{SPICE-MACE-OFF molecular benchmark}
 \label{sec:small_mol}
 
-DPA4 was next evaluated on SPICE-MACE-OFF~\cite{kovacs2023mace}, a small-molecule benchmark for transferable organic force fields.
+SPICE-MACE-OFF~\cite{kovacs2023mace} is a small-molecule benchmark for transferable organic force fields.
 The benchmark spans PubChem molecules, DES370K~\cite{donchev2021des370k} monomers and dimers, dipeptides, solvated amino acids, water clusters and larger QMugs-derived molecules~\cite{eastman2023spice,isert2022qmugs}.
-Reference energies and forces were computed at the $\omega$B97M-D3(BJ)/def2-TZVPPD level~\cite{eastman2023spice,kovacs2023mace}.
-We use the same train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
+Reference energies and forces are computed at the $\omega$B97M-D3(BJ)/def2-TZVPPD level~\cite{eastman2023spice,kovacs2023mace}.
+We train the DPA4-Neo, DPA4-Air and DPA4-Plus variants on SPICE-MACE-OFF, using the same train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
 Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted average MAE (LWAMAE) with equal weights, equivalent to the geometric mean of subset MAEs.
 
 \begin{table}[tp]
     \PaperTableStyle
-    \caption{SPICE-MACE-OFF small-molecule benchmark performance, including equal-weight LWAMAE as the geometric mean across subsets.}
+    \caption{SPICE-MACE-OFF small-molecule benchmark performance.
+        Per-subset energy and force test MAEs of the DPA4-Neo, DPA4-Air and DPA4-Plus variants trained on SPICE-MACE-OFF are compared with MACE-OFF, eSEN and DPA3 baselines, together with parameter counts and training cost; LWAMAE aggregates the subsets as an equal-weight geometric mean.}
     \label{table:spice}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
@@ -317,16 +324,15 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
 \end{table}
 
 Table~\ref{table:spice} shows that DPA4 improves molecular energy and force accuracy across the chemically diverse SPICE-MACE-OFF subsets.
-DPA4-Plus attains the lowest aggregate energy and force errors, with LWAMAEs of 0.09~meV/atom and 1.75~meV/\AA{}, respectively, and is the most accurate model on 11 of the 14 subset--target pairs.
-Against the 6.5M-parameter eSEN baseline~\cite{fu2025esen}, this 8.8M-parameter model lowers the aggregate energy and force errors by 32\% each.
-Against DPA3-L24~\cite{zhang2025dpa3}, the corresponding reductions are 57\% and 70\%, showing that the gain extends well beyond the inorganic-crystal benchmark.
+DPA4-Plus attains the lowest aggregate energy and force errors, with LWAMAEs of 0.09~meV/atom and 1.75~meV/\AA{}, respectively, and is the most accurate model on 12 of the 14 subset--target pairs.
+Against the 6.5M-parameter eSEN baseline~\cite{fu2025esen}, this 8.8M-parameter model lowers the aggregate energy and force errors by 36\% and 32\%.
+Against DPA3-L24~\cite{zhang2025dpa3}, the corresponding reductions are 59\% and 70\%, showing that the gain extends well beyond the inorganic-crystal benchmark.
 
 The smaller variants preserve most of this accuracy at a fraction of the model size.
-With 5.1M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.11~meV/atom and 2.18~meV/\AA{}, which are 18\% and 16\% below the larger 6.5M-parameter eSEN baseline~\cite{fu2025esen} and 48\% and 62\% below DPA3-L24~\cite{zhang2025dpa3}.
+With 5.1M parameters, DPA4-Air reaches aggregate LWAMAEs of 0.11~meV/atom and 2.18~meV/\AA{}, which are 21\% and 16\% below the larger 6.5M-parameter eSEN baseline~\cite{fu2025esen} and 50\% and 62\% below DPA3-L24~\cite{zhang2025dpa3}.
 It ranks first or second on 12 of the 14 subset--target pairs, and on the PubChem subset its force error is the lowest of all models compared.
-DPA4-Neo extends the comparison to a still smaller scale: with 1.1M parameters it reaches LWAMAEs of 0.18~meV/atom and 3.89~meV/\AA{}, matching the 3.2M-parameter eSEN baseline~\cite{fu2025esen} with 2.8$\times$ fewer parameters and improving on DPA3-L24~\cite{zhang2025dpa3} by 15\% in energy and 33\% in force with 4.4$\times$ fewer parameters.
+DPA4-Neo extends the comparison to a still smaller scale: with 1.1M parameters it reaches LWAMAEs of 0.18~meV/atom and 3.89~meV/\AA{}, matching the 3.2M-parameter eSEN baseline~\cite{fu2025esen} with 2.9$\times$ fewer parameters and improving on DPA3-L24~\cite{zhang2025dpa3} by 18\% in energy and 33\% in force with 4.5$\times$ fewer parameters.
 Beyond model size, these gains come at low training cost: DPA4-Neo, DPA4-Air and DPA4-Plus require only 7, 7.8 and 9 A100-equivalent GPU-days, respectively (Table~\ref{table:spice}), below the MACE baselines (10 and 14) and 32--41$\times$ smaller than the 288 GPU-days of DPA3-L24; no public training cost is reported for the eSEN baselines.
-Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the accuracy--parameter frontier across both inorganic crystals and organic molecules, rather than specializing to a single chemical domain.
 
 \subsection{Training and inference efficiency}
 \label{sec:efficiency}
@@ -335,9 +341,9 @@ Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the acc
     \centering
     \includegraphics[width=0.9\textwidth]{fig/ase-diamond.pdf}
     \caption{
-        Inference throughput on diamond supercells through the ASE calculator interface~\cite{ase-paper}.
+        Inference throughput on diamond supercells at experimental density through the ASE calculator interface~\cite{ase-paper}.
         Each point reports end-to-end throughput for evaluating energy, forces and stress after warm-up on a single NVIDIA H20 GPU.
-        Diamond at the 6~\AA{} cutoff used by DPA4 carries 158 neighbours per atom, so the sweep varies the system size at a fixed and comparatively dense local environment.
+        Diamond at the 6~\AA{} cutoff used by DPA4 carries 158 neighbors per atom, so the sweep varies the system size at a fixed and comparatively dense local environment.
         Each curve terminates at the largest supercell the corresponding model could evaluate within the memory of one GPU.
         cuEq denotes MACE inference with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
         Higher atom-normalized throughput indicates faster inference.
@@ -345,32 +351,26 @@ Results on Matbench Discovery and SPICE-MACE-OFF show that DPA4 improves the acc
     \label{fig:infer_diamond}
 \end{figure}
 
-Figure~\ref{fig:cps} complements the Matbench Discovery~\cite{riebesell2025matbench} leaderboard metrics by plotting CPS against A100-equivalent training cost.
-DPA4-Air reaches a CPS of 0.811 using 16 A100 GPU-days, whereas eSEN-30M-MP~\cite{fu2025esen} reaches a lower CPS of 0.797 using 335 A100 GPU-days.
-This corresponds to 20.9$\times$ less training compute for DPA4-Air at a higher leaderboard score.
-DPA4-Plus matches the CPS of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} at 5.1$\times$ less training compute.
-The dashed-outline baselines in Fig.~\ref{fig:cps} use DeNS~\cite{liao2024dens} or direct-force pretraining~\cite{fu2025esen,liao2026equiformerv3}, whereas all DPA4 variants are trained through the conservative energy-gradient path without either auxiliary stage.
-
-The lower training cost is supported by the compiled conservative energy-gradient implementation.
+The low training cost documented in the preceding sections is supported by the compiled conservative energy-gradient implementation.
 In controlled ablations, \texttt{torch.compile}~\cite{ansel2024pytorch2} with bf16 automatic mixed precision gives a 3.1$\times$ wall-clock training speedup and reduces peak training memory to about 40\% of the FP32 baseline (Table~\ref{tab:dpa4_compile_ablation}).
 This systems-level gain is obtained without replacing energy-based force matching by a direct-force surrogate.
 
-Inference efficiency was evaluated through the ASE calculator interface~\cite{ase-paper}, which provides a common end-to-end route for single-point energy, force and stress evaluation across DPA4, DPA3, MACE and EquiformerV3 baselines.
-The DPA4 calculators used compiled inference.
-The MACE baselines were evaluated both in their standard path and with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
-The comparison sweeps diamond supercells from 96 atoms upwards and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead, while holding the local environment fixed at 158 neighbours per atom within the 6~\AA{} DPA4 cutoff.
-All inference benchmarks were run on the same H20 hardware and software environment, with the full configuration reported in Supplementary Section~\ref{sec:sm-inference}.
+Inference efficiency is evaluated through the ASE calculator interface~\cite{ase-paper}, which provides a common end-to-end route for single-point energy, force and stress evaluation across DPA4, DPA3, MACE and EquiformerV3 baselines.
+The DPA4 calculators use compiled inference.
+The MACE baselines are evaluated both in their standard path and with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
+The comparison sweeps diamond supercells at experimental density from 96 atoms upwards and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead, while holding the local environment fixed at 158 neighbors per atom within the 6~\AA{} DPA4 cutoff.
+All inference benchmarks are run on the same H20 hardware and software environment, with the full configuration reported in Supplementary Section~\ref{sec:sm-inference}.
 
 Figure~\ref{fig:infer_diamond} shows that throughput rises with system size and then saturates once the GPU is fully occupied, so the plateau value characterizes each model.
-The MACE-Omat and EquiformerV3 baselines of this sweep share their architecture and parameter count with the corresponding entries of Table~\ref{tab:omat24}, the latter in its $L_{\max}=4$, 30M configuration, so accuracy and throughput can be read together.
+The MACE-Omat and EquiformerV3 baselines of this sweep share their architecture and parameter count with the corresponding entries of Table~\ref{tab:omat24} (EquiformerV3 in its $L_{\max}=4$, 30M configuration), so accuracy and throughput can be read together.
 
 Against MACE-Omat~\cite{batatia2022mace,batatia2025crosslearning}, DPA4 is simultaneously smaller, more accurate and faster.
-DPA4-Mini, with 0.66M parameters, lowers the OMat24 energy and force MAEs of the 8.2M-parameter MACE-Omat-Small by 22\% and 18\% while running 7.6$\times$ faster, or 5.6$\times$ faster than the same baseline with cuEquivariance-accelerated kernels~\cite{nvidia_cuequivariance}.
+DPA4-Mini, with 0.66M parameters, lowers the OMat24 energy and force MAEs of the 8.2M-parameter MACE-Omat-Small by 22\% and 18\%, running 7.6$\times$ faster than its standard implementation and 5.6$\times$ faster than its cuEquivariance-accelerated form~\cite{nvidia_cuequivariance}.
 DPA4-Neo, with 1.1M parameters, lowers both MAEs of the 9.1M-parameter MACE-Omat-Medium by 25\% and is still 2.3$\times$ faster than that baseline in its accelerated form.
 DPA4-Air matches the plateau throughput of both accelerated MACE baselines (10.8 against 11.1 and 11.0~atoms/ms) without any specialized equivariant kernels, at energy and force MAEs 35--41\% below theirs.
 
-Against EquiformerV3~\cite{liao2026equiformerv3}, the same advantage appears as throughput and accessible system size.
-DPA4-Pro is more accurate than the $L_{\max}=4$ configuration in all three targets (9.4 against 10.4~meV/atom, 42.7 against 43.5~meV/\AA{} and 2.4 against 2.6~meV/\AA$^3$) while running 3.0$\times$ faster and reaching 1,440 atoms against 288 within the memory of one GPU.
+Against EquiformerV3~\cite{liao2026equiformerv3}, the same advantage appears in throughput and accessible system size.
+DPA4-Pro is more accurate than the $L_{\max}=4$ configuration in all three targets (energy 9.4 against 10.4~meV/atom, force 42.7 against 43.5~meV/\AA{}, stress 2.4 against 2.6~meV/\AA$^3$) while running 3.0$\times$ faster and reaching 1,440 atoms against 288 within the memory of one GPU.
 DPA4-Plus, with 3.4$\times$ fewer parameters, is 11.6$\times$ faster and reaches 5,040 atoms at a lower energy MAE (9.8 against 10.4~meV/atom) and a 4.8\% higher force MAE.
 The DPA3 baselines~\cite{zhang2025dpa3} remain 2.9$\times$ and 3.5$\times$ slower than DPA4-Air and DPA4-Plus, respectively.
 On the model side, dedicated SO(2)-convolution kernels analogous to the cuEquivariance SO(3) kernels used by the accelerated MACE baselines could reduce memory traffic and further accelerate inference.

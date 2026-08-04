@@ -613,7 +613,7 @@ This advantage is consistent with its extended high-learning-rate phase and shor
 \section{Inference benchmark protocol}
 \label{sec:sm-inference}
 
-The throughput reported in Section~\ref{sec:efficiency} is measured on diamond supercells, which give a single-composition system whose size can be varied over more than two orders of magnitude while the local environment stays fixed; at the 6~\AA{} cutoff used by DPA4 every atom carries 158 neighbours, so the test is representative of a comparatively dense environment.
+The throughput reported in Section~\ref{sec:efficiency} is measured on diamond supercells, which give a single-composition system whose size can be varied over more than two orders of magnitude while the local environment stays fixed; at the 6~\AA{} cutoff used by DPA4 every atom carries 158 neighbors, so the test is representative of a comparatively dense environment.
 Each point averages 30 single-point evaluations after warm-up, and the sweep for each model terminates at the largest supercell that fits in the memory of one GPU.
 MACE-Omat-Small and MACE-Omat-Medium are the \texttt{mace-omat-0-small} and \texttt{mace-omat-0-medium} checkpoints of the MACE-OMAT-0 release~\cite{batatia2025crosslearning}, obtained from \url{https://github.com/ACEsuit/mace-foundations}; the same checkpoints supply the MACE-Omat rows of Table~\ref{tab:omat24}.
 The EquiformerV3 timing uses the MPtrj checkpoint of the $L_{\max}=4$ architecture, which carries the same parameter count and layer structure as the OMat24 model of Table~\ref{tab:omat24} and therefore the same inference cost.
@@ -782,14 +782,14 @@ Horizontal rules separate related groups of hyperparameters without adding categ
 
 \subsection{Benchmark model configurations}
 
-Table~\ref{tab:sm_model_config} lists the model and systems configurations of the four released DPA4 size classes, which are shared by every benchmark reported in this work; only the training schedule varies between datasets.
+Table~\ref{tab:sm_model_config} lists the model and systems configurations of the five released DPA4 size classes, which are shared by every benchmark reported in this work; only the training schedule varies between datasets.
 Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omol25_config} and \ref{tab:sm_spice_mace_off_config} give the training hyperparameters for the Matbench Discovery, OMat24, OMol25 and SPICE-MACE-OFF benchmarks, respectively.
 
 \begin{table}[p]
     \centering
     \scriptsize
     \setlength{\tabcolsep}{3pt}
-    \caption{DPA4 model and systems configurations of the four released size classes, shared by all benchmarks.}
+    \caption{DPA4 model and systems configurations of the five released size classes, shared by all benchmarks.}
     \label{tab:sm_model_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
