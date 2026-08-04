@@ -292,7 +292,7 @@ These results suggest that compact per-channel kernels act as a structural regul
 
 \subsection{\texorpdfstring{$\Sph$}{S2} activation and quadrature}
 
-This ablation separates two coupled design choices in the spherical-grid nonlinearity: the model component to which $\Sph$ activation is applied and the quadrature rule used to project grid features back to equivariant coefficients (Table~\ref{tab:sm_quadrature_ablation}).
+This ablation separates two coupled design choices in the spherical-grid nonlinearity, referred to as the $\Sph$ activation in the following: the model component to which the activation is applied and the quadrature rule used to project grid features back to equivariant coefficients (Table~\ref{tab:sm_quadrature_ablation}).
 When $\Sph$ activation is restricted to the FFN component, replacing the latitude--longitude product grid with the Lebedev rule slightly reduces the energy MAE while leaving the force MAE and computational cost essentially unchanged.
 Applying $\Sph$ activation additionally inside the SO(2) convolution component does not improve the overall accuracy--cost trade-off under this setting; with the product grid, both MAEs increase and the relative training and inference costs more than double.
 In this expanded activation configuration, Lebedev quadrature reduces the energy error and lowers the relative training and inference costs compared with the product grid, although the force MAE remains higher than in the FFN-only configuration.
