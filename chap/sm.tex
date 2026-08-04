@@ -242,7 +242,7 @@ These trends are consistent with the intended role of focus competition, where p
 \subsection{Low-rank edge--node \texorpdfstring{SO(2)}{SO2}-equivariant degree coupling}
 \label{sec:sm-radial-coupling}
 
-This ablation tests the low-rank edge--node SO(2)-equivariant degree coupling (A1), namely how edge-side angular information conditions the node-side SO(2) message in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
+This ablation tests the low-rank edge--node SO(2)-equivariant degree coupling (A1), namely how the per-degree edge radial profiles couple the angular degrees of the node-side SO(2) message in the local frame (Table~\ref{tab:dpa4_radial_degree_ablation}).
 The scalar-scaling baseline applies each degree-$l$ radial profile only to the degree-$l$ channels, whereas degree mixing builds a cross-degree kernel as a learnable function of the same degree-indexed profiles, mixing input and output angular degrees at fixed $|m|$ before the SO(2) stack.
 Making this kernel channel-dependent improves expressivity, but a per-channel dense kernel would inflate the parameter count by a factor of the hidden width $H$.
 DPA4 instead parameterizes the kernel as a rank-$R$ factorization across the channel index, with $R$ scalar degree-pair coefficients contracted against a learnable channel basis of width $R\leq H$ (main-text Eq.~\ref{eq:dpa4-K-lowrank}).

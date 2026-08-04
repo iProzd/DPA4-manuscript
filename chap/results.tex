@@ -7,45 +7,46 @@
 DPA4 is a conservative SE(3)-equivariant message-passing graph neural network that maps atomic species and positions to a scalar potential energy through a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and an atomic energy head (Fig.~\ref{fig:arch}a).
 Each interaction block has a residual structure with two skip connections: one over an EMFA SO(2) convolution followed by an equivariant RMSNorm, and one over a second equivariant RMSNorm followed by an equivariant feed-forward network (FFN).
 Architectural designs A1, A2 and A3 introduced in the Introduction, namely the low-rank edge--node SO(2)-equivariant degree coupling, the multi-focus design for message nonlinearity, and the envelope-gated attention for message aggregation, operate inside the EMFA SO(2) convolution (Fig.~\ref{fig:arch}c).
-Architectural design A4, the Wigner bilinear network (WBN) for the SO(3)-equivariant nonlinearity, operates inside the equivariant FFN.
+Architectural design A4 supplies the SO(3)-equivariant nonlinearity: the equivariant FFN is implemented via a WBN, a stack of Wigner bilinear blocks mapping the node feature space to itself.
 Forces and virials are obtained by automatic differentiation through the scalar energy.
 
-A shared edge cache (Fig.~\ref{fig:arch}b) precomputes and reuses per-edge quantities across interaction blocks: the distance $r_{ij}$ and unit direction $\widehat{\mathbf{r}}_{ij}$, a radial-basis expansion with cutoff envelope, and per-pair edge species features.
-It also caches the Wigner-D rotation $\mathbf{D}_{ij}$ and its inverse $\mathbf{D}_{ij}^{-1}$ for global / edge-local frame transport.
+A shared edge cache (Fig.~\ref{fig:arch}b) precomputes and reuses per-edge quantities across interaction blocks: the distance $r_{ij}$ and unit direction $\widehat{\mathbf{r}}_{ij}$, a radial-basis expansion with cutoff envelope, and per-pair species features.
+It also caches the Wigner-D rotation $\mathbf{D}_{ij}$ and its inverse $\mathbf{D}_{ij}^{-1}$ that transport features between the global and the edge-local frame.
 The GIE stage (Fig.~\ref{fig:arch}b) then injects both chemistry and geometry into the initial node representation before the first interaction block.
 A scalar branch combines per-species type features with an SO(3)-invariant local-environment descriptor through Feature-wise Linear Modulation (FiLM)~\cite{perez2018film}, producing the initial $l=0$ slice.
 In parallel, an equivariant branch projects each neighbor direction onto real spherical harmonics and weights the projection by a radial-species profile, producing the initial $l\geq 1$ slices.
 This gives the model chemical and geometric context from the outset, rather than forcing all local-environment information to be discovered through iterated message passing.
 The construction details are given in Section~\ref{sec:gie}.
 
-The EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbors to update the node features.
+The EMFA SO(2) convolution (Fig.~\ref{fig:arch}c) transports the source node features into an edge-local SO(2) frame, constructs an equivariant per-edge message in that frame, then lifts the message back and aggregates over neighbors to update the node features.
 Mathematical details are given in Section~\ref{sec:so2}.
-In the local frame, the convolution applies the low-rank edge--node SO(2)-equivariant degree coupling (A1), which exploits the simpler SO(2) Clebsch--Gordan structure to replace the costly SO(3) Clebsch--Gordan tensor product.
+In the local frame, the convolution applies the low-rank edge--node SO(2)-equivariant degree coupling (A1), built on the eSCN reduction~\cite{passaro2023reducing} that replaces the costly SO(3) Clebsch--Gordan tensor product by equivalent edge-local SO(2) operations.
 It couples every edge degree to every node degree, as an SO(3) Clebsch--Gordan product does, in contrast to similar SO(2)-equivariant constructions in eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3}, where the degree-$l$ edge feature multiplies only the degree-$l$ node feature.
 Because the SO(2) Clebsch--Gordan coefficients are trivial, they are hard-wired into the block structure of the kernel rather than tabulated; its learnable part, a function of the invariant radial--species features, is factorized at low rank across channels, improving accuracy at modest additional training cost (Section~\ref{sec:ablation}).
 The multi-focus design (A2) splits the hidden width into $F$ parallel focus streams, each processed by its own SO(2) stack and then reweighted by a cross-focus softmax competition, introducing message nonlinearity.
-At fixed hidden width, this parallel-focus structure substantially reduces the model parameter count while improving accuracy relative to the $F=1$ single-focus baseline (Section~\ref{sec:ablation}).
+At matched SO(2) width, this parallel-focus structure matches the accuracy of the $F=1$ single-focus baseline with substantially fewer parameters and lower training and inference cost (Section~\ref{sec:ablation}).
 Aggregation over neighbors uses an envelope-gated attention (A3) computed from the SO(3)-invariant $l=0$ slice, with a destination-side output gate (Section~\ref{sec:attn}).
 This attention-weighted aggregation improves accuracy at small additional training cost relative to a plain envelope-weighted scatter sum (Section~\ref{sec:ablation}).
 The cutoff envelope drives edge contributions smoothly to zero as $r_{ij}\to r_{\mathrm{c}}$, a requirement for stable molecular dynamics.
 
-The equivariant FFN that follows the convolution draws its nonlinearity from a Wigner bilinear network (A4), which expands the node feature into a pair of scalar functions on the rotation group, multiplies them point by point and re-expands the product, so that a single operation couples all degrees at once (Section~\ref{sec:s2-method}).
+The equivariant FFN that follows the convolution is instantiated as a WBN (A4): a Wigner bilinear block expands the node feature into a pair of scalar functions on the rotation group, multiplies them point by point and re-expands the product, so that a single operation couples all degrees at once (Section~\ref{sec:s2-method}).
 With the full range of frames retained, a stack of such blocks can approximate any transformation of the node features that respects rotations, to arbitrary accuracy (Supplementary Section~\ref{sec:sm-wbn-complete}).
-The integral is evaluated by a Lebedev rule on the sphere crossed with a uniform rule in the residual angle, which reaches a given algebraic order of accuracy with substantially fewer sample points than the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3} and keeps the numerical equivariance error of the nonlinearity at machine precision (Table~\ref{tab:s2_full_equivariance} and Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
+The re-expansion integral is evaluated by a Lebedev rule on the sphere crossed with a uniform rule in the residual angle, which reaches a given algebraic order of accuracy with substantially fewer sample points than the tensor-product latitude--longitude grids used by Equiformer-family architectures~\cite{liao2023equiformerv2,liao2026equiformerv3} and keeps the numerical equivariance error of the nonlinearity at machine precision (Table~\ref{tab:s2_full_equivariance} and Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
 
 The remaining architectural component addresses close-contact physics.
 DPA4 decomposes the potential energy as a sum of a learned equivariant branch and an analytical short-range branch, $E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R)+E^{\mathrm{ZBL}}(Z,R)$, with the analytical branch given by the Ziegler--Biersack--Littmark (ZBL) screened-Coulomb pair potential~\cite{ziegler1985}.
-Rather than applying the ZBL term as a post-hoc correction, DPA4 couples the two branches through Native ZBL Zone Bridging: smooth bridging gates suppress the direct learned short-range pair channel so that the inner-zone pair interaction is handled exclusively by the analytical branch.
+Rather than splicing the ZBL term onto the energy post hoc, DPA4 couples the two branches inside the energy model through Native ZBL Zone Bridging: smooth bridging gates suppress the direct learned short-range pair channel so that the inner-zone pair interaction is handled exclusively by the analytical branch.
+This removes the unphysical switching force, proportional to the energy mismatch of the two branches, that a coordinate-dependent splicing weight would introduce.
 Both branches contribute to the same scalar total energy and are differentiated jointly, giving conservative forces with a smooth transition at close approach (Section~\ref{sec:zbl_method}).
 
-\begin{figure}[t]
+\begin{figure}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig/fig2_simplified_wh.pdf}
     \caption{
         Overview of the DPA4 architecture.
-        (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head.
-        Architectural designs A1--A3 act inside the EMFA SO(2) convolution and A4 (the Wigner bilinear network) inside the equivariant FFN.
-        (b) The shared edge cache precomputes per-edge quantities; the GIE stage initializes the $l=0$ slice through FiLM modulation by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbor directions onto real spherical harmonics weighted by a radial-species profile.
+        (a) The full model couples a shared edge cache, a Geometry-Informed Embedding (GIE) stage, $N_{\mathrm{layer}}$ stacked equivariant interaction blocks (each a residual stack of an EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms), and an atomic energy head.
+        Architectural designs A1--A3 act inside the EMFA SO(2) convolution, and the equivariant FFN is instantiated as a Wigner bilinear network (A4).
+        (b) The shared edge cache precomputes per-edge quantities; the GIE stage initializes the $l=0$ slice through Feature-wise Linear Modulation (FiLM) by a local-environment descriptor and the $l\ge 1$ slices by projecting neighbor directions onto real spherical harmonics weighted by a radial-species profile.
         (c) The EMFA SO(2) convolution transports features into an edge-local SO(2) frame, applies the low-rank edge--node SO(2)-equivariant degree coupling (A1) followed by the multi-focus design with cross-focus competition (A2), lifts back to the global frame, and aggregates over neighbors through envelope-gated attention (A3).
     }
     \label{fig:arch}
@@ -111,13 +112,13 @@ Both branches contribute to the same scalar total energy and are differentiated 
 Matbench Discovery is a widely used benchmark for evaluating machine-learning models in high-throughput inorganic-crystal discovery~\cite{riebesell2025matbench}.
 In the compliant setting, models are trained on MPtrj~\cite{deng2023chgnet}, used to relax WBM candidate structures~\cite{WBM}, and then evaluated by their formation-energy predictions and derived convex-hull distances.
 The resulting scores combine classification, regression and structural-relaxation metrics, making the benchmark a stringent test of both energy accuracy and relaxation quality.
-The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric that probes property prediction accuracy related to the smoothness and conservativeness of the learned potential~\cite{pota2024thermal}.
+The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric sensitive to the smoothness and conservativeness of the learned potential~\cite{pota2024thermal}.
 Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
 Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
 
 Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} shows the corresponding accuracy--efficiency frontier in terms of CPS versus training cost.
-DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.842 with an F1 score of 0.865, a $\kappa$SRME of 0.227 and 25.2M parameters.
-It is in fact the leading compliant model in every ranked metric of the leaderboard, spanning stability classification, thermal conductivity and relaxation quality.
+DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.842 with an F1 score of 0.865, a $\kappa$SRME of 0.227 and an RMSD of 0.068~\AA{} at 25.2M parameters.
+It is the leading compliant model in every ranked metric of the leaderboard, spanning stability classification, thermal conductivity and relaxation quality.
 Its CPS exceeds that of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} by 0.012 (0.842 versus 0.830) while using 17\% fewer parameters (25.2M versus 30.3M).
 
 This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked by dashed marker outlines in Fig.~\ref{fig:cps}.

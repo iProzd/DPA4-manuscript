@@ -282,7 +282,7 @@ is equivariant, because the weights are invariant scalars.
 
 If the first SO(2) linear map of the EMFA SO(2) convolution (main-text Sec.~\ref{sec:so2}; Eqs.~\eqref{eq:sm-so2-m0}, \eqref{eq:sm-so2-mn}) includes an additive $l=0$ bias, that bias must vanish with the same smooth envelope as the rest of the edge message.
 Otherwise an edge whose radial contribution has gone to zero could still carry a constant scalar offset.
-DPA4 therefore treats the first-layer scalar bias as part of the edge-conditioned response.
+DPA4 therefore treats the first-layer scalar bias as part of the envelope-gated edge response.
 If $b_{0,f,c}$ is the scalar bias for focus $f$
 and channel $c$, the net contribution to the local $(l,m)=(0,0)$ slot is
 adjusted to
@@ -427,6 +427,13 @@ Each block is equivariant: a rotation translates the argument of the synthesized
     After finitely many blocks all nodes are present; the readout $\pi$ forms the finite linear combination of tree outputs, and the bias $q$ supplies the constant terms.
     The stack realizes $P$ exactly, and with Step~1 the theorem follows.
 \end{proof}
+
+\begin{remark}[The adapters $\iota,\pi$]
+\label{rem:sm-wbn-adapters}
+The maps $\iota$ and $\pi$ serve only to connect the blocks to input and output spaces $\mathcal{V},\mathcal{W}$ that may differ from the hidden space $\mathcal{H}$, which Theorem~\ref{thm:sm-wbn-complete} is free to enlarge.
+When the three spaces coincide, as for the deployed FFN, whose blocks map the feature space $V_{\le L}\otimes\mathbb{R}^{C}$ to itself, no adapters are needed: $\iota$ composes with the linear maps $A^{\mathrm{L}},A^{\mathrm{R}},P$ of the first block and $\pi$ with $P$, $B$ and $q$ of the last, each composition again an equivariant linear map of the same form.
+A bare stack of Wigner bilinear blocks on a common feature space is therefore itself a WBN.
+\end{remark}
 
 \begin{remark}[Frame truncation and sphere projection]
     \label{rem:sm-wbn-truncation}
