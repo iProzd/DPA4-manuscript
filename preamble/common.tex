@@ -21,6 +21,13 @@
 \usepackage{placeins}
 \usepackage{fix-cm}
 \usepackage{pifont}
+\usepackage{tocloft}
+
+% The supplementary sections are numbered S-1, S-1.1, ..., which overflow the
+% default number columns of the table of contents.
+\setlength{\cftsecnumwidth}{3.0em}
+\setlength{\cftsubsecindent}{3.0em}
+\setlength{\cftsubsecnumwidth}{3.6em}
 
 % Enabled / disabled markers for the boolean columns of the ablation tables.
 \newcommand{\cmark}{\ding{51}}
