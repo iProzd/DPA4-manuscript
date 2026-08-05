@@ -624,6 +624,35 @@ The MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearnin
 EquiformerV3~\cite{liao2026equiformerv3} used the \texttt{atomicarchitects/equiformer\_v3} implementation at commit \texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128.
 All ASE baseline environments used ASE 3.28.0 and NumPy 2.4.4.
 
+\FloatBarrier
+\section{Close-contact probe of the ZBL branch}
+\label{sec:sm-zbl}
+
+The benchmark datasets of Sections~\ref{sec:matbench}--\ref{sec:small_mol} do not sample the sub-\AA{} regime, so the close-contact behavior of Native ZBL Zone Bridging (Section~\ref{sec:zbl_method}) is probed directly with a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+The scan drives the pair into the regime where ordinary DFT training data are sparse and the screened nuclear repulsion should dominate, and therefore tests the transition between the learned potential and the analytical ZBL limit.
+The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging enabled.
+
+Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of the scan, whereas the force curves expose the difference between the two coupling strategies.
+The DPA3 DP-ZBL baseline develops a sharp force excursion near the switching region, producing a local attractive impulse even though the analytical ZBL force~\cite{ziegler1985} is strongly repulsive at these distances.
+The location and sign of this excursion are consistent with the switching-force term in Eq.~\eqref{eq:zbl-switching-force}: the extra contribution is governed by the mismatch between the ZBL and learned energies inside the splice window, not by the monotone screened-Coulomb repulsion.
+
+DPA4 removes this force-level splice.
+The analytical branch is evaluated on the true distance, the learned branch sees the $C^3$ clamped displacement, and the source-freeze gate suppresses the direct learned short-range pair channel (Section~\ref{sec:zbl_method}).
+Consequently, DPA4 follows the analytical ZBL force in the inner region and joins smoothly to the learned force as the C--Si distance increases.
+This dimer scan is a local close-contact probe; validating long-time energy drift, collision stability and damage evolution requires separate many-body molecular-dynamics tests.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{fig/dimer_c_si.pdf}
+    \caption{
+        Short-range C--Si dimer response for models trained on an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+        The DPA3 baseline uses the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas DPA4 uses the Native ZBL Zone Bridging branch described in Section~\ref{sec:zbl_method}.
+        The analytical reference is the ZBL screened Coulomb potential~\cite{ziegler1985}.
+    }
+    \label{fig:zbl}
+\end{figure}
+
+\FloatBarrier
 \section{Model and training configurations}
 
 \subsection{Ablation model configurations}

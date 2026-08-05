@@ -38,6 +38,7 @@ DPA4 decomposes the potential energy as a sum of a learned equivariant branch an
 Rather than splicing the ZBL term onto the energy post hoc, DPA4 couples the two branches inside the energy model through Native ZBL Zone Bridging: smooth bridging gates suppress the direct learned short-range pair channel so that the inner-zone pair interaction is handled exclusively by the analytical branch.
 This removes the unphysical switching force, proportional to the energy mismatch of the two branches, that a coordinate-dependent splicing weight would introduce.
 Both branches contribute to the same scalar total energy and are differentiated jointly, giving conservative forces with a smooth transition at close approach (Section~\ref{sec:zbl_method}).
+Inside the inner zone the learned branch contributes no force, so the short-range force is by construction the analytical ZBL force; a C--Si dimer scan confirms this and shows the force-switching artifact that an external pair correction produces instead (Supplementary Section~\ref{sec:sm-zbl}).
 
 \begin{figure}[!t]
     \centering
@@ -377,35 +378,6 @@ DPA4-Pro is more accurate than the $L_{\max}=4$ configuration in all three targe
 DPA4-Plus, with 3.4$\times$ fewer parameters, is 11.6$\times$ faster and reaches 5,040 atoms at a lower energy MAE (9.8 against 10.4~meV/atom) and a 4.8\% higher force MAE.
 The DPA3 baselines~\cite{zhang2025dpa3} remain 2.9$\times$ and 3.5$\times$ slower than DPA4-Air and DPA4-Plus, respectively.
 On the model side, dedicated SO(2)-convolution kernels analogous to the cuEquivariance SO(3) kernels used by the accelerated MACE baselines could reduce memory traffic and further accelerate inference.
-
-\subsection{Native ZBL coupling under close-contact conditions}
-\label{sec:zbl}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig/dimer_c_si.pdf}
-    \caption{
-        Short-range C--Si dimer response for models trained on an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
-        The DPA3 baseline uses the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl}, whereas DPA4 uses the Native ZBL Zone Bridging branch described in Section~\ref{sec:zbl_method}.
-        The analytical reference is the ZBL screened Coulomb potential~\cite{ziegler1985}.
-    }
-    \label{fig:zbl}
-\end{figure}
-
-We isolate the short-range behavior with a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
-The scan drives the pair into the sub-\AA{} regime, where ordinary DFT training data are sparse and the screened nuclear repulsion should dominate.
-The resulting curve provides a local test of the transition between the learned potential and the analytical ZBL limit.
-The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging enabled.
-
-Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of the scan, whereas the force curves expose the difference between the two coupling strategies.
-The DPA3 DP-ZBL baseline develops a sharp force excursion near the switching region, producing a local attractive impulse even though the analytical ZBL force~\cite{ziegler1985} is strongly repulsive at these distances.
-The location and sign of this excursion are consistent with the switching-force term in Eq.~\eqref{eq:zbl-switching-force}: the extra contribution is governed by the mismatch between the ZBL and learned energies inside the splice window, not by the monotone screened-Coulomb repulsion.
-
-DPA4 removes this force-level splice.
-The analytical branch is evaluated on the true distance, the learned branch sees the $C^3$ clamped displacement, and the source-freeze gate suppresses the direct learned short-range pair channel (Section~\ref{sec:zbl_method}).
-Consequently, DPA4 follows the analytical ZBL force in the inner region and joins smoothly to the learned force as the C--Si distance increases.
-Native ZBL Zone Bridging therefore assigns the close-contact repulsion inside the scalar energy before differentiation, avoiding the switching artifact observed for the external pair correction.
-This dimer scan is a local close-contact probe; validating long-time energy drift, collision stability and damage evolution requires separate many-body molecular-dynamics tests.
 
 \input{chap/results_ablation}
 
