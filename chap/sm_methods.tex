@@ -17,7 +17,7 @@ that describes how the real spherical harmonics transform under rotation,
     Y_l^m(Q^{-1}\widehat{\mathbf{r}}) =\sum_{m'=-l}^{l}D^l(Q)_{m,m'}\,Y_l^{m'}(\widehat{\mathbf{r}}).
     \label{eq:sm-wigner-D}
 \end{equation}
-The map $D^l:\mathrm{SO}(3)\to\mathrm{O}(2l+1)$ is a continuous group homomorphism (i.e.\ $D^l(QQ')=D^l(Q)D^l(Q')$), and the $V_l$ are \emph{irreducible}: $V_l$ admits no proper SO(3)-invariant subspace.
+The map $D^l:\mathrm{SO}(3)\to\mathrm{O}(2l+1)$ is a continuous group homomorphism (i.e.\ $D^l(QQ')=D^l(Q)D^l(Q')$), and the $V_l$ are \emph{irreducible}: $V_l$ admits no SO(3)-invariant subspace other than $\{0\}$ and $V_l$ itself.
 The trivial case $l=0$ is the invariant scalar representation with $D^0(Q)\equiv 1$.
 
 The node-feature space $V_{\le L}\otimes\mathbb{R}^{C}=\bigoplus_{l=0}^{L}
@@ -101,7 +101,7 @@ Under restriction to the SO(2) subgroup of rotations about
 the local $z$ axis, $V_l$ decomposes as
 \begin{equation}
     V_l|_{\mathrm{SO}(2)} = \mathrm{span}_{\mathbb{R}}\{\mathbf{e}^{(l)}_0\} \;\oplus\; \bigoplus_{m=1}^{l} \mathrm{span}_{\mathbb{R}}\{\mathbf{e}^{(l)}_{-m},\,\mathbf{e}^{(l)}_{+m}\}, \label{eq:sm-so2-decomposition} \end{equation} where $\mathrm{span}_{\mathbb{R}}\{\cdot\}$ denotes the real linear span of the indicated basis vectors.
-The $m=0$ summand is a one-dimensional trivial SO(2) sub-representation, and each $m=1,\ldots,l$ summand is a two-dimensional real SO(2) sub-representation on which a $z$-axis rotation by angle $\theta$ acts as planar rotation by angle $m\theta$, equivalent to multiplication by the complex phase $e^{im\theta}$.
+The $m=0$ summand is a one-dimensional trivial SO(2) sub-representation, and each $m=1,\ldots,l$ summand is a two-dimensional real SO(2) sub-representation on which a $z$-axis rotation by angle $\theta$ acts as a planar rotation by angle $m\theta$, equivalent to multiplication by the complex phase $e^{im\theta}$.
 This is the algebraic reason DPA4 can use SO(2)-equivariant local operators instead of Clebsch--Gordan tensor products.
 
 \subsection{Closed-form cutoff coefficients}
@@ -131,7 +131,7 @@ normalization, $s_7$ in the Bessel radial basis of main-text
 Section~\ref{sec:gie}), the explicit polynomials are
 \begin{align}
     s_5(r) & =1-56x^5+140x^6-120x^7+35x^8,       \\
-    s_7(r) & =1-120x^7+540x^8-1080x^9+840x^{10},
+    s_7(r) & =1-120x^7+315x^8-280x^9+84x^{10},
 \end{align}
 with $x=r/r_{\mathrm{c}}$.
 
@@ -179,7 +179,7 @@ SO(3) frame, Schur's lemma forbids mixing distinct degrees:
     \label{eq:sm-schur-so3}
 \end{equation}
 In the edge-local SO(2) frame, the $m=0$ lines are trivial representations
-and each $|m|>0$ pair is complex type, giving
+and each $|m|>0$ pair is of complex type, giving
 \begin{equation}
     \mathrm{Hom}_{\mathrm{SO}(2)}
     (V_{\le L}\otimes\mathbb{R}^{C},V_{\le L}\otimes\mathbb{R}^{C'})
@@ -203,7 +203,7 @@ Here ``degree-wise'' means \emph{per-$l$ but identical across all $m\in\{-l,\ldo
 All ``degree-wise channel-mixing maps'' in main-text Section~\ref{sec:methods} (including $L^{\mathrm{pre}}_{\mathrm{deg}}$, $L^{\mathrm{post}}_{\mathrm{deg}}$, $L^{\mathrm{rad}}_{\mathrm{lift}}$, $L^{\mathrm{ch}}_{\mathrm{in}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}$) are instances of this form.
 
 \paragraph{Edge-local SO(2) linear maps.}
-In the edge-local frame, the $m=0$ lines are trivial SO(2) representations, whereas each $|m|>0$ pair is complex type.
+In the edge-local frame, the $m=0$ lines are trivial SO(2) representations, whereas each $|m|>0$ pair is of complex type.
 The most general SO(2)-equivariant
 linear map on the reduced layout is therefore
 \begin{align}
@@ -296,7 +296,7 @@ If $b_{0,f,c}$ is the scalar bias for focus $f$
 and channel $c$, the net contribution to the local $(l,m)=(0,0)$ slot is
 adjusted to
 \begin{equation}
-    b_{0,f,c}\,\widetilde{\rho}_{ij,0,c}\,s_5(r_{ij}),
+    b_{0,f,c}\,\widetilde{\rho}_{ij,0,f,c}\,s_5(r_{ij}),
     \label{eq:sm-bias-consistency}
 \end{equation}
 which is $C^3$ and vanishes at the cutoff.
@@ -310,9 +310,9 @@ Table~\ref{tab:sm_s2_truncated_equivariance} extends the full-coefficient compar
 \begin{table}[p]
     \PaperTableStyle
     \caption{
-        $m$-truncated \texorpdfstring{$\Sph$}{S2} activation equivariance under random local
+        Equivariance of the $m$-truncated spherical-grid nonlinearity under random local
         $z$-axis rotations.
-        These cases test the reduced local layout used in SO(2) convolution.
+        These cases test the reduced local layout used in the EMFA SO(2) convolution.
         Product-grid rules are $(R_{\phi},R_{\theta})$ with the total number of grid points $R_{\phi}R_{\theta}$ given alongside; Lebedev rules are reported by their algebraic order of accuracy $p$ and the corresponding number of points.
         Errors are maximum absolute deviations between the two equivariance paths.
     }
@@ -349,7 +349,7 @@ Table~\ref{tab:sm_s2_truncated_equivariance} extends the full-coefficient compar
 
 This subsection proves the completeness statement invoked in main-text Section~\ref{sec:s2-method}: networks stacking Wigner bilinear blocks with the \emph{full} frame range $|k|\le l$, interleaved with equivariant linear maps, approximate every continuous SO(3)-equivariant map between band-limited feature spaces, and realize polynomial equivariant maps exactly.
 The block analyzed here is the exact continuous model underlying the deployed FFN: it retains all frames, forms products over all pairs of left and right channels, and evaluates the Haar integral exactly.
-The deployed block (main-text Eqs.~\eqref{eq:dpa4-wbb-lift}--\eqref{eq:dpa4-ffn}) is its economical specialization -- channel-diagonal products, frames truncated to $|k|\le k_{\max}$, and an exact quadrature in place of the integral -- and the role of the truncation is discussed in Remark~\ref{rem:sm-wbn-truncation}.
+The deployed block (main-text Eqs.~\eqref{eq:dpa4-wbb-lift}--\eqref{eq:dpa4-ffn}) is its economical specialization, with channel-diagonal products, frames truncated to $|k|\le k_{\max}$, and an exact quadrature in place of the integral; the role of the truncation is discussed in Remark~\ref{rem:sm-wbn-truncation}.
 
 Throughout, $g$ denotes a rotation, $dg$ the normalized Haar measure on $SO(3)$, and $D^{(l)}_{mk}(g)$ the \emph{complex} Wigner matrices, which satisfy the orthogonality relation
 \begin{equation}
@@ -390,7 +390,7 @@ Each block is equivariant: a rotation translates the argument of the synthesized
     A homogeneous part of degree $d$ is, by polarization, the diagonal restriction of a symmetric $d$-linear equivariant map, hence of an element of $\mathrm{Hom}_{SO(3)}(\mathcal{V}^{\otimes d},\mathcal{W})$; it therefore suffices to span this space by trees, and, after decomposing $\mathcal{V}$ and $\mathcal{W}$ into irreps, to span $\mathrm{Hom}_{SO(3)}(V_{l_1}\otimes\cdots\otimes V_{l_d},V_L)$.
     We induct on $d$.
     For $d=1$ Schur's lemma leaves only multiples of the identity.
-    For $d>1$, decompose $X=V_{l_1}\otimes\cdots\otimes V_{l_{d-1}}$ into irreducible summands with equivariant projections $p_{J,r}:X\to V_J$ and inclusions $i_{J,r}$ (the equivariant maps extracting and identifying the $r$-th copy of $V_J$ in the decomposition of $X$ into irreducibles, with $\sum_{J,r}i_{J,r}p_{J,r}=\mathrm{id}_X$); any $T\in\mathrm{Hom}_{SO(3)}(X\otimes V_{l_d},V_L)$ writes as $T=\sum_{J,r}T\circ(i_{J,r}p_{J,r}\otimes\mathrm{id})$, and each factor $T\circ(i_{J,r}\otimes\mathrm{id})$ lies in $\mathrm{Hom}_{SO(3)}(V_J\otimes V_{l_d},V_L)$, which by the multiplicity-free Clebsch--Gordan decomposition is spanned by $C^{L}_{Jl_d}$ when the triple is admissible and vanishes otherwise.
+    For $d>1$, decompose $X=V_{l_1}\otimes\cdots\otimes V_{l_{d-1}}$ into irreducible summands with equivariant projections $p_{J,r}:X\to V_J$ and inclusions $i_{J,r}$ (the equivariant maps extracting and identifying the $r$-th copy of $V_J$ in the decomposition of $X$ into irreducibles, with $\sum_{J,r}i_{J,r}p_{J,r}=\mathrm{id}_X$); any $T\in\mathrm{Hom}_{SO(3)}(X\otimes V_{l_d},V_L)$ can be written as $T=\sum_{J,r}T\circ(i_{J,r}p_{J,r}\otimes\mathrm{id})$, and each factor $T\circ(i_{J,r}\otimes\mathrm{id})$ lies in $\mathrm{Hom}_{SO(3)}(V_J\otimes V_{l_d},V_L)$, which by the multiplicity-free Clebsch--Gordan decomposition is spanned by $C^{L}_{Jl_d}$ when the triple is admissible and vanishes otherwise.
     The induction hypothesis expresses each $p_{J,r}$ by trees on the first $d-1$ factors; composing with $C^{L}_{Jl_d}$ yields trees on all $d$ factors.
     Evaluating on the diagonal $(x,\ldots,x)$ recovers the homogeneous polynomial parts and proves the claim.
 \end{proof}
@@ -426,13 +426,13 @@ Each block is equivariant: a rotation translates the argument of the synthesized
     Use the maps~\eqref{eq:sm-wbb-lin} to load the two channels into one product pair, \[ f^{\mathrm{L}}_{a}(g)=\sum_{m_1}(T_1)_{m_1}D^{(l_1)}_{m_1k_1}(g), \qquad f^{\mathrm{R}}_{b}(g)=\sum_{m_2}(T_2)_{m_2}D^{(l_2)}_{m_2k_2}(g), \] all other coefficients set to zero.
     By the product identity~\eqref{eq:sm-wigner-product}, \[ h_{ab}(g) =\sum_{L'}\langle l_1 k_1\, l_2 k_2|L'\kappa\rangle\, \bigl(C^{L'}_{l_1l_2}(T_1,T_2)\bigr)_{M}\,D^{(L')}_{M\kappa}(g), \] and the analysis~\eqref{eq:sm-wbb-analysis} with the orthogonality~\eqref{eq:sm-wigner-orth} extracts \[ z^{(L)}_{M,\kappa,ab} =\langle l_1 k_1\, l_2 k_2|L\,\kappa\rangle\, \bigl(C^{L}_{l_1l_2}(T_1,T_2)\bigr)_{M}.
     \]
-    The nonzero scalar~\eqref{eq:sm-frame-choice} is absorbed into $B^{(L)}_{d,\kappa,ab}$ in~\eqref{eq:sm-wbb-out}; choosing $P^{(l)}$ to preserve the existing channels and one fresh output channel $d$ stores exactly the coupling $C^{L}_{l_1l_2}(T_1,T_2)$.
+    The nonzero scalar~\eqref{eq:sm-frame-choice} is absorbed into $B^{(L)}_{d,\kappa,ab}$ in~\eqref{eq:sm-wbb-out}; choosing $P^{(l)}$ to preserve the existing channels and directing the result into one fresh output channel $d$ stores exactly the coupling $C^{L}_{l_1l_2}(T_1,T_2)$.
 
     \emph{Step 3 (finite stacks realize all trees).}
     Fix a polynomial equivariant $P$ and expand it by Lemma~\ref{lem:sm-cg-span} into finitely many tree maps.
     Assign one hidden channel to every node of every tree; choose $L_{\max}$ no smaller than the largest degree appearing and $C$ large enough to hold all channels.
     The embedding $L_{\mathrm{emb}}$ places the leaf maps.
-    Proceeding by induction on tree depth, each block writes all couplings of the next depth into fresh channels -- Step~2, applied with a separate product pair $(a,b)$ and output channel per node, the mixing coefficients $B$ set to ignore all other pairs -- while preserving the channels already filled.
+    Proceeding by induction on tree depth, each block writes all couplings of the next depth into fresh channels while preserving the channels already filled; this is Step~2, applied with a separate product pair $(a,b)$ and output channel per node, the mixing coefficients $B$ set to ignore all other pairs.
     After finitely many blocks all nodes are present; the readout $L_{\mathrm{read}}$ forms the finite linear combination of tree outputs, and the bias $q$ supplies the constant terms.
     The stack realizes $P$ exactly, and with Step~1 the theorem follows.
 \end{proof}
@@ -447,7 +447,7 @@ A bare stack of Wigner bilinear blocks on a common feature space is therefore it
 \begin{remark}[Frame truncation and sphere projection]
     \label{rem:sm-wbn-truncation}
     The full frame range enters the proof only through the choice~\eqref{eq:sm-frame-choice}.
-    Truncating the frames to $|k|\le k_{\max}$ restricts that choice, and at $k_{\max}=0$ it forces $k_1=k_2=\kappa=0$: the surviving coefficient $\langle l_1 0\, l_2 0|L 0\rangle$ vanishes whenever $l_1+l_2+L$ is odd, so a sphere-restricted bilinear nonlinearity cannot realize any parity-odd coupling, however deep the stack -- the incompleteness discussed in main-text Section~\ref{sec:s2-method}.
+    Truncating the frames to $|k|\le k_{\max}$ restricts that choice, and at $k_{\max}=0$ it forces $k_1=k_2=\kappa=0$: the surviving coefficient $\langle l_1 0\, l_2 0|L 0\rangle$ vanishes whenever $l_1+l_2+L$ is odd, so a sphere-restricted bilinear nonlinearity cannot realize any parity-odd coupling, however deep the stack; this is the incompleteness discussed in main-text Section~\ref{sec:s2-method}.
     Already at $k_{\max}=1$ nonzero parity-odd choices become available, e.g.\ $\langle 1\,1\,1\,{-1}|1\,0\rangle=1/\sqrt{2}$ for the cross product $1\otimes1\to1$; the hypothesis of Theorem~\ref{thm:sm-wbn-complete}, however, requires the full range.
 \end{remark}
 
@@ -492,7 +492,7 @@ $\alpha_{\min}$ is the final learning rate and
     \left(
     \frac{t-T_{\mathrm{w}}-T_{\mathrm{s}}}{T_{\mathrm{d}}},
     0,1
-    \right).
+    \right),
     \label{eq:sm-wsd-tau}
 \end{equation}
 with cosine annealing in the decay phase,
@@ -505,7 +505,7 @@ with cosine annealing in the decay phase,
     \left(1+\cos \pi\tau\right).
     \label{eq:sm-wsd-cosine}
 \end{equation}
-Thus the stable phase carries most optimization steps, whereas the final cosine decay suppresses high-learning-rate oscillations before checkpoint selection.
+Thus the stable phase carries most of the optimization steps, whereas the final cosine decay suppresses high-learning-rate oscillations before checkpoint selection.
 
 \subsection{HybridMuon optimizer}
 \label{sec:sm-hybrid-muon}
@@ -516,7 +516,7 @@ Matrix-valued hidden transformations are routed to Muon, whereas biases, normali
 This static routing is built on the first optimizer step and remains fixed during training, so the update rule for each parameter is independent of the current gradient value.
 
 \paragraph{Matrix views and slice mode.}
-Let a trainable tensor have an effective shape obtained by removing singleton dimensions.
+The effective shape of a trainable tensor is its shape with singleton dimensions removed.
 HybridMuon interprets a rank-two effective shape as one matrix.
 For higher-rank equivariant tensors, DPA4 uses slice mode: the leading dimensions index independent blocks, and Muon is applied separately to every trailing $(m,n)$ matrix.
 Thus, for an effective shape $(b_1,\ldots,b_q,m,n)$, the
@@ -525,7 +525,7 @@ optimizer constructs
     B=\prod_{a=1}^{q}b_a \quad\text{independent matrix blocks}\quad G_t^{(b)}\in\mathbb{R}^{m\times n}, \qquad b=1,\ldots,B.
     \label{eq:sm-muon-slice-view}
 \end{equation}
-This choice is important for SO(2)-structured equivariant weights: degree and order-indexed blocks are updated independently, rather than being flattened into one large matrix that would mix unrelated representation strata.
+This choice is important for SO(2)-structured equivariant weights: degree- and order-indexed blocks are updated independently, rather than being flattened into one large matrix that would mix unrelated representation strata.
 In the degree-wise SO(3) channel maps used by the SO(2) pre- and post-projections and by the equivariant FFN, the weight tensor has shape $(L+1,C_{\mathrm{in}},F C_{\mathrm{out}})$; slice mode therefore applies Muon separately to the $(C_{\mathrm{in}},F C_{\mathrm{out}})$ matrix of each degree $l$.
 Local SO(2) linear maps keep separate matrix parameters for the $m=0$ block and the constrained $|m|>0$ blocks, so the optimizer acts on these structured matrix blocks without collapsing distinct equivariant subspaces.
 
@@ -593,7 +593,7 @@ The block alignment is
     \chi_t^{(b)}\in[-1,1].
     \label{eq:sm-magma-cosine}
 \end{equation}
-The score is mapped through a temperature-scaled sigmoid and stretched to
+The alignment is mapped through a temperature-scaled sigmoid and stretched to
 $[0,1]$,
 \begin{equation}
     r_t^{(b)}
@@ -628,5 +628,5 @@ and the final Muon update is rescaled by
     \label{eq:sm-magma-lite}
 \end{equation}
 This rule differs from stochastic masking: all blocks remain active, and poorly aligned updates are continuously damped rather than randomly skipped.
-The nonzero lower bound prevents the optimizer from freezing a block entirely, which is important for MLIP training where force labels can make the alignment temporarily noisy without implying that the corresponding representation block should stop learning.
+The nonzero lower bound prevents the optimizer from freezing a block entirely, which is important for MLIP training, where force labels can make the alignment temporarily noisy without implying that the corresponding representation block should stop learning.
 

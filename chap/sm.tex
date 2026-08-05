@@ -43,8 +43,7 @@ The first subsection reports the cumulative ablation behind main-text Fig.~\ref{
 The remaining subsections report model-selection and robustness studies.
 All ablations use the same WBM-subsampled evaluation protocol.
 Relative efficiency metrics are normalized within each controlled group under matched H20 hardware, batch-size, data-loading and precision settings.
-Unless otherwise noted, \textit{Train time (rel.)
-} denotes relative training wall-clock time, and
+Unless otherwise noted, \textit{Train time (rel.)} denotes relative training wall-clock time, and
 \textit{Test time (rel.)} denotes the wall-clock time of a full test pass over the
 WBM-subsampled test set in DeePMD-kit.
 Boldface and underlining denote the best and second-best values only for metrics in which ranking is explicitly highlighted.
@@ -55,11 +54,11 @@ N/A denotes a parameter or option that is not applicable to the corresponding se
 \label{sec:sm-cumulative-ablation}
 
 This ablation is the numerical basis of main-text Fig.~\ref{fig:ablation}.
-Starting from the complete interaction block, the four components that can be switched off without changing the dimensions of the equivariant representation are removed one after another, and every configuration is retrained under the identical protocol given in the cumulative-ablation column of Table~\ref{tab:sm_main_ablation_config} (Table~\ref{tab:sm_cumulative_ablation}).
+Starting from the complete interaction block, the four components that can be switched off without changing the dimensions of the equivariant representation are removed one after another, and every configuration is retrained under the identical protocol given in the cumulative-ablation column of Table~\ref{tab:sm_main_ablation_config}; the resulting errors are collected in Table~\ref{tab:sm_cumulative_ablation}.
 All five configurations use a single focus stream, so the multi-focus design contributes nothing to the reported differences; it is assessed separately at matched SO(2) width in Section~\ref{sec:sm-multifocus}.
 
 Removing all four components raises the energy MAE from 31.007 to 39.671~meV/atom and the force MAE from 39.169 to 44.581~meV/\AA{}.
-Conversely, the four components together raise the parameter count by 1.7$\times$, from 1.19~M to 2.05~M, and the wall-clock time of a full test pass by 14\%.
+In return, the four components together raise the parameter count by 1.7$\times$, from 1.19~M to 2.05~M, and the wall-clock time of a full test pass by 14\%.
 The energy error increases monotonically along the chain, whereas the force error does not: removing the message node WBN leaves it marginally lower, so the two WBN insertions are separated by the force metric only in the controlled comparison of Table~\ref{tab:sm_wbn_ablation}.
 
 \begin{table}[ht]
@@ -111,9 +110,9 @@ The corresponding accuracy changes are small compared with the efficiency gain.
 Against the FP32 baseline (27.603~meV/atom and 34.246~meV/\AA{}), bf16 AMP changes the energy and force MAEs by 1.7\% and 2.0\%, respectively.
 The compiled-bf16 setting, which gives the strongest speed and memory improvement, changes them by 2.7\% and 1.8\%; when TF32 is also enabled, the energy MAE changes by 2.8\% and the force MAE by only 0.1\%.
 These differences are consistent with small numerical and stochastic variation rather than systematic accuracy degradation.
-Although the random seed is fixed and \texttt{torch.compile} preserves the mathematical computation graph, compilation can change kernel fusion, hardware-specific kernel selection, reduction ordering, and tensor-core dispatch; bf16 AMP and TF32 also change the effective arithmetic used by eligible matrix operations.
+Although the random seed is fixed and \texttt{torch.compile} preserves the mathematical computation graph, compilation can change kernel fusion, hardware-specific kernel selection, reduction ordering and tensor-core dispatch; bf16 AMP and TF32 also change the effective arithmetic used by eligible matrix operations.
 DPA4 limits this sensitivity by keeping geometric preprocessing and normalization operations such as RMSNorm in FP32, while allowing large matrix operations to use bf16 or TF32 where appropriate.
-We therefore enable \texttt{torch.compile}, bf16 AMP, and TF32 in the following ablations and benchmark experiments unless otherwise specified.
+We therefore enable \texttt{torch.compile}, bf16 AMP and TF32 in the following ablations and benchmark experiments unless otherwise specified.
 
 \begin{table}[ht]
     \PaperTableStyle
@@ -153,9 +152,9 @@ We therefore enable \texttt{torch.compile}, bf16 AMP, and TF32 in the following 
 \label{sec:sm-attention-aggregation}
 
 The attention ablation isolates the aggregation rule while holding the feature dimension and focus count fixed within each pair of rows (Table~\ref{tab:dpa4_attention_ablation}).
-Replacing scatter-sum aggregation with attention-weighted sum consistently reduces both energy and force MAEs across the 64-channel, 96-channel, and 96-channel 2-focus settings.
+Replacing scatter-sum aggregation with attention-weighted sum consistently reduces both energy and force MAEs across the 64-channel, 96-channel and 96-channel 2-focus settings.
 The improvement is substantial and stable: energy MAE decreases by 8.3--9.3\%, and force MAE decreases by 4.7--6.8\% relative to the corresponding scatter-sum controls.
-The gain is obtained with a small computational cost, increasing training time by only 5--6\% and leaving test time within 1--5\% of the control models.
+The gain costs little: training time increases by only 5--6\%, and test time stays within 1--5\% of the control models.
 This result supports the design choice of computing attention from rotationally invariant scalar channels: the model gains adaptive neighbor selection while preserving equivariance of the higher-order SO(2) features.
 
 \begin{table}[ht]
@@ -199,7 +198,7 @@ The multi-focus comparison separates per-focus feature width from the number of 
 Increasing the width of a single focus stream rapidly increases parameter count and inference cost, but the corresponding accuracy gains are uneven.
 By contrast, multi-focus variants increase the effective SO(2) convolution dimension through several narrower focus channels and often reach better accuracy--cost trade-offs.
 At an SO(2) dimension of 192, the 96-channel 2-focus model gives the best overall result, improving energy MAE from 29.418 to 26.994~meV/atom and force MAE from 39.529 to 36.408~meV/\AA{} relative to the 64-channel 1-focus baseline.
-It also outperforms the 192-channel 1-focus model with more than 56\% fewer trainable parameters, approximately 23\% lower training time, and approximately 34\% lower inference time.
+It also outperforms the 192-channel 1-focus model with more than 56\% fewer trainable parameters and approximately 23\% and 34\% lower training and inference times, respectively.
 All rows in this sweep use the same learning-rate setting; as larger-capacity variants often benefit from smaller tuned learning rates, the reported MAEs of the largest configurations may be mildly conservative.
 Under a shared training recipe, however, the 96-channel 2-focus configuration gives the most balanced point in this sweep.
 These trends are consistent with the intended role of focus competition, where parallel equivariant sub-channels specialize to different edge-local geometric motifs before the rotate-back step.
@@ -296,38 +295,33 @@ These results suggest that compact per-channel kernels act as a structural regul
 
 \subsection{Spherical-grid nonlinearity and quadrature rule}
 
-This ablation separates two coupled design choices in the spherical-grid nonlinearity, referred to as the $\Sph$ activation in the following: the model component to which the activation is applied and the quadrature rule used to project grid features back to equivariant coefficients (Table~\ref{tab:sm_quadrature_ablation}).
-When $\Sph$ activation is restricted to the FFN component, replacing the latitude--longitude product grid with the Lebedev rule slightly reduces the energy MAE while leaving the force MAE and computational cost essentially unchanged.
-Applying $\Sph$ activation additionally inside the SO(2) convolution component does not improve the overall accuracy--cost trade-off under this setting; with the product grid, both MAEs increase and the relative training and inference costs more than double.
-In this expanded activation configuration, Lebedev quadrature reduces the energy error and lowers the relative training and inference costs compared with the product grid, although the force MAE remains higher than in the FFN-only configuration.
-These results indicate that the FFN-only $\Sph$ activation configuration with Lebedev quadrature is both more accurate and cheaper than the SO(2)+FFN configurations tested here, and is therefore used in the released DPA4 variants.
+The spherical-grid nonlinearity is applied in the equivariant FFN alone, so the remaining design choice is the quadrature rule used to project grid features back to equivariant coefficients (Table~\ref{tab:sm_quadrature_ablation}).
+Replacing the latitude--longitude product grid by the Lebedev rule lowers the energy MAE by 0.8\%, from 29.225 to 28.992~meV/atom, and leaves the force MAE and the cost within 1\%: 38.055 against 38.103~meV/\AA{}, with relative training and inference times of 0.98 and 1.01.
+The released DPA4 variants therefore use Lebedev quadrature.
 
 \begin{table}[ht]
     \PaperTableStyle
     \begin{threeparttable}
-        \caption{Ablation of $\Sph$ activation placement and quadrature rule.\tnote{a}}
+        \caption{Ablation of the quadrature rule for the spherical-grid nonlinearity in the FFN.\tnote{a}}
         \label{tab:sm_quadrature_ablation}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccc@{}}
             \toprule
-            \textbf{SO(2) S2 act.}                 &
-            \textbf{FFN S2 act.}                   &
             \textbf{Quadrature}                    &
             \textbf{E MAE}$\downarrow$             &
             \textbf{F MAE}$\downarrow$             &
             \textbf{Train time (rel.)}$\downarrow$ &
             \textbf{Test time (rel.)}$\downarrow$                                                                           \\
             \midrule
-            \xmark                                  & \cmark & Product & \underline{29.225} & \textbf{38.055}    & 1.00 & 1.00 \\
-            \xmark                                  & \cmark & Lebedev & \textbf{28.992}    & \underline{38.103} & 0.98 & 1.01 \\
-            \cmark                                   & \cmark & Product & 31.074             & 39.522             & 2.41 & 2.23 \\
-            \cmark                                   & \cmark & Lebedev & 29.709             & 39.808             & 1.98 & 1.76 \\
+            Product & \underline{29.225} & \textbf{38.055}    & 1.00 & 1.00 \\
+            Lebedev & \textbf{28.992}    & \underline{38.103} & 0.98 & 1.01 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
-            \item[a] Train time (rel.) and Test time (rel.) are normalized to the FFN-only $\Sph$ row
-            using the latitude--longitude product grid.
-            The quadrature rule is used when projecting $\Sph$-grid features back to equivariant coefficients.
+            \item[a] Both rows apply the nonlinearity in the equivariant FFN only, on the $k_{\max}=0$ spherical grid; the SO(2) convolution carries no grid nonlinearity.
+            Train time (rel.) and Test time (rel.) are normalized to the
+            latitude--longitude product-grid row.
+            The quadrature rule is used when projecting spherical-grid features back to equivariant coefficients.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -336,15 +330,15 @@ These results indicate that the FFN-only $\Sph$ activation configuration with Le
 
 \subsection{Placement of the Wigner bilinear network}
 
-This ablation isolates the two places where the Wigner bilinear network (WBN) enters an interaction block: the equivariant FFN, where the WBN grid replaces the $\Sph$-grid nonlinearity, and the post-aggregation message--node path, where a WBN grid couples the aggregated message with the destination node state (Table~\ref{tab:sm_wbn_ablation}).
+This ablation isolates the two places where the Wigner bilinear network (WBN) enters an interaction block: the equivariant FFN, whose nonlinearity is either absent, evaluated on the $k_{\max}=0$ spherical grid, or evaluated on the full $k_{\max}=1$ grid on the rotation group, and the post-aggregation message--node path, where a WBN couples the aggregated message with the destination node state (Table~\ref{tab:sm_wbn_ablation}).
 Each of the two insertions is assessed with the other held fixed.
 
-With the message node WBN disabled, the FFN nonlinearity produces the largest single effect: removing it raises the energy MAE by 2.77~meV/atom (7.4\%) and the force MAE by 1.51~meV/\AA{} (3.7\%) relative to the $\Sph$-grid FFN, and replacing that $\Sph$ grid by a WBN grid lowers both errors by a further 0.96~meV/atom (2.8\%) and 0.63~meV/\AA{} (1.6\%) for a 2\% increase in relative training time.
+With the message node WBN disabled, the FFN nonlinearity produces the largest single effect: adding it on the $k_{\max}=0$ grid lowers the energy MAE by 2.77~meV/atom (7.4\%) and the force MAE by 1.51~meV/\AA{} (3.7\%), and raising $k_{\max}$ to $1$ lowers them by a further 0.96~meV/atom (2.8\%) and 0.63~meV/\AA{} (1.6\%) for a 2\% increase in relative training time.
 Enabling the message node WBN helps at either FFN setting.
-On top of the $\Sph$-grid FFN it lowers the energy MAE by 0.79~meV/atom (2.3\%) and the force MAE by 1.10~meV/\AA{} (2.8\%), and on top of the WBN FFN it lowers the force MAE by a further 0.45~meV/\AA{} (1.2\%) while raising the energy MAE by 0.25~meV/atom (0.75\%).
+On top of the $k_{\max}=0$ FFN it lowers the energy MAE by 0.79~meV/atom (2.3\%) and the force MAE by 1.10~meV/\AA{} (2.8\%), and on top of the $k_{\max}=1$ FFN it lowers the force MAE by a further 0.45~meV/\AA{} (1.2\%) while raising the energy MAE by 0.25~meV/atom (0.75\%).
 
-The three configurations that contain a WBN grid therefore differ by at most 0.75\% in energy MAE and 1.2\% in force MAE, three to ten times less than the 2.3--7.4\% effects established above, so this experiment does not separate them.
-Enabling both paths attains the lower force MAE of the two configurations that use a WBN grid in the FFN and is the setting used by the released DPA4 variants.
+The three configurations that contain a WBN therefore differ by at most 0.75\% in energy MAE and 1.2\% in force MAE, smaller than every effect established above, so this experiment does not separate them.
+Enabling both paths attains the lower force MAE of the two configurations that use a WBN in the FFN and is the setting used by the released DPA4 variants.
 The cost of the added capacity falls almost entirely on the parameter count rather than on runtime: across the table the parameter count grows from 1.2~M to 2.0~M while the relative test time grows by only 4\%.
 
 \begin{table}[ht]
@@ -362,18 +356,18 @@ The cost of the added capacity falls almost entirely on the parameter count rath
             \textbf{Test time (rel.)}$\downarrow$  &
             \textbf{Params}                                                                                  \\
             \midrule
-            None        & \xmark & 37.213             & 40.653             & 1.00 & 1.00 & 1.2M \\
-            $\Sph$ grid & \xmark & 34.448             & 39.142             & 1.14 & 1.01 & 1.4M \\
-            WBN         & \xmark & \textbf{33.485}    & 38.517             & 1.16 & 1.02 & 1.9M \\
-            $\Sph$ grid & \cmark  & \underline{33.662} & \textbf{38.044}    & 1.24 & 1.02 & 1.6M \\
-            WBN         & \cmark  & 33.736             & \underline{38.069} & 1.23 & 1.04 & 2.0M \\
+            None            & \xmark & 37.213             & 40.653             & 1.00 & 1.00 & 1.2M \\
+            $k_{\max}=0$    & \xmark & 34.448             & 39.142             & 1.14 & 1.01 & 1.4M \\
+            $k_{\max}=1$    & \xmark & \textbf{33.485}    & 38.517             & 1.16 & 1.02 & 1.9M \\
+            $k_{\max}=0$    & \cmark & \underline{33.662} & \textbf{38.044}    & 1.24 & 1.02 & 1.6M \\
+            $k_{\max}=1$    & \cmark & 33.736             & \underline{38.069} & 1.23 & 1.04 & 2.0M \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
             \item[a] Train time (rel.) and Test time (rel.) are normalized to the row without an FFN
             nonlinearity.
-            The FFN nonlinearity column selects the grid on which the equivariant feed-forward nonlinearity is evaluated; when a WBN grid is used in the FFN it supersedes the $\Sph$-grid path.
+            The FFN nonlinearity column selects the grid on which the equivariant feed-forward nonlinearity is evaluated: none, the $k_{\max}=0$ spherical grid, or the $k_{\max}=1$ grid on the rotation group used by the WBN (main-text Section~\ref{sec:s2-method}).
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -461,10 +455,10 @@ We accordingly retain a single feed-forward sublayer and tune the interaction de
 \FloatBarrier
 \subsection{Attention-aggregation design variants}
 
-These sweeps vary the attention parameterization around the default single-head design, toggling the value projection, the output projection, the pre-mixing, and the number of heads for the 64-channel, 96-channel and 96-channel two-focus configurations (Tables~\ref{tab:sm_attention_64}--\ref{tab:sm_attention_96x2}).
+These sweeps vary the attention parameterization around the default single-head design, toggling the value projection, the output projection, the pre-mixing and the number of heads for the 64-channel, 96-channel and 96-channel two-focus configurations (Tables~\ref{tab:sm_attention_64}--\ref{tab:sm_attention_96x2}).
 The value projection is a learnable linear map applied to the message before the attention-weighted sum, the output projection is a channel mixing applied to the aggregated equivariant feature, and the pre-mixing is a cross-focus channel mixing applied to the input before computing attention.
 Across all three configurations, enabling attention with one or more heads consistently outperforms the no-attention scatter-sum baseline, in agreement with the main attention ablation.
-The minimal single-head form, without value, output or pre-mixing projections, attains the lowest or close to the lowest energy MAE; the additional projections and extra heads yield no consistent gain while increasing the parameter count.
+The minimal single-head form, without value, output or pre-mixing projections, attains the lowest energy MAE or comes close to it; the additional projections and extra heads yield no consistent gain while increasing the parameter count.
 Single-head attention without further projections is therefore retained as the default.
 
 \begin{table}[ht]
@@ -617,7 +611,7 @@ This advantage is consistent with its extended high-learning-rate phase and shor
 \section{Inference benchmark protocol}
 \label{sec:sm-inference}
 
-The throughput reported in Section~\ref{sec:efficiency} is measured on diamond supercells, which give a single-composition system whose size can be varied over more than two orders of magnitude while the local environment stays fixed; at the 6~\AA{} cutoff used by DPA4 every atom carries 158 neighbors, so the test is representative of a comparatively dense environment.
+The throughput reported in Section~\ref{sec:efficiency} is measured on diamond supercells, which give single-composition systems whose size can be varied over more than two orders of magnitude while the local environment stays fixed; at the 6~\AA{} cutoff used by DPA4 every atom carries 158 neighbors, so the test is representative of a comparatively dense environment.
 Each point averages 30 single-point evaluations after warm-up, and the sweep for each model terminates at the largest supercell that fits in the memory of one GPU.
 MACE-Omat-Small and MACE-Omat-Medium are the \texttt{mace-omat-0-small} and \texttt{mace-omat-0-medium} checkpoints of the MACE-OMAT-0 release~\cite{batatia2025crosslearning}, obtained from \url{https://github.com/ACEsuit/mace-foundations}; the same checkpoints supply the MACE-Omat rows of Table~\ref{tab:omat24}.
 The EquiformerV3 timing uses the MPtrj checkpoint of the $L_{\max}=4$ architecture, which carries the same parameter count and layer structure as the OMat24 model of Table~\ref{tab:omat24} and therefore the same inference cost.
@@ -640,7 +634,7 @@ Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of the
 The DPA3 DP-ZBL baseline develops a sharp force excursion near the switching region, producing a local attractive impulse even though the analytical ZBL force~\cite{ziegler1985} is strongly repulsive at these distances.
 The location and sign of this excursion are consistent with the switching-force term in Eq.~\eqref{eq:zbl-switching-force}: the extra contribution is governed by the mismatch between the ZBL and learned energies inside the splice window, not by the monotone screened-Coulomb repulsion.
 
-DPA4 removes this force-level splice.
+DPA4 carries no such switching term.
 The analytical branch is evaluated on the true distance, the learned branch sees the $C^3$ clamped displacement, and the source-freeze gate suppresses the direct learned short-range pair channel (Section~\ref{sec:zbl_method}).
 Consequently, DPA4 follows the analytical ZBL force in the inner region and joins smoothly to the learned force as the C--Si distance increases.
 This dimer scan is a local close-contact probe; validating long-time energy drift, collision stability and damage evolution requires separate many-body molecular-dynamics tests.
@@ -661,7 +655,9 @@ This dimer scan is a local close-contact probe; validating long-time energy drif
 
 \subsection{Ablation model configurations}
 
-Table~\ref{tab:sm_main_ablation_config} gives the configurations for the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN grid in the FFN, the edge--node degree coupling and the attention aggregation, and for the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, the spherical-grid nonlinearity and the Wigner bilinear network.
+Table~\ref{tab:sm_main_ablation_config} gives the configurations for two groups of experiments.
+The first is the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN in the equivariant FFN, the edge--node degree coupling and the attention aggregation.
+The second comprises the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, the spherical-grid nonlinearity and the Wigner bilinear network.
 Table~\ref{tab:sm_supplementary_ablation_config} gives those for the model-selection and robustness ablations.
 Entries marked by ``--'' are the controlled variables within the corresponding experiment family; all other entries define the shared reference setting.
 Horizontal rules separate related groups of hyperparameters without adding category labels to the table body.
@@ -674,8 +670,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
     \label{tab:sm_main_ablation_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{2.4cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention} & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{$\Sph$/}\\\textbf{quad.
-                }} & \textbf{WBN} \\
+                L{2.4cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}C{1.52cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention} & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{Sph. grid/}\\\textbf{quad.}} & \textbf{WBN} \\
             \midrule
             Feature dim.                  & 64                                                & 64                                               & 64/96/96                                                                     & --                                              & 64                                               & 64                                          & 64 \\
             No. focuses                   & 1                                                 & 1                                                & 1/1/2                                                                        & --                                              & 1                                                & 1                                           & 1 \\
@@ -695,7 +690,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             Attention value/output proj.  & False                                             & False                                            & False                                                                        & False                                           & False                                            & False                                       & False \\
             Pre mixing                    & False                                             & False                                            & False                                                                        & False                                           & False                                            & False                                       & False \\
             Message node WBN              & --                                                & False                                            & False                                                                        & False                                           & False                                            & False                                       & -- \\
-            S2 act.                       & --                                                & FFN only                                         & FFN only                                                                     & FFN only                                        & FFN only                                         & --                                          & -- \\
+            Sph. grid                     & --                                                & FFN only                                         & FFN only                                                                     & FFN only                                        & FFN only                                         & --                                          & -- \\
             WBN in FFN                    & --                                                & False                                            & False                                                                        & False                                           & False                                            & False                                       & -- \\
             Quadrature                    & Lebedev                                           & Lebedev                                          & Lebedev                                                                      & Product                                         & Lebedev                                          & --                                          & Lebedev \\
             Norm. placement\tnote{e}      & Post \& Pre                                       & Post \& Pre                                      & Post \& Pre                                                                  & Pre \& Pre                                      & Post \& Pre                                      & Pre \& Pre                                  & Post \& Pre \\
@@ -728,7 +723,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             \item[a] ``--'' indicates a controlled variable within the corresponding ablation
             family.
             \item[b] In the attention column, multi-value entries follow the 64-channel 1-focus,
-            96-channel 1-focus, and 96-channel 2-focus settings.
+            96-channel 1-focus and 96-channel 2-focus settings.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
             \item[d] N/A denotes a parameter not used by the corresponding setting.
@@ -774,7 +769,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             Attention value/output proj. & False & False & False & -- & False & False \\
             Pre mixing & False & False & False & -- & False & False \\
             Message node WBN & False & False & False & False & False & False \\
-            S2 act. & FFN only & FFN only & FFN only & FFN only & FFN only & FFN only \\
+            Sph. grid & FFN only & FFN only & FFN only & FFN only & FFN only & FFN only \\
             WBN in FFN & False & False & False & False & False & False \\
             Quadrature & Product & Lebedev & Lebedev & Lebedev & Product & Lebedev \\
             Norm. placement & Pre \& Pre & Post \& Pre & Post \& Pre & Post \& Pre & -- & Post \& Pre \\
@@ -798,7 +793,7 @@ Horizontal rules separate related groups of hyperparameters without adding categ
             \item[a] ``--'' indicates a controlled variable within the corresponding ablation
             family.
             \item[b] In the attention column, multi-value entries follow the 64-channel 1-focus,
-            96-channel 1-focus, and 96-channel 2-focus settings.
+            96-channel 1-focus and 96-channel 2-focus settings.
             \item[c] $N$ denotes the number of atoms in each system; $\lceil\cdot\rceil$ rounds
             up to the nearest integer.
             \item[d] N/A denotes a parameter not used by the corresponding setting.

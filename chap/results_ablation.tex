@@ -8,8 +8,8 @@ Figure~\ref{fig:ablation} reports the outcome, with the underlying numbers in Su
 Every component contributes, and the four together lower the energy and force MAEs by 21.8\% and 12.1\% relative to the fully ablated baseline (energy 31.007 against 39.671~meV/atom, force 39.169 against 44.581~meV/\AA{}); the per-component percentages below are the relative increments between successive rungs of the ladder.
 Envelope-gated attention (A3) is the largest single contributor: switching it off raises the energy MAE by 14.9\% and the force MAE by 6.1\%.
 Because its weights are computed from rotationally invariant scalar channels, this gain reflects adaptive neighbor weighting rather than any relaxation of SO(3) equivariance.
-The low-rank edge--node SO(2)-equivariant degree coupling (A1) accounts for 3.9\% and 5.2\%, and thus matters more for forces than for energies, whereas the WBN grid inside the equivariant FFN (A4) accounts for 5.2\% and 2.5\% and shows the opposite balance.
-The second WBN grid, acting on the post-aggregation message--node path, i.e.\ the term $\mathcal{M}_i$ of Eq.~\eqref{eq:dpa4-message-node} (MN in Fig.~\ref{fig:ablation}), adds a further 1.9\% in energy with no resolvable effect on forces (Fig.~\ref{fig:ablation}b).
+The low-rank edge--node SO(2)-equivariant degree coupling (A1) accounts for 3.9\% and 5.2\%, and thus matters more for forces than for energies, whereas the WBN inside the equivariant FFN (A4) accounts for 5.2\% and 2.5\% and shows the opposite balance.
+The second WBN, acting on the post-aggregation message--node path, i.e.\ the term $\mathcal{M}_i$ of Eq.~\eqref{eq:dpa4-message-node} (MN in Fig.~\ref{fig:ablation}), adds a further 1.9\% in energy with no resolvable effect on forces (Fig.~\ref{fig:ablation}b).
 
 These four components cost little at inference: together they multiply the parameter count by 1.7, from 1.19M to 2.05M, but raise the inference time by only 14\% (Fig.~\ref{fig:ablation}c).
 The trade is most favorable for the envelope-gated attention, whose 14.9\% energy contribution costs about 2\% of inference time; the remaining components purchase their gains at roughly percent-for-percent cost.

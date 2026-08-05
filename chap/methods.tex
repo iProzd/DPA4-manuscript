@@ -43,7 +43,7 @@ Native ZBL zone bridging couples the learned and analytical branches in the clos
 \subsubsection{Geometric inputs to the learned branch}
 \label{sec:geom-inputs}
 
-Throughout Sections~\ref{sec:geom-inputs}--\ref{sec:s2-method}, every geometric quantity entering the learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff envelopes and the local-environment descriptor $\mathcal{D}_i$ -- is evaluated on a \emph{clamped distance} $\widetilde{r}(r_{ij})$ rather than the raw distance $r_{ij}=\|\mathbf{R}_j-\mathbf{R}_i\|$, so $r_{ij}$ should be read as $\widetilde{r}(r_{ij})$ in every downstream equation.
+Throughout Sections~\ref{sec:geom-inputs}--\ref{sec:s2-method}, every geometric quantity entering the learned branch $E_{\Theta}^{\mathrm{NN}}$, namely radial basis functions, cutoff envelopes and the local-environment descriptor $\mathcal{D}_i$, is evaluated on a \emph{clamped distance} $\widetilde{r}(r_{ij})$ rather than the raw distance $r_{ij}=\|\mathbf{R}_j-\mathbf{R}_i\|$, so $r_{ij}$ should be read as $\widetilde{r}(r_{ij})$ in every downstream equation.
 Quantities fixed by the bond direction alone, such as $Y_l^m(\widehat{\mathbf{r}}_{ij})$ and the edge-local frame, are unaffected, since the clamp acts on the radial magnitude only.
 Edge messages sourced from atom $j$ are additionally weighted by a smooth \emph{source-freeze gate} $\eta_j\in[0,1]$ that vanishes whenever $j$ has a neighbor inside the inner zone.
 Both $\widetilde{r}$ and $\eta_j$ are the technical core of \emph{native ZBL zone bridging} (Sec.~\ref{sec:zbl_method}), and are defined next.
@@ -356,7 +356,7 @@ From it the per-node, per-(focus, head) queries and keys are formed,
 with learnable per-focus query/key matrices $Q^{(f)},K^{(f)}\in
     \mathbb{R}^{d_a\times d_a}$. The attention logit for edge $(i,j)$ at focus
 $f$, head $a$ combines a scaled dot product with a radial bias linear in the
-$l=0$ lifted radial-species feature $\widetilde{\rho}_{ij,0,c}$ of Eq.~\eqref{eq:dpa4-rho-lift},
+$l=0$ lifted radial-species feature $\widetilde{\rho}_{ij,0}$ of Eq.~\eqref{eq:dpa4-rho-lift},
 \begin{equation}
     \ell_{ij}^{(f,a)}
     =
@@ -495,7 +495,7 @@ with $L^{\mathrm{ch}}_{\mathrm{out}}$ zero-initialized, so that the block begins
 Feeding the two operands of $\mathcal{P}$ from different inputs instead, each lifted to the frame axis by its own channel map, gives the form used by the message--node coupling of Eq.~\eqref{eq:dpa4-message-node}.
 
 \paragraph{Quadrature on the rotation group.}
-The integral in Eq.~\eqref{eq:dpa4-wbb-analysis} is evaluated by a product rule, built on the factorization of a rotation into the point it assigns to the pole and a residual spin: every $g\in SO(3)$ writes uniquely as $g=R_{\mathbf{q}}R_{z}(\varphi)$, where $\mathbf{q}=g\hat{\mathbf{z}}\in\Sph$, $R_{\mathbf{q}}$ is a fixed reference rotation carrying $\hat{\mathbf{z}}$ to $\mathbf{q}$, and $R_{z}(\varphi)$ is the rotation by $\varphi\in[0,2\pi)$ about $\hat{\mathbf{z}}$.
+The integral in Eq.~\eqref{eq:dpa4-wbb-analysis} is evaluated by a product rule, built on the factorization of a rotation into the point it assigns to the pole and a residual spin: every $g\in SO(3)$ can be written uniquely as $g=R_{\mathbf{q}}R_{z}(\varphi)$, where $\mathbf{q}=g\hat{\mathbf{z}}\in\Sph$, $R_{\mathbf{q}}$ is a fixed reference rotation carrying $\hat{\mathbf{z}}$ to $\mathbf{q}$, and $R_{z}(\varphi)$ is the rotation by $\varphi\in[0,2\pi)$ about $\hat{\mathbf{z}}$.
 A quadrature on the group therefore combines a rule on the sphere with a rule on the angle.
 A Lebedev rule of algebraic order $p$, with points $\{\mathbf{q}_a\}_{a=1}^{A}\subset\Sph$ and positive weights $\{w_a\}$ normalized to $\sum_a w_a=1$, supplies the spherical factor, and the $n_\varphi$ equally spaced angles $\varphi_\gamma=2\pi\gamma/n_\varphi$, $\gamma=0,\dots,n_\varphi-1$, supply the angular one, giving the $G=A\,n_\varphi$ nodes $g_{a\gamma}=R_{\mathbf{q}_a}R_{z}(\varphi_\gamma)$ with Haar weights $w_a/n_\varphi$.
 On this rule the block evaluates its operands at the sample points and projects the product back to coefficients,
