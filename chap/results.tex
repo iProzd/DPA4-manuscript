@@ -35,7 +35,7 @@ The re-expansion integral is evaluated by a Lebedev rule on the sphere crossed w
 
 The remaining architectural component addresses close-contact physics.
 DPA4 decomposes the potential energy as a sum of a learned equivariant branch and an analytical short-range branch, $E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R)+E^{\mathrm{ZBL}}(Z,R)$, with the analytical branch given by the Ziegler--Biersack--Littmark (ZBL) screened-Coulomb pair potential~\cite{ziegler1985}.
-Rather than splicing the ZBL term onto the energy post hoc, DPA4 couples the two branches inside the energy model through Native ZBL Zone Bridging: smooth bridging gates suppress the direct learned short-range pair channel so that the inner-zone pair interaction is handled exclusively by the analytical branch.
+Rather than splicing the ZBL term onto the energy post hoc, DPA4 couples the two branches inside the energy model through native ZBL zone bridging: smooth bridging gates suppress the direct learned short-range pair channel so that the inner-zone pair interaction is handled exclusively by the analytical branch.
 This removes the unphysical switching force, proportional to the energy mismatch of the two branches, that a coordinate-dependent splicing weight would introduce.
 Both branches contribute to the same scalar total energy and are differentiated jointly, giving conservative forces with a smooth transition at close approach (Section~\ref{sec:zbl_method}).
 Inside the inner zone the learned branch contributes no force, so the short-range force is by construction the analytical ZBL force; a C--Si dimer scan confirms this and shows the force-switching artifact that an external pair correction produces instead (Supplementary Section~\ref{sec:sm-zbl}).

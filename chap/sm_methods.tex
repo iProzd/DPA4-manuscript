@@ -155,14 +155,14 @@ The truncated edge rotation is
 Because $P_M^{\top}P_M$ is not the identity when $M<L$, the round trip loses degree-block norm.
 DPA4 applies the diagonal lift compensation
 \begin{equation}
-    (\Xi_M)_{\iota(l,m),\iota(l,m)}
+    (\Upsilon_M)_{\iota(l,m),\iota(l,m)}
     =
     \kappa_l
     =
     \sqrt{\frac{2l+1}{2\min(l,M)+1}}.
     \label{eq:sm-rescale}
 \end{equation}
-Thus $\Xi_M= \operatorname{diag}(\kappa_0 I_1,\kappa_1 I_3,\ldots,\kappa_L I_{2L+1})$.
+Thus $\Upsilon_M= \operatorname{diag}(\kappa_0 I_1,\kappa_1 I_3,\ldots,\kappa_L I_{2L+1})$.
 
 \subsection{Equivariant operator algebra}
 \label{sec:sm-operators}
@@ -458,27 +458,7 @@ A bare stack of Wigner bilinear blocks on a common feature space is therefore it
 \subsection{Training objective}
 \label{sec:sm-training-objective}
 
-DPA4 is trained as a conservative interatomic potential.
-The neural network predicts a scalar total energy, and forces are obtained by differentiating this energy with respect to atomic positions.
-The reported training runs use MAE losses with vector-norm force residuals.
-For a mini-batch of configurations
-$b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the objective is
-\begin{equation}
-    \mathcal{L}
-    =
-    \lambda_E
-    \frac{1}{B}\sum_{b=1}^{B}
-    \frac{|E_{\Theta,b}-E_b|}{N_b}
-    +
-    \lambda_F
-    \frac{1}{\sum_{b=1}^{B}
-        N_b} \sum_{b=1}^{B}\sum_{i=1}^{N_b} \left\| \mathbf{F}_{\Theta,bi}-\mathbf{F}_{bi} \right\|_2 + \lambda_{\Pi} \frac{1}{B}\sum_{b=1}^{B} \frac{\left\|\Pi_{\Theta,b}-\Pi_b\right\|_1}{9N_b}.
-    \label{eq:sm-loss}
-\end{equation}
-Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Pi_{\Theta,b}$ denote DPA4 predictions, while $E_b$, $\mathbf{F}_{bi}$ and $\Pi_b$ denote reference DFT labels.
-The force residual is treated as a three-dimensional vector for each atom: the Euclidean norm is taken before averaging over atoms.
-Energy and virial residuals use the MAE form with per-atom normalization.
-The benchmark-specific weights, batch sizes and training lengths are listed in Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
+DPA4 is trained as a conservative interatomic potential with the MAE objective of main-text Eq.~\eqref{eq:dpa4-loss}; the benchmark-specific weights, batch sizes and training lengths are listed in Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
 \subsection{Warmup--stable--decay learning-rate schedule}
 \label{sec:sm-wsd-schedule}

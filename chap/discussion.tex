@@ -16,7 +16,7 @@ These results are obtained through the conservative energy-gradient path alone, 
 This makes compact, single-task energy-conservative potentials practical to train, ablate and redeploy in molecular-dynamics and structure-relaxation workflows.
 
 % \WH{I comment out this paragraph. it is off the accuracy-cost story line.}
-% Native ZBL Zone Bridging targets a complementary failure mode rather than the benchmark accuracy itself.
+% Native ZBL zone bridging targets a complementary failure mode rather than the benchmark accuracy itself.
 % By placing the analytical short-range repulsion inside the same scalar energy, it removes the force-level switching artifact that an external energy-level correction can introduce near the splice region, while keeping the forces conservative.
 % This was demonstrated only in a local dimer test, and long-time molecular-dynamics validation---energy drift, collision stability and damage evolution---remains future work.
 % More broadly, we establish DPA4 here as a generalist backbone architecture in the single-task, per-dataset setting; its realization as a fully pretrained large atomistic model under large-scale multitask training and heterogeneous DFT datasets, together with autonomous active-learning convergence and closed-loop deployment, remains to be established.

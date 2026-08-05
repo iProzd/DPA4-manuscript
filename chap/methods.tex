@@ -38,7 +38,7 @@ In the learned branch $E_{\Theta}^{\mathrm{NN}}$, the atomic species $Z$ and pos
 Here $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$ with $V_l$ the $(2l+1)$-dimensional irreducible representation of SO(3); the $l=0$ subspace is invariant and is used for scalar readout, while $l>0$ subspaces transform equivariantly and carry angular information.
 Each interaction block is a residual stack of an EMFA SO(2) convolution (Sec.~\ref{sec:so2}) and an equivariant feed-forward network (FFN, Sec.~\ref{sec:s2-method}) interleaved with equivariant RMS norms.
 The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant degree coupling (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the EMFA SO(2) convolution, while the FFN is instantiated as a Wigner bilinear network (A4).
-Native ZBL Zone Bridging couples the learned and analytical branches in the close-contact region (Sec.~\ref{sec:zbl_method}).
+Native ZBL zone bridging couples the learned and analytical branches in the close-contact region (Sec.~\ref{sec:zbl_method}).
 
 \subsubsection{Geometric inputs to the learned branch}
 \label{sec:geom-inputs}
@@ -46,7 +46,7 @@ Native ZBL Zone Bridging couples the learned and analytical branches in the clos
 Throughout Sections~\ref{sec:geom-inputs}--\ref{sec:s2-method}, every geometric quantity entering the learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff envelopes and the local-environment descriptor $\mathcal{D}_i$ -- is evaluated on a \emph{clamped distance} $\widetilde{r}(r_{ij})$ rather than the raw distance $r_{ij}=\|\mathbf{R}_j-\mathbf{R}_i\|$, so $r_{ij}$ should be read as $\widetilde{r}(r_{ij})$ in every downstream equation.
 Quantities fixed by the bond direction alone, such as $Y_l^m(\widehat{\mathbf{r}}_{ij})$ and the edge-local frame, are unaffected, since the clamp acts on the radial magnitude only.
 Edge messages sourced from atom $j$ are additionally weighted by a smooth \emph{source-freeze gate} $\eta_j\in[0,1]$ that vanishes whenever $j$ has a neighbor inside the inner zone.
-Both $\widetilde{r}$ and $\eta_j$ are the technical core of \emph{Native ZBL Zone Bridging} (Sec.~\ref{sec:zbl_method}), and are defined next.
+Both $\widetilde{r}$ and $\eta_j$ are the technical core of \emph{native ZBL zone bridging} (Sec.~\ref{sec:zbl_method}), and are defined next.
 
 \paragraph{Bridging window and septic Hermite polynomials.}
 The \emph{bridging window} is an interval $[r_{\mathrm{in}},r_{\mathrm{out}}]$ with $0<r_{\mathrm{in}}<r_{\mathrm{out}}\le r_{\mathrm{c}}$ inside the neighbor cutoff $r_{\mathrm{c}}$.
@@ -195,12 +195,12 @@ mixes the per-pair chemistry into a smooth function of distance,
 \begin{equation}
     \rho_{ij,l,c}
     =
-    \bigl[\Pi^{\mathrm{rad}}\!\bigl(\boldsymbol{\phi}(r_{ij})\bigr)\bigr]_{l,c}
+    \bigl[\mathrm{MLP}^{\mathrm{rad}}\!\bigl(\boldsymbol{\phi}(r_{ij})\bigr)\bigr]_{l,c}
     + \bigl[\mathbf{T}_{\mathrm{edge}}(Z_i,Z_j)\bigr]_{c},
     \label{eq:dpa4-rho}
 \end{equation}
-where $\Pi^{\mathrm{rad}}:\mathbb{R}^{n_r}\to\mathbb{R}^{(L+1)\times C}$ is a
-bias-free SiLU MLP, $\mathbf{T}_{\mathrm{edge}}(Z_i,Z_j)\in\mathbb{R}^{C}$ is a
+where $\mathrm{MLP}^{\mathrm{rad}}:\mathbb{R}^{n_r}\to\mathbb{R}^{(L+1)\times C}$ is
+bias-free with SiLU activations, $\mathbf{T}_{\mathrm{edge}}(Z_i,Z_j)\in\mathbb{R}^{C}$ is a
 per-pair species embedding broadcast across the $(L+1)$ degree slots, and
 $\boldsymbol{\phi}(r_{ij})=(\phi_1(r_{ij}),\dots,\phi_{n_r}(r_{ij}))
     \in\mathbb{R}^{n_r}$ is the Bessel radial basis
@@ -223,7 +223,7 @@ convolutions to SO(2) by rotating each directed edge $(i,j)$ into a gauge that
 aligns its bond direction with the reference axis,
 $R_{ij}\widehat{\mathbf{r}}_{ij}=(0,0,1)^{\top}$~\cite{passaro2023reducing}.
 In this frame the residual symmetry is the abelian group SO(2), so angular orders $m$ decouple into independent strata.
-DPA4 retains coefficients with $|m|\leq M\leq L$ inside the convolution and applies a degree-dependent lift factor $\Xi_M$ (Eq.~\eqref{eq:sm-rescale}) after rotating back to compensate the norm loss from truncation.
+DPA4 retains coefficients with $|m|\leq M\leq L$ inside the convolution and applies a degree-dependent lift factor $\Upsilon_M$ (Eq.~\eqref{eq:sm-rescale}) after rotating back to compensate the norm loss from truncation.
 
 \paragraph{Per-edge equivariant message.}
 For each directed edge $(i,j)$, the source node feature is pre-mixed to hidden
@@ -331,8 +331,8 @@ local gauge,
 \begin{equation}
     \mathbf{m}_{ij}
     =
-    \Xi_M\,D(R_{ij})^{\top}
-    P_M^{\top}\,\mathbf{x}_{ij} \in V_{\le L}\otimes\mathbb{R}^{H}, \label{eq:dpa4-edge-message} \end{equation} with $D(R_{ij})^{\top}$ the inverse gauge rotation, $P_M^{\top}$ the re-embedding of the truncated $m$-strata back into the full $(L+1)^2$ layout, and $\Xi_M$ the truncation rescale of Eq.~\eqref{eq:sm-rescale}.
+    \Upsilon_M\,D(R_{ij})^{\top}
+    P_M^{\top}\,\mathbf{x}_{ij} \in V_{\le L}\otimes\mathbb{R}^{H}, \label{eq:dpa4-edge-message} \end{equation} with $D(R_{ij})^{\top}$ the inverse gauge rotation, $P_M^{\top}$ the re-embedding of the truncated $m$-strata back into the full $(L+1)^2$ layout, and $\Upsilon_M$ the truncation rescale of Eq.~\eqref{eq:sm-rescale}.
 At this point $\mathbf{m}_{ij}$ still carries the hidden width $H$; channel post-mixing back to representation width is deferred until after neighbor aggregation.
 
 \paragraph{Envelope-gated attention.}
@@ -506,7 +506,7 @@ On this rule the block evaluates its operands at the sample points and projects 
 \end{equation}
 the operand values $f^{\mathrm{X}}_c(g_{a\gamma})$ being Eq.~\eqref{eq:dpa4-wbb-synth} read off at the nodes.
 Both directions are matrices in the Wigner values at the nodes, depend only on the precomputed rule, and are formed once and cached as buffers.
-The two maps are mutually inverse on the band-limited space -- the discrete counterpart of Wigner orthogonality -- whenever the rule resolves the degrees present in the product, the condition made precise next.
+Whenever the rule resolves the degrees present in the product, the two maps are mutually inverse on the band-limited space, which is the discrete counterpart of Wigner orthogonality; that condition is made precise next.
 
 \paragraph{Exactness and equivariance.}
 A rotation acts on the expanded functions by translating their argument, $f^{\mathrm{X}}_c(g)\mapsto f^{\mathrm{X}}_c(R^{-1}g)$; the point-wise product commutes with that action, and the projection of Eq.~\eqref{eq:dpa4-wbb-analysis} returns it to a rotation of the coefficients, so the exact block is equivariant.
@@ -531,7 +531,8 @@ Truncation gives up the hypothesis of the completeness result, which requires al
 \paragraph{Relation to spherical-grid nonlinearities.}
 At $k_{\max}=0$ only the entries $D^{(l)}_{m0}$ survive, which are, up to normalization, the spherical harmonics $Y_l^m$: the expanded functions are constant along $\varphi$ and descend to the quotient $\Sph=SO(3)/SO(2)$, so the WBB reduces to a spherical-grid bilinear nonlinearity of the kind used by Equiformer-family models~\cite{liao2023equiformerv2,liao2026equiformerv3}.
 The restriction to the sphere is not free.
-Re-expanding a product of spherical harmonics is governed by the Gaunt coefficients, which vanish whenever $l_1+l_2+l$ is odd; the parity-odd couplings -- the cross product $1\otimes 1\to 1$, and with it any construction of the signed volume $\det[\mathbf{r}_1,\mathbf{r}_2,\mathbf{r}_3]$ -- are therefore lost, and no composition of sphere-based bilinear layers can recover them.
+Re-expanding a product of spherical harmonics is governed by the Gaunt coefficients, which vanish whenever $l_1+l_2+l$ is odd.
+The parity-odd couplings are therefore lost, among them the cross product $1\otimes 1\to 1$ and with it any construction of the signed volume $\det[\mathbf{r}_1,\mathbf{r}_2,\mathbf{r}_3]$; no composition of sphere-based bilinear layers can recover them.
 Retaining $k=\pm 1$ reopens these channels at modest extra cost, which is what motivates the default $k_{\max}=1$.
 The Lebedev axis rule attains a given algebraic order with substantially fewer points than the latitude--longitude tensor grids used by EquiformerV2 and EquiformerV3.
 The measured equivariance error of the resulting FFN is at machine precision (Table~\ref{tab:s2_full_equivariance}; Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
@@ -560,19 +561,20 @@ A bias-free linear map returns a single number, to which a per-species constant 
 The released variants use a single hidden layer of width $32\lceil 8C/96\rceil$ ($192$ for the $C=64$ variants).
 The network is shared by all species: chemistry enters through the embeddings of Section~\ref{sec:gie} and through $b_{Z_i}$, which is fixed to the per-species mean energy of the training set rather than learned.
 
-\subsubsection{Native ZBL Zone Bridging}
+\subsubsection{Native ZBL zone bridging}
 \label{sec:zbl_method}
 
-The analytical branch is the pairwise sum
+The analytical branch is a pairwise sum of the Ziegler--Biersack--Littmark screened Coulomb potential~\cite{ziegler1985},
 \begin{equation}
-    E^{\mathrm{ZBL}}(Z,R) = \tfrac{1}{2}\sum_{i\neq j}E_{ij}^{\mathrm{ZBL}}(r_{ij}), \qquad E_{ij}^{\mathrm{ZBL}}(r)= \frac{k_{\mathrm{e}}Z_iZ_j}{r}\, \Phi\!
-    \left(\frac{r}{a_{ij}}\right),
-    \quad
+    E^{\mathrm{ZBL}}(Z,R) = \tfrac{1}{2}\sum_{i\neq j}E_{ij}^{\mathrm{ZBL}}(r_{ij}),
+    \qquad
+    E_{ij}^{\mathrm{ZBL}}(r)= \frac{k_{\mathrm{e}}Z_iZ_j}{r}\,\Phi\!\left(\frac{r}{a_{ij}}\right),
+    \qquad
     a_{ij}=\frac{0.88534\,a_0}{Z_i^{0.23}+Z_j^{0.23}},
     \label{eq:dpa4-zbl}
 \end{equation}
-of the Ziegler--Biersack--Littmark screened Coulomb potential~\cite{ziegler1985},
-where the universal screening function takes the standard four-exponential form
+with $k_{\mathrm{e}}$ the Coulomb constant and $a_0$ the Bohr radius.
+The universal screening function takes the standard four-exponential form
 \begin{equation}
     \Phi(x)=0.18175\,e^{-3.1998\,x}
     +0.50986\,e^{-0.94229\,x}
@@ -580,19 +582,16 @@ where the universal screening function takes the standard four-exponential form
     +0.028171\,e^{-0.20162\,x}.
     \label{eq:dpa4-zbl-phi}
 \end{equation}
-Crucially, $E^{\mathrm{ZBL}}$ is evaluated on the raw pair distances $r_{ij}$, in contrast with the learned branch $E_{\Theta}^{\mathrm{NN}}$, which consumes only the clamped distance $\widetilde{r}(r_{ij})$ (Sec.~\ref{sec:geom-inputs}).
-Native ZBL Zone Bridging couples the two branches inside the energy model rather than as a post-hoc energy-level splice.
+$E^{\mathrm{ZBL}}$ is evaluated on the raw pair distances $r_{ij}$, in contrast with the learned branch $E_{\Theta}^{\mathrm{NN}}$, which sees only the clamped distance $\widetilde{r}(r_{ij})$ (Sec.~\ref{sec:geom-inputs}).
+Native ZBL zone bridging couples the two branches inside the energy model rather than as a post-hoc energy-level splice.
 
 This distinction removes a force artifact that is intrinsic to conventional energy-level splicing.
-If a coordinate-dependent switching function
-$\lambda_i(R)$ blends an analytical ZBL branch with a learned atom-wise energy,
-as in DP-ZBL-type pair corrections~\cite{wang2019dpzbl}, the spliced energy can
-be written schematically as
+In such a splice a coordinate-dependent switching function $\lambda_i(R)$ blends an analytical ZBL branch with a learned atom-wise energy, as in DP-ZBL-type pair corrections~\cite{wang2019dpzbl}, giving the energy
 \begin{equation}
     E^{\mathrm{splice}}(Z,R) = \sum_i \left[ \lambda_i(R)E_i^{\mathrm{ZBL}}(Z,R) +\bigl(1-\lambda_i(R)\bigr)E_{\Theta,i}^{\mathrm{NN}}(Z,R) \right].
     \label{eq:zbl-splice-energy}
 \end{equation}
-Differentiating Eq.~\eqref{eq:zbl-splice-energy} gives
+Differentiating with respect to $\mathbf{R}_k$ gives the force
 \begin{equation}
     \mathbf{F}_k^{\mathrm{splice}}
     =
@@ -605,102 +604,99 @@ Differentiating Eq.~\eqref{eq:zbl-splice-energy} gives
     \right),
     \label{eq:zbl-switching-force}
 \end{equation}
-where $\mathbf{F}_{k}^{\mathrm{weighted}}$ contains the weighted gradients of
-the two energy branches.
-The second term in Eq.~\eqref{eq:zbl-switching-force} is a switching force proportional to the branch energy mismatch in the splice window.
+where $\mathbf{F}_{k}^{\mathrm{weighted}}$ is the $\lambda$-weighted sum of the two branch forces.
+The second term is a switching force proportional to the branch energy mismatch in the splice window.
 It has no independent physical counterpart and vanishes only when the switching weight is constant or the two branches are exactly energy-matched throughout the switching region.
 
-By construction of the clamped distance and the source-freeze gate (Sec.~\ref{sec:geom-inputs}), $E_{\Theta}^{\mathrm{NN}}$ is independent of $r_{jk}$ for every pair with $r_{jk}\le r_{\mathrm{in}}$, so the force on such a frozen pair coincides exactly with the ZBL pair force.
-Because no coordinate-dependent switching weight multiplies the energy difference between the branches in Eq.~\eqref{eq:dpa4-total-energy}, Native ZBL Zone Bridging has no analogue of Eq.~\eqref{eq:zbl-switching-force}; many-body contributions involving non-frozen neighbors are unaffected.
+Native ZBL zone bridging carries no analogue of the switching force of Eq.~\eqref{eq:zbl-switching-force}: in Eq.~\eqref{eq:dpa4-total-energy} no coordinate-dependent switching weight multiplies the energy difference between the branches.
+The clamped distance and the source-freeze gate (Sec.~\ref{sec:geom-inputs}) make $E_{\Theta}^{\mathrm{NN}}$ independent of $r_{jk}$ for every pair with $r_{jk}\le r_{\mathrm{in}}$.
+Such a pair therefore contributes exactly the ZBL pair force, while many-body contributions involving non-frozen neighbors are unaffected.
 
 \subsubsection{Symmetry guarantees}
 \label{sec:symmetry}
 
-The total energy $E(Z,R)$ in Eq.~\eqref{eq:dpa4-total-energy} is invariant under translations, atom permutations of the same chemical species and global rotations, is $C^3$-smooth in $R$, and gives strictly conservative forces.
+The total energy $E(Z,R)$ in Eq.~\eqref{eq:dpa4-total-energy} is invariant under translations, under permutations of atoms of the same chemical species and under global rotations, is $C^3$-smooth in $R$ away from coincident atoms, and gives conservative forces.
 Translation invariance follows because every geometric input is built from relative displacements.
 Permutation invariance follows because all edge and node operators are globally shared and depend on species only through learned embeddings of $Z_i$, and neighbor aggregation is by summation or softmax-weighted summation.
-Rotational invariance of $E$ follows because the Geometry-Informed Embedding (Sec.~\ref{sec:gie}), the EMFA SO(2) convolution (Sec.~\ref{sec:so2}), the equivariant feed-forward network (Sec.~\ref{sec:s2-method}) and the equivariant RMS norm are SO(3)-equivariant on $V_{\leq L}\otimes\mathbb{R}^{C}$, while the atomic energy head reads out only the $l=0$ invariant slice; the analytical ZBL branch depends only on scalar distances $r_{ij}$.
+Rotational invariance of $E$ follows because the Geometry-Informed Embedding (Sec.~\ref{sec:gie}), the EMFA SO(2) convolution (Sec.~\ref{sec:so2}), the equivariant feed-forward network (Sec.~\ref{sec:s2-method}) and the equivariant RMS norm are all SO(3)-equivariant on $V_{\leq L}\otimes\mathbb{R}^{C}$, while the atomic energy head reads out only the $l=0$ invariant slice.
+The analytical ZBL branch is invariant as well, depending only on the scalar distances $r_{ij}$.
 Smoothness follows from the $C^3$ cutoff envelope $s_5$, the $C^3$ clamped distance $\widetilde{r}$ and source-freeze gate $\eta_j$ (Sec.~\ref{sec:geom-inputs}), and the softplus stabilizer in the attention denominator (Eq.~\eqref{eq:dpa4-attention}).
-Forces and virials are obtained by automatic differentiation of the single scalar energy in Eq.~\eqref{eq:dpa4-total-energy}, so the resulting force field is conservative by construction.
+Forces and virials are obtained by automatic differentiation of the single scalar energy in Eq.~\eqref{eq:dpa4-total-energy}, so the force field is conservative.
 
 \subsection{Training}
 
-DPA4 is trained as a conservative potential: the network predicts a scalar energy, and all force and virial predictions are obtained by differentiating that energy with respect to atomic coordinates and the cell.
-For a mini-batch
-of configurations $b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the
-training objective is
+DPA4 is trained as a conservative potential, so the loss constrains the energy and its coordinate and cell derivatives jointly.
+For a mini-batch of configurations $b=1,\ldots,B$, with $N_b$ atoms in configuration $b$, the training objective is
 \begin{equation}
     \mathcal{L}
-    =
-    \lambda_E
-    \frac{1}{B}\sum_{b=1}^{B}
-    \frac{|E_{\Theta,b}-E_b|}{N_b}
-    +
-    \lambda_F
-    \frac{1}{\sum_{b=1}^{B}
-        N_b} \sum_{b=1}^{B}\sum_{i=1}^{N_b} \left\| \mathbf{F}_{\Theta,bi}-\mathbf{F}_{bi} \right\|_2 + \lambda_\Pi \frac{1}{B}\sum_{b=1}^{B} \frac{\left\|\Pi_{\Theta,b}-\Pi_b\right\|_1}{9N_b}.
+    = \lambda_E\,\frac{1}{B}\sum_{b=1}^{B}\frac{|E_{\Theta,b}-E_b|}{N_b}
+    + \lambda_F\,\frac{1}{\sum_{b}N_b}\sum_{b=1}^{B}\sum_{i=1}^{N_b}\bigl\|\mathbf{F}_{\Theta,bi}-\mathbf{F}_{bi}\bigr\|_2
+    + \lambda_\Xi\,\frac{1}{B}\sum_{b=1}^{B}\frac{\bigl\|\Xi_{\Theta,b}-\Xi_b\bigr\|_1}{9N_b}.
     \label{eq:dpa4-loss}
 \end{equation}
-Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Pi_{\Theta,b}$ denote DPA4 predictions, while $E_b$, $\mathbf{F}_{bi}$ and $\Pi_b$ denote reference DFT labels.
-The force term averages the Euclidean norm of each atomic force-vector residual; the energy and virial terms use per-atom MAE normalization.
+Here $E_{\Theta,b}$, $\mathbf{F}_{\Theta,bi}$ and $\Xi_{\Theta,b}$ denote the DPA4 energy, atomic forces and virial tensor, while $E_b$, $\mathbf{F}_{bi}$ and $\Xi_b$ denote the reference DFT labels.
+The force term averages the Euclidean norm of each atomic force-vector residual over all atoms of the batch; the energy term is normalized per atom and the virial term per atom and per tensor component.
+The weights $\lambda_E$, $\lambda_F$ and $\lambda_\Xi$ are the loss weights $(E,F,V)$ listed for each benchmark in Supplementary Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
 
-All benchmark models use bf16 mixed-precision training with FP32 geometric reductions, TF32 matrix products where available, a warmup--stable--decay learning-rate schedule and the HybridMuon optimizer~\cite{wen2024wsd,jordan2024muon,liu2025muon}.
+All benchmark models train in bf16 mixed precision, with FP32 geometric reductions and TF32 matrix products where available, under a warmup--stable--decay learning-rate schedule~\cite{wen2024wsd} (Supplementary Section~\ref{sec:sm-wsd-schedule}) and the HybridMuon optimizer~\cite{jordan2024muon,liu2025muon} (Supplementary Section~\ref{sec:sm-hybrid-muon}).
 HybridMuon routes matrix-valued hidden transformations to Muon updates and scalar, normalization or auxiliary parameters to Adam-family updates.
 For degree-wise equivariant linear maps, slice-mode Muon applies an independent matrix update to each degree-$l$ channel block, preserving the representation-block structure instead of flattening all degrees into one matrix.
-The Muon path further uses match-RMS scaling following scalable Muon training practice~\cite{liu2025muon} to keep its update magnitude on the same learning-rate scale as the Adam-family path, and uses Magma-lite alignment damping~\cite{joo2026magma} to attenuate Muon blocks whose current gradients are poorly aligned with their momentum.
-Complete model- and dataset-specific hyperparameters are reported in Supplementary Tables~\ref{tab:sm_main_ablation_config}--\ref{tab:sm_matbench_config}.
+The Muon path uses match-RMS scaling to keep its update magnitude on the same learning-rate scale as the Adam-family path.
+It also uses Magma-lite alignment damping~\cite{joo2026magma} to attenuate Muon blocks whose current gradients are poorly aligned with their momentum (Supplementary Section~\ref{sec:sm-magma-lite}).
+The remaining model- and dataset-specific hyperparameters are reported in the same tables.
 
 \subsection{Compiled conservative energy-gradient training}
 \label{sec:compiled-training}
 
-The training implementation compiles the conservative energy-gradient path without changing the energy-based definition of forces.
-The main obstacle is
-that force supervision differentiates through
+We compile the conservative energy-gradient path: compilation changes how the training step is executed, not what it computes, and forces remain the negative gradient of the predicted energy.
+The obstacle is that the force is itself a coordinate derivative of the energy, so training on forces requires a double backward pass,
 \begin{equation}
     \mathbf{F}_{\Theta}
-    =
-    -\frac{\partial E_{\Theta}}{\partial \mathbf{R}},
+    = -\frac{\partial E_{\Theta}}{\partial \mathbf{R}},
     \qquad
     \frac{\partial\mathcal{L}}{\partial\Theta}
     \supset
     \frac{\partial^2E_{\Theta}}{\partial\mathbf{R}\,\partial\Theta},
     \label{eq:dpa4-double-backward}
 \end{equation}
-so the training gradient contains a coordinate--parameter mixed derivative.
-A standard compiled forward/backward stack captures the forward graph and its first reverse-mode derivative, but it does not directly expose a nested coordinate derivative inside the compiled region.
-DPA4 resolves this by first executing the energy-to-force derivative during symbolic tracing and then lowering the resulting tensor graph with PyTorch Inductor~\cite{ansel2024pytorch2}: the compiled graph contains the energy evaluation and its coordinate derivative, and the outer backward pass differentiates the force residual with respect to model parameters.
+leaving a coordinate--parameter mixed derivative in the training gradient.
+A standard compiled forward/backward stack captures the forward graph and its first reverse-mode derivative, but does not expose a nested coordinate derivative inside the compiled region.
+DPA4 executes the energy-to-force derivative during symbolic tracing and lowers the resulting tensor graph with PyTorch Inductor~\cite{ansel2024pytorch2}.
+The compiled graph then contains the energy evaluation and its coordinate derivative, while the outer backward pass differentiates the force residual with respect to the model parameters.
 
-\paragraph{Tracing the conservative lower graph.}
-The compiled function wraps the lower energy computation as a tensor-only map: from extended coordinates, atom types, neighbor indices and optional conditioning tensors to energies, forces and virials.
-Before entering the traced function, the extended coordinates are rebound to a fresh leaf tensor.
-This restart removes any upstream graph carried by data loading or neighbor construction while preserving a well-defined coordinate endpoint for $\partial E/\partial R$.
-During training, the force construction keeps the coordinate-derivative graph alive; the outer loss backward pass can therefore differentiate the force residual into the model parameters, realizing the mixed derivative in Eq.~\eqref{eq:dpa4-double-backward}.
+\paragraph{Tracing the conservative graph.}
+The compiled function wraps the energy computation as a tensor-only map: from coordinates, atom types, neighbor indices and optional conditioning tensors to energies, forces and virials.
+Before entering the traced function, the coordinates are rebound to a fresh leaf tensor.
+This restart removes any upstream graph carried by data loading or neighbor construction while preserving a well-defined coordinate endpoint for $\partial E_{\Theta}/\partial\mathbf{R}$.
+During training, the force construction keeps the coordinate-derivative graph alive, which is what lets the outer loss backward pass reach the parameters through the force residual.
 
 \paragraph{Symbolic tracing and higher-order differentiability.}
-The implementation traces the conservative lower graph with symbolic shapes and real tensor inputs.
-Real inputs are needed because compact edge construction contains data-dependent operations; after that control flow is resolved, the runtime dimensions are represented symbolically.
-The trace uses a small five-frame representative batch chosen to avoid known symbolic-dimension collisions with singleton axes, charge--spin width, Cartesian coordinates and virial components.
-The SiLU backward operation is decomposed into elementary pointwise operations before tracing, so the compiler receives an explicit first-derivative graph when the optimizer later requests a second derivative.
+We trace the conservative graph with symbolic shapes and real tensor inputs.
+Real inputs are needed because compact edge construction contains data-dependent operations; once that control flow is resolved, the runtime dimensions are represented symbolically.
+The trace pads a representative batch so that the frame, total-atom and local-atom counts take distinct primes no smaller than five, none of them equal to any dimension of the model.
+Primes at least five avoid the extents the graph treats specially: one for broadcasting, and the two, three and nine appearing as charge--spin, Cartesian and virial literals in the model code.
+Distinctness stops the tracer from unifying two runtime dimensions into a single symbol.
+The SiLU backward operation is decomposed into elementary pointwise operations before tracing, so the compiler receives an explicit first-derivative graph when the outer backward pass differentiates it again.
 
 \paragraph{Preserving the force-loss gradient.}
-When the coordinate derivative is traced in training mode, autograd inserts detach nodes around saved forward activations.
-In the traced FX graph these nodes would become ordinary tensor operations and would sever the path from the force loss back to the parameters.
-DPA4 removes only the detach nodes matching the saved-tensor topology and keeps user-intended detach operations unchanged.
-The edited graph is then rebuilt into a fresh FX graph before compilation, so all compiler passes see a consistent node topology.
+When the coordinate derivative is traced in training mode, autograd wraps every saved forward activation in a chain of two detach nodes.
+In the traced graph these nodes become ordinary tensor operations and sever the path from the force loss back to the parameters.
+We remove a detach node when its input is another detach node, or when all of its users are detach nodes.
+Those two patterns identify an autograd-inserted chain; every other detach operation was written deliberately by the model code and is kept.
+The edited graph is then rebuilt into a fresh graph before compilation, so all compiler passes see a consistent node topology.
 
 \paragraph{Dynamic edge representation and cache structure.}
-The padded DeePMD neighbor list is converted inside the graph into a compact edge list.
-Edge vectors are formed by differentiable indexed selection from the extended coordinate tensor, and a single masked sentinel edge is appended to every batch.
-The sentinel edge guarantees a nonempty edge tensor under symbolic shapes while contributing exactly zero to downstream reductions.
-Compiled callables are cached by graph topology, including training versus evaluation, the presence of atomic virial outputs and coordinate-correction inputs.
+Edge vectors are formed by differentiable indexed selection from the coordinate tensor, so the coordinate-derivative path runs through them.
+Because the edge count is data-dependent and therefore symbolic, a single masked sentinel edge is appended to every batch; it guarantees a nonempty edge tensor while contributing exactly zero to downstream reductions.
+Compiled callables are cached under a key recording whether the graph is a training or an evaluation graph, whether atomic virials are produced and whether optional auxiliary inputs are present.
 This multi-slot cache avoids recompilation when training is periodically interrupted by validation, while keeping distinct output signatures in separate compiled graphs.
 
 \paragraph{Inductor configuration.}
-The traced graph is lowered with dynamic-shape compilation.
-The compiled path uses deterministic compilation settings rather than autotuning, enables shape padding for fluctuating symbolic dimensions and disables compiler features that interfere with higher-order autograd metadata or produce unstable large fused reduction kernels for this higher-order graph.
-Training and evaluation use separate fusion limits because the training graph contains the second-derivative branch whereas the evaluation graph does not.
+The traced graph is lowered with dynamic-shape compilation and deterministic settings rather than autotuning, with shape padding enabled for fluctuating symbolic dimensions.
+We disable the Triton features that misbehave on the combination of a data-dependent edge count and a second-order autograd graph, most visibly the oversized fused reduction kernels that fail to compile on some GPU and Triton combinations.
+Every generated kernel is constrained to a one-dimensional launch grid, because the default tiling can place the data-dependent edge or node axis on a launch dimension whose extent is limited to $65535$.
+The evaluation graph additionally disables the peak-memory reordering pass, whose cost model needs size hints that the traced placeholders do not carry.
 
-This systems design keeps the conservative training path inside compiled GPU code while preserving the scalar energy-to-force relation of the uncompiled model, rather than replacing conservative force matching with a direct-force surrogate.
-In controlled ablations, compiled mixed-precision training gives up to a 3.1$\times$ wall-clock speedup with no systematic accuracy degradation (Table~\ref{tab:dpa4_compile_ablation}).
+This design keeps conservative training inside compiled GPU code without replacing conservative force matching with a direct-force surrogate; its measured effect on training time, memory and accuracy is reported in Section~\ref{sec:efficiency}.
 
 % =============================================================
