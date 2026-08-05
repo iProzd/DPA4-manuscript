@@ -376,7 +376,7 @@ A \emph{full-frame Wigner bilinear block} $\mathcal{B}:\mathcal{H}\to\mathcal{H}
     u^{\mathrm{L},(l)}_{m,k,a}
      & =\sum_{c}
     A^{\mathrm{L},(l)}_{k,a,c}\,x^{(l)}_{m,c}, \qquad u^{\mathrm{R},(l)}_{m,k,b} =\sum_{c}A^{\mathrm{R},(l)}_{k,b,c}\,x^{(l)}_{m,c}, \qquad |k|\le l, \label{eq:sm-wbb-lin} \\ f^{\mathrm{L}}_{a}(g) &=\sum_{l,m,k}u^{\mathrm{L},(l)}_{m,k,a}D^{(l)}_{mk}(g), \qquad f^{\mathrm{R}}_{b}(g) =\sum_{l,m,k}u^{\mathrm{R},(l)}_{m,k,b}D^{(l)}_{mk}(g), \label{eq:sm-wbb-synth}\\ h_{ab}(g) &=f^{\mathrm{L}}_{a}(g)\,f^{\mathrm{R}}_{b}(g), \label{eq:sm-wbb-prod}\\ z^{(l)}_{m,k,ab} &=(2l+1)\int_{SO(3)}\overline{D^{(l)}_{mk}(g)}\,h_{ab}(g)\,dg, \label{eq:sm-wbb-analysis}\\ \mathcal{B}(x)^{(l)}_{m,d} &=\sum_{c}P^{(l)}_{dc}\,x^{(l)}_{m,c} +\delta_{l0}\delta_{m0}\,q_{d} +\sum_{k,a,b}B^{(l)}_{d,k,ab}\,z^{(l)}_{m,k,ab}, \label{eq:sm-wbb-out}\end{align} with the per-degree matrices $A^{\mathrm{L}},A^{\mathrm{R}},P$, the bias $q$, and the mixing coefficients $B$ learnable.
-A \emph{Wigner bilinear network} (WBN) is a composition $\pi\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ\iota$ with equivariant linear maps $\iota:\mathcal{V}\to\mathcal{H}$ and $\pi:\mathcal{H}\to\mathcal{W}$.
+A \emph{Wigner bilinear network} (WBN) is a composition $L_{\mathrm{read}}\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ L_{\mathrm{emb}}$ with equivariant linear maps $L_{\mathrm{emb}}:\mathcal{V}\to\mathcal{H}$ and $L_{\mathrm{read}}:\mathcal{H}\to\mathcal{W}$.
 Each block is equivariant: a rotation translates the argument of the synthesized fields, the point-wise product commutes with this translation, and the Haar projection~\eqref{eq:sm-wbb-analysis} intertwines it back to the coefficient action.
 
 \begin{lemma}[Clebsch--Gordan trees span polynomial equivariants]
@@ -401,7 +401,7 @@ Each block is equivariant: a rotation translates the argument of the synthesized
     For every compact $\Omega\subset\mathcal{V}$ and every $\varepsilon>0$ there exist a band limit $L_{\max}$, a width $C$, a depth $K$, and WBN parameters such that
     \begin{equation}
         \sup_{x\in\Omega}
-        \bigl\|\pi\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ\iota(x)-F(x)\bigr\|
+        \bigl\|L_{\mathrm{read}}\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ L_{\mathrm{emb}}(x)-F(x)\bigr\|
         <\varepsilon .
         \label{eq:sm-wbn-uat}
     \end{equation}
@@ -431,16 +431,16 @@ Each block is equivariant: a rotation translates the argument of the synthesized
     \emph{Step 3 (finite stacks realize all trees).}
     Fix a polynomial equivariant $P$ and expand it by Lemma~\ref{lem:sm-cg-span} into finitely many tree maps.
     Assign one hidden channel to every node of every tree; choose $L_{\max}$ no smaller than the largest degree appearing and $C$ large enough to hold all channels.
-    The embedding $\iota$ places the leaf maps.
+    The embedding $L_{\mathrm{emb}}$ places the leaf maps.
     Proceeding by induction on tree depth, each block writes all couplings of the next depth into fresh channels -- Step~2, applied with a separate product pair $(a,b)$ and output channel per node, the mixing coefficients $B$ set to ignore all other pairs -- while preserving the channels already filled.
-    After finitely many blocks all nodes are present; the readout $\pi$ forms the finite linear combination of tree outputs, and the bias $q$ supplies the constant terms.
+    After finitely many blocks all nodes are present; the readout $L_{\mathrm{read}}$ forms the finite linear combination of tree outputs, and the bias $q$ supplies the constant terms.
     The stack realizes $P$ exactly, and with Step~1 the theorem follows.
 \end{proof}
 
-\begin{remark}[The adapters $\iota,\pi$]
+\begin{remark}[The adapters $L_{\mathrm{emb}},L_{\mathrm{read}}$]
 \label{rem:sm-wbn-adapters}
-The maps $\iota$ and $\pi$ serve only to connect the blocks to input and output spaces $\mathcal{V},\mathcal{W}$ that may differ from the hidden space $\mathcal{H}$, which Theorem~\ref{thm:sm-wbn-complete} is free to enlarge.
-When the three spaces coincide, as for the deployed FFN, whose blocks map the feature space $V_{\le L}\otimes\mathbb{R}^{C}$ to itself, no adapters are needed: $\iota$ composes with the linear maps $A^{\mathrm{L}},A^{\mathrm{R}},P$ of the first block and $\pi$ with $P$, $B$ and $q$ of the last, each composition again an equivariant linear map of the same form.
+The maps $L_{\mathrm{emb}}$ and $L_{\mathrm{read}}$ serve only to connect the blocks to input and output spaces $\mathcal{V},\mathcal{W}$ that may differ from the hidden space $\mathcal{H}$, which Theorem~\ref{thm:sm-wbn-complete} is free to enlarge.
+When the three spaces coincide, as for the deployed FFN, whose blocks map the feature space $V_{\le L}\otimes\mathbb{R}^{C}$ to itself, no adapters are needed: $L_{\mathrm{emb}}$ composes with the linear maps $A^{\mathrm{L}},A^{\mathrm{R}},P$ of the first block and $L_{\mathrm{read}}$ with $P$, $B$ and $q$ of the last, each composition again an equivariant linear map of the same form.
 A bare stack of Wigner bilinear blocks on a common feature space is therefore itself a WBN.
 \end{remark}
 

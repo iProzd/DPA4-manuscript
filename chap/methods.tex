@@ -402,44 +402,52 @@ multiplicatively,
     W^{\mathrm{og}}_{c,f,a}\, N_0\bigl(\mathbf h_i'|_{l=0}\bigr)_{f,c} \Bigr)\in(0,1), \label{eq:dpa4-attn-gate} \end{equation} where $\sigma(t)=(1+e^{-t})^{-1}$ is the logistic sigmoid and $W^{\mathrm{og}}\in\mathbb{R}^{C_f\times F\times H_a}$ is a learnable output-gate tensor.
 
 \paragraph{The convolution in closed form.}
-Concatenating the gated slices $\widetilde{\mathbf A}_i^{(f,a)}$ over all $(f,a)$ pairs, the inverse of the focus/head split above, restores a single hidden-width tensor, which a degree-wise channel post-mixer $L^{\mathrm{post}}_{\mathrm{deg}}:V_{\le L}\otimes\mathbb{R}^{H}\to V_{\le L}\otimes\mathbb{R}^{C}$ (Eq.~\eqref{eq:sm-degree-linear}) projects back to representation width, so that the EMFA SO(2) convolution at atom $i$ is
+Concatenating the gated slices $\widetilde{\mathbf A}_i^{(f,a)}$ over all $(f,a)$ pairs, the inverse of the focus/head split above, restores a single hidden-width tensor $\widetilde{\mathbf A}_i=\operatorname{concat}_{(f,a)}\widetilde{\mathbf A}_i^{(f,a)}\in V_{\le L}\otimes\mathbb{R}^{H}$.
+The aggregated message is coupled to the destination node feature by a two-operand Wigner bilinear product $\mathcal{P}$ (Section~\ref{sec:s2-method}),
+\begin{equation}
+    \mathcal{M}_i
+    = \mathcal{P}\bigl(\widetilde{\mathbf A}_i,\mathbf{h}_i\bigr)
+    \in V_{\le L}\otimes\mathbb{R}^{H},
+    \label{eq:dpa4-message-node}
+\end{equation}
+a residual branch initialized at a small scale.
+Adding it and projecting back to representation width with a degree-wise channel post-mixer $L^{\mathrm{post}}_{\mathrm{deg}}:V_{\le L}\otimes\mathbb{R}^{H}\to V_{\le L}\otimes\mathbb{R}^{C}$ (Eq.~\eqref{eq:sm-degree-linear}) gives the EMFA SO(2) convolution at atom $i$,
 \begin{equation}
     \bigl(\mathcal{C}_{\Theta}\mathbf{h}\bigr)_i
     =
-    L^{\mathrm{post}}_{\mathrm{deg}}\!\bigl[
-        \operatorname{concat}_{(f,a)}\widetilde{\mathbf A}_i^{(f,a)}
-        \bigr]
+    L^{\mathrm{post}}_{\mathrm{deg}}\bigl[\widetilde{\mathbf A}_i+\mathcal{M}_i\bigr]
     \in V_{\le L}\otimes\mathbb{R}^{C}.
     \label{eq:dpa4-conv}
 \end{equation}
 The architectural designs A1 and A2 are absorbed into the per-edge message $\mathbf{m}_{ij}$, while A3 appears explicitly through the attention weight $w_{ij}^{(f,a)}$ and the destination-side output gate $G_i^{(f,a)}$.
-Equivariance follows because $w_{ij}^{(f,a)}$ and $G_i^{(f,a)}$ are SO(3)-invariant scalars and every other operation is either degree-wise or acts inside an SO(2)-equivariant local frame.
+Equivariance follows because $w_{ij}^{(f,a)}$ and $G_i^{(f,a)}$ are SO(3)-invariant scalars and every other operation is either degree-wise, acts inside an SO(2)-equivariant local frame, or is the equivariant bilinear product of Section~\ref{sec:s2-method}.
 The post-mixer is zero-initialized so $\mathcal{C}_{\Theta}\equiv 0$ at the start of training.
 
 \subsubsection{Equivariant feed-forward network}
 \label{sec:s2-method}
 
-After each SO(2) convolution, DPA4 applies an equivariant feed-forward network (FFN) with a residual connection, acting independently on every atom.
-Its nonlinearity cannot be applied component by component, as a point-wise map on the components of a degree-$l>0$ feature destroys equivariance; an equivariant network must instead obtain its nonlinearity by coupling degrees to one another.
+After each SO(2) convolution, DPA4 applies an equivariant feed-forward network (FFN) that acts on every atom independently and carries a residual connection.
+Its nonlinearity cannot act component by component: a point-wise map applied to the components of a degree-$l>0$ feature destroys equivariance, so an equivariant network must obtain its nonlinearity by coupling degrees to one another.
 DPA4 realizes the architectural design A4 through a \emph{Wigner bilinear network} (WBN): a stack of \emph{Wigner bilinear blocks} (WBBs) between equivariant linear maps.
-Each block expands the node feature into a pair of scalar functions on the rotation group $SO(3)$, multiplies the two functions point by point, and expands the product back into irreducible coefficients.
-Multiplying two functions and re-expanding the product is a Clebsch--Gordan tensor product written in a different coordinate system, so a single product couples all degrees at once, with no enumeration of coupling paths and no stored Clebsch--Gordan tables.
+Each block expands the node feature into a pair of scalar functions on the rotation group $SO(3)$, multiplies them point by point, and projects the product back onto irreducible coefficients.
+That cycle realizes the Clebsch--Gordan tensor product without ever forming it: a single product couples all degrees at once, with no enumeration of coupling paths and no stored Clebsch--Gordan tables.
+The same block, fed from two different inputs rather than one, also supplies the message--node coupling $\mathcal{P}$ of Eq.~\eqref{eq:dpa4-message-node}.
 
 \paragraph{Construction.}
-Formally, a WBN is the composition
+A WBN is the composition
 \begin{equation}
     \mathcal{N}_{\mathrm{WBN}}
-    = \pi\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ\iota ,
+    = L_{\mathrm{read}}\circ\mathcal{B}_{K}\circ\cdots\circ\mathcal{B}_{1}\circ L_{\mathrm{emb}} ,
     \label{eq:dpa4-wbn}
 \end{equation}
-where $\iota$ and $\pi$ are equivariant linear maps adapting the input and output spaces to a hidden space $V_{\le L}\otimes\mathbb{R}^{C}$, and each block $\mathcal{B}_i:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}\otimes\mathbb{R}^{C}$ is a WBB.
+where $L_{\mathrm{emb}}$ and $L_{\mathrm{read}}$ are equivariant linear maps adapting the input and output spaces to a hidden space $V_{\le L}\otimes\mathbb{R}^{C}$, and every block $\mathcal{B}_{\kappa}:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}\otimes\mathbb{R}^{C}$ is a WBB.
 
-We now construct the block.
-A function on $SO(3)$ band-limited to degrees $l\le L$ is determined by the coefficients of its expansion in Wigner matrices, on which a rotation acts through the row index $m$ alone; the column index $k$, running over $|k|\le l$, therefore enumerates the $2l+1$ copies of degree $l$ that such a function carries.
-The $k$ axis is stored at width $2L+1$, entries with $|k|>l$ being absent.
+The block rests on the structure of band-limited functions on $SO(3)$.
+Such a function is determined by the coefficients of its expansion in Wigner matrices $D^{(l)}_{mk}$, on which a rotation acts through the row index $m$ alone.
+The column index $k$, running over $|k|\le l$, therefore enumerates the $2l+1$ copies of degree $l$ that the function carries; the $k$ axis is stored at width $2L+1$, with the entries $|k|>l$ absent.
 
-Let $L^{\mathrm{ch}}_{\mathrm{in}}:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}\otimes\mathbb{R}^{2(2L+1)H_{\mathrm{FFN}}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}:V_{\le L}\otimes\mathbb{R}^{(2L+1)H_{\mathrm{FFN}}}\to V_{\le L}\otimes\mathbb{R}^{C}$ be degree-wise channel-mixing maps (Eq.~\eqref{eq:sm-degree-linear}) at FFN hidden width $H_{\mathrm{FFN}}$.
-The first map acts degree by degree on the node feature, its $2(2L+1)H_{\mathrm{FFN}}$ output channels read as a side $\mathrm{X}\in\{\mathrm{L},\mathrm{R}\}$, a frame $k$, and a hidden channel $c$,
+The block uses two degree-wise channel-mixing maps (Eq.~\eqref{eq:sm-degree-linear}) at FFN hidden width $H_{\mathrm{FFN}}$: $L^{\mathrm{ch}}_{\mathrm{in}}:V_{\le L}\otimes\mathbb{R}^{C}\to V_{\le L}\otimes\mathbb{R}^{2(2L+1)H_{\mathrm{FFN}}}$ and $L^{\mathrm{ch}}_{\mathrm{out}}:V_{\le L}\otimes\mathbb{R}^{(2L+1)H_{\mathrm{FFN}}}\to V_{\le L}\otimes\mathbb{R}^{C}$.
+The first acts degree by degree on the node feature, its $2(2L+1)H_{\mathrm{FFN}}$ output channels read as a side $\mathrm{X}\in\{\mathrm{L},\mathrm{R}\}$, a frame $k$, and a hidden channel $c$,
 \begin{equation}
     u^{\mathrm{X},(l)}_{m,k,c}
     = \bigl[L^{\mathrm{ch}}_{\mathrm{in}}(\mathbf{h}_i)\bigr]^{(l)}_{m,(\mathrm{X},k,c)}
@@ -450,7 +458,7 @@ The first map acts degree by degree on the node feature, its $2(2L+1)H_{\mathrm{
 \end{equation}
 with $W^{(l)}$ the learnable matrix of $L^{\mathrm{ch}}_{\mathrm{in}}$ at degree $l$.
 The index $m$ passes through untouched, so every frame at degree $l$ is a linear image of the same input coefficients: the input carries no frame axis, and the frame multiplicity is created here by the channel map alone.
-The two arrays are expanded into the scalar functions
+The two arrays are then expanded into scalar functions on the group,
 \begin{equation}
     f^{\mathrm{X}}_{c}(g)
     = \sum_{l=0}^{L}\ \sum_{m=-l}^{l}\ \sum_{k=-l}^{l}
@@ -458,95 +466,91 @@ The two arrays are expanded into the scalar functions
     \qquad \mathrm{X}\in\{\mathrm{L},\mathrm{R}\},
     \label{eq:dpa4-wbb-synth}
 \end{equation}
-multiplied point by point on the group, and returned to coefficients by the orthogonality of the Wigner matrices,
+these functions are multiplied point by point, and Wigner orthogonality returns the product to coefficients,
 \begin{equation}
     z^{(l)}_{m,k,c}
     = (2l+1)\int_{SO(3)} D^{(l)}_{mk}(g)\,f^{\mathrm{L}}_{c}(g)\,f^{\mathrm{R}}_{c}(g)\,dg ,
     \label{eq:dpa4-wbb-analysis}
 \end{equation}
 with $dg$ the normalized Haar measure and $D^{(l)}$ taken in the real basis carried by the features, so that no complex conjugation appears.
-Only channel-diagonal products $f^{\mathrm{L}}_{c}f^{\mathrm{R}}_{c}$ are formed; the mixing that a product over all pairs of left and right channels would supply is instead carried by the linear maps surrounding the product, at a cost linear rather than quadratic in $H_{\mathrm{FFN}}$.
+Only channel-diagonal products $f^{\mathrm{L}}_{c}f^{\mathrm{R}}_{c}$ are formed; the mixing that a product over all left--right channel pairs would supply is instead carried by the linear maps surrounding it, at a cost linear rather than quadratic in $H_{\mathrm{FFN}}$.
 
-An invariant branch acts in parallel on $\mathbf{s}_i\in\mathbb{R}^{2H_{\mathrm{FFN}}}$, the pair of $l=k=0$ slices of $u^{\mathrm{L}}$ and $u^{\mathrm{R}}$, gating the coefficients and adding to the invariant slot,
+An invariant branch acts in parallel on the pair of $l=k=0$ slices of $u^{\mathrm{L}}$ and $u^{\mathrm{R}}$, written $\mathbf{u}^{0}_i\in\mathbb{R}^{2H_{\mathrm{FFN}}}$: it gates the coefficients and writes an additive term into the invariant slot,
 \begin{equation}
     \widetilde{z}^{\,(l)}_{m,k,c}
-    = \sigma\!\bigl(W_{\mathrm{g}}\mathbf{s}_i\bigr)_{c}\sum_{c'}Q_{cc'}z^{(l)}_{m,k,c'}
-    + \delta_{l0}\delta_{m0}\delta_{k0}\,\mathrm{SwiGLU}(\mathbf{s}_i)_{c},
+    = \sigma\!\bigl(W_{\mathrm{g}}\mathbf{u}^{0}_i\bigr)_{c}\sum_{c'}Q_{cc'}z^{(l)}_{m,k,c'}
+    + \delta_{l0}\delta_{m0}\delta_{k0}\,\mathrm{SwiGLU}(\mathbf{u}^{0}_i)_{c},
     \label{eq:dpa4-wbb-scalar}
 \end{equation}
-where $\sigma$ is the logistic function, $Q\in\mathbb{R}^{H_{\mathrm{FFN}}\times H_{\mathrm{FFN}}}$ and $W_{\mathrm{g}}\in\mathbb{R}^{H_{\mathrm{FFN}}\times 2H_{\mathrm{FFN}}}$ are learnable, the former shared by all coefficients, and $\mathrm{SwiGLU}(\mathbf{s})\coloneqq\mathbf{s}_{\mathrm{g}}\odot\sigma(\mathbf{s}_{\mathrm{g}})\odot\mathbf{s}_{\mathrm{v}}$, with $\mathbf{s}_{\mathrm{g}},\mathbf{s}_{\mathrm{v}}\in\mathbb{R}^{H_{\mathrm{FFN}}}$ the two halves of its argument along the channel axis.
-The block is completed by the output map and the residual connection,
+where $\sigma$ is the logistic function, the learnable $Q\in\mathbb{R}^{H_{\mathrm{FFN}}\times H_{\mathrm{FFN}}}$ is shared by all coefficients, and $W_{\mathrm{g}}\in\mathbb{R}^{H_{\mathrm{FFN}}\times 2H_{\mathrm{FFN}}}$ produces the gate.
+The gated linear unit is $\mathrm{SwiGLU}(\mathbf{u})\coloneqq\mathbf{u}_{\mathrm{v}}\odot\mathrm{SiLU}(\mathbf{u}_{\mathrm{g}})$, with $\mathbf{u}_{\mathrm{g}},\mathbf{u}_{\mathrm{v}}\in\mathbb{R}^{H_{\mathrm{FFN}}}$ the two halves of its argument along the channel axis.
+The block is completed by the output map and the residual connection; writing $\mathcal{P}(\mathbf{h},\mathbf{h}')$ for the map carrying the two operands to $L^{\mathrm{ch}}_{\mathrm{out}}[\widetilde{z}]$, which $L^{\mathrm{ch}}_{\mathrm{in}}$ cuts from a single input,
 \begin{equation}
     \mathcal{B}(\mathbf{h}_i)
-    = \mathbf{h}_i + L^{\mathrm{ch}}_{\mathrm{out}}\bigl[\widetilde{z}\bigr],
+    = \mathbf{h}_i + L^{\mathrm{ch}}_{\mathrm{out}}\bigl[\widetilde{z}\bigr]
+    = \mathbf{h}_i + \mathcal{P}(\mathbf{h}_i,\mathbf{h}_i),
     \label{eq:dpa4-ffn}
 \end{equation}
 with $L^{\mathrm{ch}}_{\mathrm{out}}$ zero-initialized, so that the block begins at the identity.
+Feeding the two operands of $\mathcal{P}$ from different inputs instead, each lifted to the frame axis by its own channel map, gives the form used by the message--node coupling of Eq.~\eqref{eq:dpa4-message-node}.
 
 \paragraph{Quadrature on the rotation group.}
-The integral in Eq.~\eqref{eq:dpa4-wbb-analysis} is evaluated by a product rule, built on the factorization of a rotation into the point it assigns to the pole and a residual spin: every $g\in SO(3)$ writes uniquely as $g=R_{\mathbf{q}}R_{z}(\gamma)$, where $\mathbf{q}=g\hat{\mathbf{z}}\in\Sph$, $R_{\mathbf{q}}$ is a fixed reference rotation carrying $\hat{\mathbf{z}}$ to $\mathbf{q}$, and $R_{z}(\gamma)$ is the rotation by $\gamma\in[0,2\pi)$ about $\hat{\mathbf{z}}$.
+The integral in Eq.~\eqref{eq:dpa4-wbb-analysis} is evaluated by a product rule, built on the factorization of a rotation into the point it assigns to the pole and a residual spin: every $g\in SO(3)$ writes uniquely as $g=R_{\mathbf{q}}R_{z}(\varphi)$, where $\mathbf{q}=g\hat{\mathbf{z}}\in\Sph$, $R_{\mathbf{q}}$ is a fixed reference rotation carrying $\hat{\mathbf{z}}$ to $\mathbf{q}$, and $R_{z}(\varphi)$ is the rotation by $\varphi\in[0,2\pi)$ about $\hat{\mathbf{z}}$.
 A quadrature on the group therefore combines a rule on the sphere with a rule on the angle.
-A Lebedev rule of algebraic order $p$, with points $\{\mathbf{q}_a\}_{a=1}^{A}\subset\Sph$ and positive weights $\{w_a\}$ normalized to $\sum_a w_a=1$, supplies the spherical factor, and the $n_\gamma$ equally spaced angles $\gamma_j=2\pi j/n_\gamma$, $j=0,\dots,n_\gamma-1$, supply the angular one, giving the $G=A\,n_\gamma$ nodes $g_{a\gamma}=R_{\mathbf{q}_a}R_{z}(\gamma_j)$ with Haar weights $w_a/n_\gamma$.
+A Lebedev rule of algebraic order $p$, with points $\{\mathbf{q}_a\}_{a=1}^{A}\subset\Sph$ and positive weights $\{w_a\}$ normalized to $\sum_a w_a=1$, supplies the spherical factor, and the $n_\varphi$ equally spaced angles $\varphi_\gamma=2\pi\gamma/n_\varphi$, $\gamma=0,\dots,n_\varphi-1$, supply the angular one, giving the $G=A\,n_\varphi$ nodes $g_{a\gamma}=R_{\mathbf{q}_a}R_{z}(\varphi_\gamma)$ with Haar weights $w_a/n_\varphi$.
 On this rule the block evaluates its operands at the sample points and projects the product back to coefficients,
 \begin{equation}
-    f^{\mathrm{X}}_c(g_{a\gamma})=\sum_{l,m,k}u^{\mathrm{X},(l)}_{m,k,c}D^{(l)}_{mk}(g_{a\gamma}),
-    \qquad
-    z^{(l)}_{m,k,c}=(2l+1)\sum_{a,\gamma}\frac{w_a}{n_\gamma}
+    z^{(l)}_{m,k,c}=(2l+1)\sum_{a,\gamma}\frac{w_a}{n_\varphi}
       D^{(l)}_{mk}(g_{a\gamma})\,f^{\mathrm{L}}_c(g_{a\gamma})\,f^{\mathrm{R}}_c(g_{a\gamma}),
     \label{eq:dpa4-wbb-quad}
 \end{equation}
-the first map reading coefficients into values on the grid and the second returning grid values to coefficients.
-Both matrices depend only on the precomputed rule and are formed once and cached as buffers.
-The two maps are mutually inverse on the band-limited space, the discrete counterpart of Wigner orthogonality,
-\begin{equation}
-    (2l+1)\sum_{a,\gamma}\frac{w_a}{n_\gamma}\,
-    D^{(l)}_{mk}(g_{a\gamma})\,D^{(l')}_{m'k'}(g_{a\gamma})
-    = \delta_{ll'}\delta_{mm'}\delta_{kk'},
-    \label{eq:dpa4-wigner-orth}
-\end{equation}
-holding whenever the rule resolves the degrees present in the product, the condition made precise next.
+the operand values $f^{\mathrm{X}}_c(g_{a\gamma})$ being Eq.~\eqref{eq:dpa4-wbb-synth} read off at the nodes.
+Both directions are matrices in the Wigner values at the nodes, depend only on the precomputed rule, and are formed once and cached as buffers.
+The two maps are mutually inverse on the band-limited space -- the discrete counterpart of Wigner orthogonality -- whenever the rule resolves the degrees present in the product, the condition made precise next.
 
 \paragraph{Exactness and equivariance.}
-A rotation $R$ acts on the expanded functions by translation of their argument, $f^{\mathrm{X}}_c(g)\mapsto f^{\mathrm{X}}_c(R^{-1}g)$, an action with which the point-wise product commutes, and the projection of Eq.~\eqref{eq:dpa4-wbb-analysis} intertwines it with the rotation of the coefficients; the exact block is therefore equivariant by construction.
-Bilinearity lets the discrete block inherit this property without error.
-The summand of Eq.~\eqref{eq:dpa4-wbb-quad} is a product of three Wigner entries of degree at most $L$: a polynomial of degree at most $3L$ in the components of the sampled axis and a trigonometric polynomial of frequency at most $3L$ in the angle $\gamma$.
-A Lebedev rule of order $p\ge 3L$ combined with $n_\gamma\ge 3L+1$ angles therefore integrates every such term exactly, Eq.~\eqref{eq:dpa4-wigner-orth} holds, and the sampled block coincides with the exact one, making the FFN equivariant to floating-point precision.
-A general point-wise nonlinearity would spread spectral weight beyond any band limit and leave the truncation only approximate; restricting the block to a single product is what keeps the quadrature exact.
+A rotation acts on the expanded functions by translating their argument, $f^{\mathrm{X}}_c(g)\mapsto f^{\mathrm{X}}_c(R^{-1}g)$; the point-wise product commutes with that action, and the projection of Eq.~\eqref{eq:dpa4-wbb-analysis} returns it to a rotation of the coefficients, so the exact block is equivariant.
+The discrete block loses nothing, because the summand of Eq.~\eqref{eq:dpa4-wbb-quad} is a product of three Wigner entries of degree at most $L$, hence a polynomial of degree at most $3L$ in the sampled axis and, at fixed axis, a trigonometric polynomial of frequency at most $3L$ in $\varphi$.
+A Lebedev rule of order $p\ge 3L$ crossed with $n_\varphi\ge 3L+1$ angles integrates every such term exactly, so the sampled block coincides with the exact one and the FFN is equivariant to floating-point precision.
+Bounding those degrees requires the single bilinear product; a general point-wise nonlinearity would spread spectral weight beyond any band limit and leave the truncation only approximate.
 
 \paragraph{Expressive power.}
-The expressive power of an equivariant nonlinearity is measured by which equivariant maps a network built from it can represent; we call the WBN \emph{complete} if it approximates every continuous SO(3)-equivariant map on $V_{\le L}\otimes\mathbb{R}^{C}$ to arbitrary accuracy.
-Working on the rotation group rather than the sphere is what achieves this.
-With the full frame range $|k|\le l$ retained, the point-wise product realizes every Clebsch--Gordan coupling $l_1\otimes l_2\to l$ permitted by $|l_1-l_2|\le l\le l_1+l_2$, and completeness follows; a concise, self-contained proof is given in Supplementary Section~\ref{sec:sm-wbn-complete}.
+The expressive power of an equivariant nonlinearity is measured by which equivariant maps a network built from it can represent.
+The WBN is \emph{complete} in this sense: given sufficient band limit, width and depth, it approximates any continuous SO(3)-equivariant map between finite direct sums of irreps, uniformly on compact sets, and realizes polynomial equivariant maps exactly (Supplementary Theorem~\ref{thm:sm-wbn-complete}).
+Working on the rotation group rather than the sphere is what makes this possible: with the full frame range $|k|\le l$ retained, the point-wise product realizes every Clebsch--Gordan coupling $l_1\otimes l_2\to l$ permitted by $|l_1-l_2|\le l\le l_1+l_2$.
+A concise, self-contained proof is given in Supplementary Section~\ref{sec:sm-wbn-complete}.
 
-\paragraph{Frame truncation.}
+\paragraph{Instantiation in DPA4.}
 DPA4 instantiates the WBN economically.
-Each FFN is itself a WBN acting on the node feature space: input, hidden and output spaces coincide, so no embedding $\iota$ or readout $\pi$ is needed (Supplementary Remark~\ref{rem:sm-wbn-adapters}), and the blocks $\mathcal{B}_1,\dots,\mathcal{B}_K$ of Eq.~\eqref{eq:dpa4-wbn} are stacked directly, with $K=1$ in every released variant; and the frame range is truncated: only frames $|k|\le k_{\max}$ are retained, with $k_{\max}=1$ throughout this work.
-Every formula above restricts verbatim, with the frame width $2L+1$ replaced by $2k_{\max}+1$; because the retained functions carry $\gamma$-frequencies at most $k_{\max}$, the angular part of the rule shrinks to $n_\gamma=3k_{\max}+1$ points while remaining exact.
-For the reference configuration ($C=64$, $L=4$, $H_{\mathrm{FFN}}=192$) the quadrature is a Lebedev rule of order $13$ ($74$ points, satisfying $p\ge 3L$) crossed with $n_\gamma=4$ angles, i.e.\ $296$ group samples per atom.
-Truncation gives up the hypothesis of the completeness result, which requires all frames; it is the economy that motivates the choice, since $k_{\max}=1$ already restores the couplings that a sphere-restricted nonlinearity cannot form, as we now explain.
+Each FFN is itself a WBN acting on the node feature space: input, hidden and output spaces coincide, so neither the embedding $L_{\mathrm{emb}}$ nor the readout $L_{\mathrm{read}}$ is needed (Supplementary Remark~\ref{rem:sm-wbn-adapters}), and the blocks $\mathcal{B}_1,\dots,\mathcal{B}_K$ of Eq.~\eqref{eq:dpa4-wbn} are stacked directly, with $K=1$ in every released variant.
+The frame range is truncated as well: only frames $|k|\le k_{\max}$ are retained, with $k_{\max}=1$ throughout this work.
+Every formula above carries over unchanged, with the frame width $2L+1$ replaced by $2k_{\max}+1$; because the retained functions carry $\varphi$-frequencies at most $k_{\max}$, the angular part of the rule shrinks to $n_\varphi=3k_{\max}+1$ points while remaining exact.
+For the reference configuration ($C=64$, $L=4$, $H_{\mathrm{FFN}}=192$) the quadrature is a Lebedev rule of order $13$ ($74$ points, satisfying $p\ge 3L$) crossed with $n_\varphi=4$ angles, i.e.\ $296$ group samples per atom.
+Truncation gives up the hypothesis of the completeness result, which requires all frames, and is adopted for economy: $k_{\max}=1$ already restores the couplings that a sphere-restricted nonlinearity cannot form.
 
 \paragraph{Relation to spherical-grid nonlinearities.}
-At $k_{\max}=0$ only the entries $D^{(l)}_{m0}$ survive, which are, up to normalization, the spherical harmonics $Y_l^m$: the expanded functions are constant along $\gamma$, descend to the quotient $\Sph=SO(3)/SO(2)$, and the WBB reduces to a spherical-grid bilinear nonlinearity of the kind used by Equiformer-family models~\cite{liao2023equiformerv2,liao2026equiformerv3}.
+At $k_{\max}=0$ only the entries $D^{(l)}_{m0}$ survive, which are, up to normalization, the spherical harmonics $Y_l^m$: the expanded functions are constant along $\varphi$ and descend to the quotient $\Sph=SO(3)/SO(2)$, so the WBB reduces to a spherical-grid bilinear nonlinearity of the kind used by Equiformer-family models~\cite{liao2023equiformerv2,liao2026equiformerv3}.
 The restriction to the sphere is not free.
-Re-expanding a product of spherical harmonics is governed by the Gaunt coefficients, which vanish whenever $l_1+l_2+l$ is odd; the parity-odd couplings -- the cross product $1\otimes 1\to 1$, and with it any construction of the signed volume $\det[\mathbf{r}_1,\mathbf{r}_2,\mathbf{r}_3]$ -- are annihilated, and no composition of sphere-based bilinear layers can recover them.
-Retaining $k=\pm 1$ reopens exactly these channels at modest extra cost, which motivates the default $k_{\max}=1$.
-Numerically, the Lebedev axis rule attains a given algebraic order with substantially fewer points than the latitude--longitude tensor grids used by EquiformerV2 and EquiformerV3, and the measured equivariance error of the resulting FFN is at machine precision (Table~\ref{tab:s2_full_equivariance}; Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
+Re-expanding a product of spherical harmonics is governed by the Gaunt coefficients, which vanish whenever $l_1+l_2+l$ is odd; the parity-odd couplings -- the cross product $1\otimes 1\to 1$, and with it any construction of the signed volume $\det[\mathbf{r}_1,\mathbf{r}_2,\mathbf{r}_3]$ -- are therefore lost, and no composition of sphere-based bilinear layers can recover them.
+Retaining $k=\pm 1$ reopens these channels at modest extra cost, which is what motivates the default $k_{\max}=1$.
+The Lebedev axis rule attains a given algebraic order with substantially fewer points than the latitude--longitude tensor grids used by EquiformerV2 and EquiformerV3.
+The measured equivariance error of the resulting FFN is at machine precision (Table~\ref{tab:s2_full_equivariance}; Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
 
 \subsubsection{Atomic energy head}
 \label{sec:ener-head}
 
-The scalar energy of the learned branch is read out in two steps.
-The read-out first reduces the final node feature to an invariant vector $\mathbf{s}_i\in\mathbb{R}^{C}$, in one of two modes.
-In the equivariant mode the Wigner bilinear block $\mathcal{B}$ of Eq.~\eqref{eq:dpa4-ffn}, whose residual connection is part of the block, is applied at the node degree of the last interaction block and the $l=0$ slice of the result is extracted,
+The scalar energy of the learned branch is read out in two steps, the first reducing the final node feature to an invariant vector $\mathbf{s}_i\in\mathbb{R}^{C}$ in one of two modes.
+In the equivariant mode the Wigner bilinear block $\mathcal{B}$ of Eq.~\eqref{eq:dpa4-ffn} is applied to the final node feature and the $l=0$ slice of the result is extracted,
 \begin{equation}
     \mathbf{s}_i = \bigl[\mathcal{B}\bigl(\mathbf{h}_i^{(N_{\mathrm{layer}})}\bigr)\bigr]^{(l=0)}
     \in\mathbb{R}^{C},
     \label{eq:dpa4-readout}
 \end{equation}
-so that the angular information carried by the $l>0$ coefficients is coupled into the invariant slot before the slice is taken.
-In the scalar mode the $l>0$ coefficients are discarded and a scalar block acts on the $l=0$ slice alone.
+so that the angular information carried by the $l>0$ coefficients is coupled into the invariant slot before the slice is taken; the residual connection of Eq.~\eqref{eq:dpa4-ffn} is part of the block.
+In the scalar mode the $l>0$ coefficients are discarded first and the same block is applied at $L=0$, where only its invariant branch survives.
 DPA4-Mini, DPA4-Neo, DPA4-Air and DPA4-Plus use the equivariant mode and DPA4-Pro the scalar mode (Supplementary Table~\ref{tab:sm_model_config}); every variant uses a single read-out block.
-A gated multilayer perceptron then maps $\mathbf{s}_i$ to the atomic energy: each hidden layer doubles its width and splits the output into a value and a gate, $\mathbf{x}\leftarrow\mathbf{v}\odot\mathrm{SiLU}(\mathbf{g})$, and a bias-free linear map returns a single number, to which a per-species constant $b_{Z_i}$ is added,
+A gated multilayer perceptron then maps $\mathbf{s}_i$ to the atomic energy: each hidden layer projects to twice its width and splits the output into a value and a gate, $\mathbf{x}\leftarrow\mathbf{v}\odot\mathrm{SiLU}(\mathbf{g})$.
+A bias-free linear map returns a single number, to which a per-species constant $b_{Z_i}$ is added,
 \begin{equation}
     E^{\mathrm{NN}}_{\Theta,i}=\mathbf{w}^{\top}\mathrm{MLP}(\mathbf{s}_i)+b_{Z_i},
     \qquad
