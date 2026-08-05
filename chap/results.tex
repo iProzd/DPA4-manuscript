@@ -200,7 +200,7 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
     \end{threeparttable}
 \end{table}
 
-OMat24~\cite{barroso2024open} is a large-scale inorganic materials dataset of over 100 million DFT calculations, obtained by non-equilibrium sampling --- rattling, ab initio molecular dynamics and the relaxation of rattled structures --- starting from structures in the Alexandria database~\cite{schmidt2023alexandria}.
+OMat24~\cite{barroso2024open} is a large-scale inorganic materials dataset of 118 million DFT calculations, obtained by non-equilibrium sampling --- rattling, ab initio molecular dynamics and the relaxation of rattled structures --- starting from structures in the Alexandria database~\cite{schmidt2023alexandria}.
 Its validation split has become a common reference point for single-dataset comparisons of recent equivariant architectures.
 Because the dataset is much larger and more diverse than MPtrj, it separates architectures by their capacity to fit a broad potential-energy surface.
 We therefore train the five DPA4 size classes on OMat24 with the architecture configurations of Supplementary Table~\ref{tab:sm_model_config}, shared across all benchmarks, and report energy, force and stress MAEs on the validation set.
@@ -264,9 +264,9 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
     \end{threeparttable}
 \end{table}
 
-OMol25~\cite{levine2025open} is a molecular dataset of DFT single-point calculations at the $\omega$B97M-V/def2-TZVPD level, spanning biomolecules, electrolytes, metal complexes and neutral organics with charge and spin states as explicit inputs.
+OMol25~\cite{levine2025open} is a molecular dataset of DFT single-point calculations at the $\omega$B97M-V/def2-TZVPD level, spanning biomolecules, metal complexes, electrolytes and recomputed community datasets, with charge and spin states as explicit inputs.
 It is substantially broader in chemistry than SPICE-MACE-OFF and therefore probes transferability across molecular classes rather than accuracy within a single class.
-The dataset has been released in successive versions; we train on the $\sim$104M-structure release, termed OMol-0 in the dataset paper~\cite{levine2025open}, which is also the release used for the UMA-1.1 models, and we evaluate on the out-of-distribution composition validation split.
+The dataset has been released in successive versions; we train on the OMol-0 release, which the dataset paper describes as containing about 100 million DFT datapoints and which is also the release used for the UMA-1.1 models~\cite{levine2025open}, and we evaluate on its out-of-distribution composition validation split.
 Baseline values are taken from the UMA report~\cite{wood2025umafamilyuniversalmodels}, which reports this split with the same per-atom energy and force MAE definitions.
 
 Table~\ref{tab:omol25} shows that DPA4-Plus reaches 0.92~meV/atom and 6.30~meV/\AA{} with 8.8M parameters.

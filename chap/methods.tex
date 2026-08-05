@@ -3,20 +3,26 @@
 
 \subsection{Datasets}
 
-The inorganic-crystal benchmark trains DPA4 on MPtrj, the Materials Project trajectory dataset introduced with CHGNet~\cite{deng2023chgnet,jain2013materials}.
+For the Matbench Discovery benchmark, we train DPA4 on MPtrj, the Materials Project trajectory dataset introduced with CHGNet~\cite{deng2023chgnet,jain2013materials}.
 MPtrj contains relaxation and static calculations for inorganic crystals across 89 elements, with energies, forces, stresses and magnetic moments computed at the GGA or GGA+$U$ level.
 Generalization is evaluated on the Matbench Discovery benchmark, in which MPtrj-trained models relax the WBM candidate structures and are scored by their formation-energy predictions and derived convex-hull distances~\cite{riebesell2025matbench,WBM}.
-The leaderboard additionally reports the $\kappa$SRME thermal-conductivity metric, which probes property-prediction accuracy related to the smoothness and conservativeness of the learned potential~\cite{pota2024thermal}.
-The architectural ablations use the same WBM-subsampled protocol as the main inorganic-crystal experiments, so that changes in accuracy and throughput reflect the controlled model component.
+The leaderboard additionally reports $\kappa$SRME, the symmetric relative mean error of the phonon thermal conductivity, which is sensitive to the smoothness and conservativeness of the learned potential~\cite{pota2024thermal}.
+The architectural ablations instead train on MPtrj and evaluate on a fixed subsample of the WBM test set, a protocol shared by all ablations so that differences in accuracy and throughput reflect only the controlled model component.
 
-The molecular benchmark uses SPICE-MACE-OFF, the organic-molecule dataset introduced for MACE-OFF~\cite{kovacs2023mace}.
+OMat24~\cite{barroso2024open} contains 118 million structures labeled with energy, forces and cell stress.
+Input structures were obtained by randomly sampling relaxed structures from the Alexandria PBE bulk dataset~\cite{schmidt2023alexandria} and driving them out of equilibrium by Boltzmann sampling of rattled structures, short ab initio molecular-dynamics trajectories and the relaxation of rattled structures.
+Labels were computed with VASP at the PBE level, with Hubbard $U$ corrections for oxides and fluorides containing Co, Cr, Fe, Mn, Mo, Ni, V or W, following Materials Project defaults.
+We train on the 100.8-million-structure training split and report energy, force and stress MAEs on the 5.3-million-structure validation split.
+
+OMol25~\cite{levine2025open}, in its OMol-0 release, contains about 100 million DFT single-point calculations at the $\omega$B97M-V/def2-TZVPD level computed with ORCA.
+It combines four domains --- biomolecules, metal complexes, electrolytes and recomputed community datasets --- and covers 83 elements, systems of up to 350 atoms, total charges from $-10$ to $+10$ and spin multiplicities from 1 to 11, so that charge and spin enter the model as explicit inputs.
+Splits are constructed by molecular composition, so that the validation and test compositions are held out from training.
+We train on its 101.7-million-structure training split and report energy and force MAEs on the out-of-distribution composition validation split.
+
+SPICE-MACE-OFF is the organic-molecule dataset introduced for MACE-OFF~\cite{kovacs2023mace}.
 It spans PubChem molecules, DES370K monomers and dimers~\cite{donchev2021des370k}, dipeptides, solvated amino acids, water clusters and larger QMugs-derived molecules~\cite{eastman2023spice,isert2022qmugs}.
 Reference energies and forces are evaluated at the $\omega$B97M-D3(BJ)/def2-TZVPPD level with PSI4~\cite{najibi2018nonlocal,grimme2010consistent,grimme2011effect,weigend2005balanced,rappoport2010property,smith2020psi4}.
 We use the same train/validation/test split as MACE-OFF~\cite{kovacs2023mace} and DPA3~\cite{zhang2025dpa3}, and report per-subset energy and force MAEs.
-
-The short-range coupling experiment uses a 3C-SiC (cubic silicon carbide) dataset computed with the ABACUS DFT package~\cite{li2016abacus}.
-Both a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging are trained on this dataset.
-The learned short-range response is then probed by the C--Si dimer scan into the sub-\AA{} regime reported in Supplementary Section~\ref{sec:sm-zbl}, where ordinary DFT training data are sparse and the screened nuclear repulsion dominates.
 
 \subsection{DPA4 model architecture}
 
@@ -28,25 +34,24 @@ Ziegler--Biersack--Littmark (ZBL) short-range branch,
     E(Z,R)=E_{\Theta}^{\mathrm{NN}}(Z,R) + E^{\mathrm{ZBL}}(Z,R), \label{eq:dpa4-total-energy} \end{equation} where $\Theta$ collects all learnable parameters of the learned branch.
 Forces and virials are obtained by differentiating the scalar energy in Eq.~\eqref{eq:dpa4-total-energy} with respect to atomic positions and the cell, so the learned and analytical branches together define a single conservative potential.
 
-In the learned branch $E_{\Theta}^{\mathrm{NN}}$, the atomic species $Z$ and positions $R$ are encoded into per-atom irreducible representations in the real space $V_{\leq L}\otimes\mathbb{R}^{C}$ by a Geometry-Informed Embedding (GIE) stage (Sec.~\ref{sec:gie}), updated through $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and read out as a scalar energy by an atomic energy head.
+In the learned branch $E_{\Theta}^{\mathrm{NN}}$, the atomic species $Z$ and positions $R$ are encoded into per-atom irreducible representations in the real space $V_{\leq L}\otimes\mathbb{R}^{C}$ by a Geometry-Informed Embedding (GIE) stage (Sec.~\ref{sec:gie}), updated through $N_{\mathrm{layer}}$ stacked equivariant interaction blocks, and read out as a scalar energy by an atomic energy head (Sec.~\ref{sec:ener-head}).
 Here $V_{\leq L}=\bigoplus_{l=0}^{L}V_l$ with $V_l$ the $(2l+1)$-dimensional irreducible representation of SO(3); the $l=0$ subspace is invariant and is used for scalar readout, while $l>0$ subspaces transform equivariantly and carry angular information.
-Each interaction block is a residual stack of an EMFA SO(2) convolution and an equivariant feed-forward network (FFN) interleaved with equivariant RMS norms.
-The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant degree coupling (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the EMFA SO(2) convolution (Sec.~\ref{sec:so2}); the Wigner bilinear network (A4) acts inside the FFN (Sec.~\ref{sec:s2-method}).
-Short-range repulsion couples the learned and analytical branches through Native ZBL Zone Bridging (Sec.~\ref{sec:zbl_method}).
+Each interaction block is a residual stack of an EMFA SO(2) convolution (Sec.~\ref{sec:so2}) and an equivariant feed-forward network (FFN, Sec.~\ref{sec:s2-method}) interleaved with equivariant RMS norms.
+The architectural designs A1--A4 of the Introduction operate inside the block: the low-rank edge--node SO(2)-equivariant degree coupling (A1), the multi-focus design with cross-focus competition (A2), and the envelope-gated attention (A3) act inside the EMFA SO(2) convolution, while the FFN is instantiated as a Wigner bilinear network (A4).
+Native ZBL Zone Bridging couples the learned and analytical branches in the close-contact region (Sec.~\ref{sec:zbl_method}).
 
 \subsubsection{Geometric inputs to the learned branch}
 \label{sec:geom-inputs}
 
-Throughout Sections~\ref{sec:geom-inputs}--\ref{sec:s2-method}, every geometric quantity entering the learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff envelopes, real spherical harmonics $Y_l^m(\widehat{\mathbf{r}}_{ij})$, the per-edge local-frame rotation $\mathbf{D}_{ij}$, and the local-environment descriptor $\mathcal{D}_i$ -- is evaluated on a \emph{clamped distance} $\widetilde{r}(r_{ij})$ in place of the raw distance $r_{ij}=\|\mathbf{R}_j-\mathbf{R}_i\|$.
-The unit direction $\widehat{\mathbf{r}}_{ij}=\mathbf{r}_{ij}/r_{ij}$ is preserved exactly, because the clamp acts purely on the radial magnitude.
-With this convention the symbol $r_{ij}$ in every downstream equation should be read as $\widetilde{r}(r_{ij})$ whenever it feeds the learned branch.
-Edge messages sourced from atom $j$ are additionally weighted by a smooth \emph{source-freeze gate} $\eta_j\in[0,1]$ that vanishes whenever $j$ has any neighbor inside the inner zone.
-The two ingredients $\widetilde{r}(\cdot)$ and $\eta_j$ are the technical core of \emph{Native ZBL Zone Bridging} (the design rationale and how they couple to the analytical ZBL branch are taken up in Sec.~\ref{sec:zbl_method}); their formal definitions follow here so that every later equation can use them without forward reference.
+Throughout Sections~\ref{sec:geom-inputs}--\ref{sec:s2-method}, every geometric quantity entering the learned branch $E_{\Theta}^{\mathrm{NN}}$ -- radial basis functions, cutoff envelopes and the local-environment descriptor $\mathcal{D}_i$ -- is evaluated on a \emph{clamped distance} $\widetilde{r}(r_{ij})$ rather than the raw distance $r_{ij}=\|\mathbf{R}_j-\mathbf{R}_i\|$, so $r_{ij}$ should be read as $\widetilde{r}(r_{ij})$ in every downstream equation.
+Quantities fixed by the bond direction alone, such as $Y_l^m(\widehat{\mathbf{r}}_{ij})$ and the edge-local frame, are unaffected, since the clamp acts on the radial magnitude only.
+Edge messages sourced from atom $j$ are additionally weighted by a smooth \emph{source-freeze gate} $\eta_j\in[0,1]$ that vanishes whenever $j$ has a neighbor inside the inner zone.
+Both $\widetilde{r}$ and $\eta_j$ are the technical core of \emph{Native ZBL Zone Bridging} (Sec.~\ref{sec:zbl_method}), and are defined next.
 
 \paragraph{Bridging window and septic Hermite polynomials.}
-Choose $0<r_{\mathrm{in}}<r_{\mathrm{out}}\le r_{\mathrm{c}}$ defining a bridging window $[r_{\mathrm{in}},r_{\mathrm{out}}]$ inside the neighbor cutoff $r_{\mathrm{c}}$.
+The \emph{bridging window} is an interval $[r_{\mathrm{in}},r_{\mathrm{out}}]$ with $0<r_{\mathrm{in}}<r_{\mathrm{out}}\le r_{\mathrm{c}}$ inside the neighbor cutoff $r_{\mathrm{c}}$.
 Two septic Hermite polynomials
-$h_{\mathrm{c}},h_{\mathrm{w}}:[0,1]\to[0,1]$ control the clamp and the gate
+$h_{\mathrm{c}},h_{\mathrm{w}}:[0,1]\to[0,1]$ control the clamp and the gate,
 respectively,
 \begin{equation}
     h_{\mathrm{c}}(t)\coloneqq 20t^4-45t^5+36t^6-10t^7,
@@ -54,19 +59,18 @@ respectively,
     h_{\mathrm{w}}(t)\coloneqq 35t^4-84t^5+70t^6-20t^7,
     \label{eq:dpa4-hermite}
 \end{equation}
-chosen so that $h_{\mathrm{c}}$ glues a constant on the left to the identity
-on the right with matching first three derivatives ($h_{\mathrm{c}}(0)=0$,
-$h_{\mathrm{c}}(1)=1$, $h_{\mathrm{c}}'(0)=0$, $h_{\mathrm{c}}'(1)=1$,
-$h_{\mathrm{c}}''(0)=h_{\mathrm{c}}''(1)=h_{\mathrm{c}}'''(0)=h_{\mathrm{c}}'''(1)=0$)
-and $h_{\mathrm{w}}$ glues the constants $0$ on the left and $1$ on the right
-with all first three derivatives vanishing at both endpoints
-($h_{\mathrm{w}}(0)=0$, $h_{\mathrm{w}}(1)=1$,
-$h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0$, $k=1,2,3$).
-Each set of eight boundary conditions determines the corresponding septic interpolant uniquely.
+each being the unique interpolant fixed by eight boundary conditions.
+For $h_{\mathrm{c}}$, it is required that $h_{\mathrm{c}}(0)=0$, $h_{\mathrm{c}}(1)=1$,
+$h_{\mathrm{c}}'(0)=0$, $h_{\mathrm{c}}'(1)=1$,
+$h_{\mathrm{c}}''(0)=h_{\mathrm{c}}''(1)=h_{\mathrm{c}}'''(0)=h_{\mathrm{c}}'''(1)=0$, 
+while for
+$h_{\mathrm{w}}$
+it is required that $h_{\mathrm{w}}(0)=0$, $h_{\mathrm{w}}(1)=1$,
+$h_{\mathrm{w}}^{(k)}(0)=h_{\mathrm{w}}^{(k)}(1)=0$ for $k=1,2,3$.
 
 \paragraph{Clamped distance map and bridging amplitude.}
 With $t(r)\coloneqq(r-r_{\mathrm{in}})/(r_{\mathrm{out}}-r_{\mathrm{in}})$,
-define the clamped distance map and the bridging amplitude
+the clamped distance map and the bridging amplitude are
 \begin{equation}
     \widetilde{r}(r) =
     \begin{cases}
@@ -91,37 +95,34 @@ The associated \emph{clamped displacement} is
     \qquad \|\widetilde{\mathbf{r}}_{ij}\|=\widetilde{r}(r_{ij}),
     \label{eq:dpa4-rvec-tilde}
 \end{equation}
-which preserves the direction $\widehat{\mathbf{r}}_{ij}$ exactly and
-replaces $r_{ij}$ by $\widetilde{r}(r_{ij})$ in the scalar magnitude.
+which carries the clamped magnitude along the exact bond direction.
 
 \paragraph{Source-freeze gate.}
-For each atom $j$, let $\mathcal N_{\mathrm{out}}(j)\coloneqq \{i:r_{ji}<r_{\mathrm{c}},\,i\neq j\}$ denote its set of forward neighbors.
+For each atom $j$, let $\mathcal{N}(j)\coloneqq \{i:r_{ji}<r_{\mathrm{c}},\,i\neq j\}$ denote its set of neighbors within the cutoff.
 The source-freeze gate is
 \begin{equation}
-    \eta_j \;\coloneqq\; \prod_{i\in\mathcal N_{\mathrm{out}}(j)} w(r_{ji})
+    \eta_j \;\coloneqq\; \prod_{i\in\mathcal{N}(j)} w(r_{ji})
     \;\in\;[0,1].
     \label{eq:dpa4-source-freeze}
 \end{equation}
-$\eta_j$ is $C^3$ in the atomic positions on the open set $\{\mathbf{R}_i
-    \neq\mathbf{R}_j\}$ (as a finite product of $C^3$ functions) and satisfies
-$\eta_j=0$ whenever any forward neighbor of $j$ lies in the inner zone
-($r_{ji}\le r_{\mathrm{in}}$ for some $i\in\mathcal N_{\mathrm{out}}(j)$).
+As a finite product of $C^3$ functions, $\eta_j$ is $C^3$ in the atomic positions wherever no two atoms coincide.
+It vanishes whenever some neighbor of $j$ lies in the inner zone, $r_{ji}\le r_{\mathrm{in}}$.
 
-\paragraph{Consequences used later.}
-Two properties of \eqref{eq:dpa4-clamp}--\eqref{eq:dpa4-source-freeze} are used implicitly in the rest of Section~\ref{sec:methods}.
-First, on the inner zone $r_{ij}\le r_{\mathrm{in}}$ every NN-side geometric quantity is constant in $r_{ij}$ (since $\widetilde r$ is constant there) and every message sourced from a $j$ whose own neighborhood penetrates the inner zone is silenced (since $\eta_j=0$), so the learned branch contributes zero gradient there and the short-range repulsion is handled exclusively by $E^{\mathrm{ZBL}}$.
-Second, outside the bridging window ($r_{ij}\ge r_{\mathrm{out}}$ and similarly for $w$) the clamp is the identity and the gate is one, so the learned branch sees the true geometry.
+\paragraph{Behavior inside and outside the bridging window.}
+Two properties of Eqs.~\eqref{eq:dpa4-clamp}--\eqref{eq:dpa4-source-freeze} are used repeatedly in the rest of Section~\ref{sec:methods}.
+First, on the inner zone $r_{ij}\le r_{\mathrm{in}}$ every geometric quantity of the learned branch is constant in $r_{ij}$ (since $\widetilde r$ is constant there) and every message sourced from an atom $j$ whose own neighborhood penetrates the inner zone is silenced (since $\eta_j=0$), so the learned branch contributes zero gradient there and the short-range repulsion is handled exclusively by $E^{\mathrm{ZBL}}$.
+Second, once $r_{ij}\ge r_{\mathrm{out}}$ and every neighbor of $j$ is at least $r_{\mathrm{out}}$ away, the clamp is the identity and the gate is one, so the learned branch sees the true geometry.
 
 \subsubsection{Geometry-Informed Embedding (GIE)}
 \label{sec:gie}
 
 The initial feature $\mathbf{h}_i^{(0)}\in V_{\leq L}\otimes\mathbb{R}^{C}$ depends on both \emph{chemistry} (atomic species $Z_i$ and the species of neighbors) and \emph{geometry} (the relative positions $\{\mathbf{r}_{ij}\}$ inside the cutoff).
-The two sources of information enter the $l=0$ and $l\geq 1$ slices in complementary ways.
+The two enter the slices differently: the $l=0$ slice starts from a chemistry-only embedding that geometry then modulates, whereas the $l\geq 1$ slices are constructed from the neighbor directions.
 
 \paragraph{$l=0$ slice.}
-The chemistry-only baseline is a learnable element embedding $\mathbf{T}\in\mathbb{R}^{n_t\times C}$, so that $\mathbf{h}_{i,l=0,c}^{(0)}=\mathbf{T}_{Z_i,c}$ at first pass.
+The chemistry-only baseline is a learnable element embedding $\mathbf{T}\in\mathbb{R}^{n_t\times C}$, giving $\mathbf{h}_{i,l=0,c}^{(0)}=\mathbf{T}_{Z_i,c}$.
 To inject local geometry into the scalar slice without breaking SO(3) invariance, DPA4 builds a compact rotation-invariant local-environment descriptor $\mathcal{D}_i$ in the spirit of the smooth-edition Deep Potential descriptor~\cite{zhang2018end} as follows.
-Define the per-edge four-vector
+The per-edge four-vector is
 \begin{equation}
     \mathbf{u}_{ij,0} = \frac{s_5(r_{ij})}{r_{ij}},
     \qquad
@@ -129,48 +130,34 @@ Define the per-edge four-vector
     \label{eq:dpa4-env-vector}
 \end{equation}
 whose first component is a smooth invariant and whose last three components
-together transform as an SO(3) vector. Here $s_5$ is a particular instance of
-the family of $C^3$ cutoff envelopes
-\begin{equation}
-    s_p(r) =
-    \begin{cases}
-        1+x^p\bigl(a_p+b_p x+c_p x^2+d_p x^3\bigr), & x=r/r_{\mathrm{c}}\in[0,1), \\
-        0,                                          & x\ge 1,
-    \end{cases}
-    \label{eq:dpa4-envelope}
-\end{equation}
-with coefficients $(a_p,b_p,c_p,d_p)$ uniquely fixed by
-$s_p(r_{\mathrm{c}})=s_p'(r_{\mathrm{c}})=s_p''(r_{\mathrm{c}})=s_p'''(r_{\mathrm{c}})=0$
-(closed forms given in Supplementary Section~\ref{sec:sm-radial}).
-DPA4 uses $s_5$ for edge weighting and inside the smooth degree, and $s_7$ inside the radial basis (Eq.~\eqref{eq:dpa4-radial-basis} below).
+together transform as an SO(3) vector. Here $s_5$ is one of a family of $C^3$
+cutoff envelopes $s_p$ that decay from $s_p(0)=1$ and vanish together with
+their first three derivatives at $r_{\mathrm{c}}$; their closed forms are given
+in Supplementary Section~\ref{sec:sm-radial}.
+DPA4 uses $s_5$ for edge weighting and in the degree normalization, and $s_7$ in the radial basis defined below.
 With a separate
 radial-species map
 $\mathbf{g}:\mathbb{R}_{\ge 0}\times\{1,\dots,n_t\}^2\to\mathbb{R}^{C_{\mathrm{env}}}$,
-form the per-atom matrix
+the per-atom matrix is
 \begin{equation}
     A_i = n_i\sum_{j:r_{ij}<r_{\mathrm{c}}} \eta_j\,
     \mathbf{u}_{ij}\otimes \mathbf{g}(r_{ij};Z_i,Z_j)
     \in\mathbb{R}^{4\times C_{\mathrm{env}}},
     \label{eq:dpa4-env-matrix}
 \end{equation}
-where
-\begin{equation}
-    n_i = (d_i+\varepsilon)^{-1/2},
-    \qquad
-    d_i = \sum_{j:r_{ij}<r_{\mathrm{c}}} s_5(r_{ij})^2,
-    \label{eq:dpa4-degree}
-\end{equation}
-is a smooth degree normalization (squaring $s_5$ makes $d_i$ inherit $C^6$
-regularity; the regularizer $\varepsilon>0$ prevents singularity for isolated
-atoms), and $\eta_j$ is the source-freeze gate defined in
+where $n_i=(d_i+\varepsilon)^{-1/2}$ with
+$d_i=\sum_{j:r_{ij}<r_{\mathrm{c}}} s_5(r_{ij})^2$ is a smooth degree
+normalization (squaring $s_5$ makes $d_i$ inherit $C^6$ regularity; the
+regularizer $\varepsilon>0$ prevents singularity for isolated atoms), and
+$\eta_j$ is the source-freeze gate defined in
 Eq.~\eqref{eq:dpa4-source-freeze}. Contracting the first axis of $A_i$ yields
 a rotation-invariant Gram-style descriptor,
 \begin{equation}
     \mathcal{D}_i = A_i^{\top}
     A_i^{(:,1{:}K_{\mathrm{env}})} \in\mathbb{R}^{C_{\mathrm{env}}\times K_{\mathrm{env}}}, \label{eq:dpa4-env-descriptor} \end{equation} where the truncation to $K_{\mathrm{env}}$ columns controls cost.
-Invariance of $\mathcal{D}_i$ follows because the spatial part of $\mathbf{u}_{ij}$ transforms as an SO(3) vector while the scalar part is invariant, so $A_i^\top A_i$ contracts the spatial index and the temporal component contributes a scalar block.
+Invariance of $\mathcal{D}_i$ follows because contracting the first axis of $A_i$ pairs the scalar component of $\mathbf{u}_{ij}$ with itself and the three spatial components with one another, and both pairings are rotation invariant.
 The descriptor then conditions the scalar features through a
-Feature-wise Linear Modulation~\cite{perez2018film} (FiLM) step,
+Feature-wise Linear Modulation (FiLM) step~\cite{perez2018film},
 \begin{equation}
     \mathbf{h}_{i,l=0}^{(0)}
     \leftarrow
@@ -185,8 +172,9 @@ with per-channel scale and shift
     \label{eq:dpa4-film-gb}
 \end{equation}
 where $W_\alpha,W_\beta\in\mathbb{R}^{C\times C_{\mathrm{env}}
-        K_{\mathrm{env}}}$ are learnable projections, $N_0$ is a scalar RMS normalizer, and the bounded nonlinearities are gated by learnable log-strengths $\lambda_\alpha,\lambda_\beta\in\mathbb{R}$ initialized at $\lambda_\alpha=\lambda_\beta=\log(0.01)$, so the conditioning begins close to the identity ($\boldsymbol{\gamma}_i\approx\mathbf{1}$, $\boldsymbol{\beta}_i\approx\mathbf{0}$) and the species embedding dominates at the start of training.
-Because $\mathcal{D}_i$ is SO(3)-invariant and FiLM acts diagonally in the channel index, the $l=0$ slice remains a scalar.
+        K_{\mathrm{env}}}$ are learnable projections and $N_0$ is a scalar RMS normalizer.
+The bounded $\tanh$ outputs are scaled by learnable log-strengths $\lambda_\alpha,\lambda_\beta\in\mathbb{R}$, initialized at $\log(0.01)$, so the modulation begins close to the identity ($\boldsymbol{\gamma}_i\approx\mathbf{1}$, $\boldsymbol{\beta}_i\approx\mathbf{0}$) and the species embedding dominates at the start of training.
+Because $\mathcal{D}_i$ is SO(3)-invariant and FiLM acts diagonally in the channel index, the modulation preserves the invariance of the $l=0$ slice.
 
 \paragraph{$l\geq 1$ slices.}
 For higher degrees no chemistry-only baseline exists: equivariant features must carry directional information from the start.
@@ -194,14 +182,14 @@ DPA4 obtains them by projecting
 each neighbor direction onto real spherical harmonics and weighting the
 projection by a radial-species profile,
 \begin{equation}
-    \mathbf{h}_{i,\iota(l,m),c}^{(0)}
-    \mathrel{+}=
+    \bigl[\mathbf{h}_{i}^{(0)}\bigr]^{(l)}_{m,c}
+    =
     n_i\sum_{j:r_{ij}<r_{\mathrm{c}}}
     \eta_j\,Y_l^m(\widehat{\mathbf{r}}_{ij})\,
     \rho_{ij,l,c},\qquad l\geq 1.
     \label{eq:dpa4-gie}
 \end{equation}
-Here $\iota(l,m)$ indexes the coefficient of degree $l$ and order $m$, and $n_i$ and $\eta_j$ are the same smooth degree normalization and source-freeze gate as in Eq.~\eqref{eq:dpa4-env-matrix} (Eqs.~\eqref{eq:dpa4-degree} and \eqref{eq:dpa4-source-freeze}).
+Here $n_i$ and $\eta_j$ are the same smooth degree normalization and source-freeze gate as in Eq.~\eqref{eq:dpa4-env-matrix}.
 The radial-species profile $\rho_{ij,l,c}$
 mixes the per-pair chemistry into a smooth function of distance,
 \begin{equation}
@@ -215,38 +203,31 @@ where $\Pi^{\mathrm{rad}}:\mathbb{R}^{n_r}\to\mathbb{R}^{(L+1)\times C}$ is a
 bias-free SiLU MLP, $\mathbf{T}_{\mathrm{edge}}(Z_i,Z_j)\in\mathbb{R}^{C}$ is a
 per-pair species embedding broadcast across the $(L+1)$ degree slots, and
 $\boldsymbol{\phi}(r_{ij})=(\phi_1(r_{ij}),\dots,\phi_{n_r}(r_{ij}))
-    \in\mathbb{R}^{n_r}$ is the sinusoidal radial basis
-\begin{equation}
-    \phi_n(r) = \frac{\sin(\omega_n r)}{r}\,s_7(r),\qquad n=1,\dots,n_r,
-    \label{eq:dpa4-radial-basis}
-\end{equation}
-with learnable frequencies initialized at $\omega_n=n\pi/r_{\mathrm{c}}$ and
-$s_7$ the cutoff envelope from Eq.~\eqref{eq:dpa4-envelope}.
-
+    \in\mathbb{R}^{n_r}$ is the Bessel radial basis
+$\phi_n(r)=\sin(\omega_n r)\,s_7(r)/r$, $n=1,\dots,n_r$, with learnable
+frequencies initialized at $\omega_n=n\pi/r_{\mathrm{c}}$ and $s_7$ the cutoff
+envelope of Supplementary Section~\ref{sec:sm-radial}.
 Equation~\eqref{eq:dpa4-gie} is SO(3)-equivariant because every prefactor is rotation-invariant and the entire angular content is carried by the degree-$l$ spherical harmonic $Y_l^m(\widehat{\mathbf{r}}_{ij})$, which transforms as $D^l(R)$ under a rotation $R$.
 
 \subsubsection{EMFA SO(2) convolution}
 \label{sec:so2}
 
-Each interaction block applies the EMFA SO(2) convolution $\mathcal{C}_{\theta}$, an SO(3)-equivariant convolution that takes the per-atom node features $\mathbf{h}_j\in V_{\le L}\otimes\mathbb{R}^{C}$, $j=1,\dots,N$, and returns a per-atom update $(\mathcal{C}_{\theta}\mathbf{h})_i\in V_{\le L}\otimes\mathbb{R}^{C}$ obtained by aggregating information from the neighbors of atom $i$.
-The operator is built in six stages: (i) transport each source node feature into a per-edge SO(2) gauge aligning the bond direction with a fixed reference axis; (ii) construct the in-frame message through a \emph{low-rank edge--node SO(2)-equivariant degree coupling} (A1); (iii) introduce message nonlinearity through a \emph{multi-focus design} (A2): $F$ parallel per-focus SO(2) stacks reweighted by a cross-focus softmax competition, whose gated activations within each stack and softmax over focuses act as two complementary nonlinear elements; (iv) lift the in-frame message back to the global frame; (v) aggregate neighbor messages with envelope-gated attention (A3) modulated by a destination-side output gate; and (vi) project the result back to representation width through a channel post-mixer.
-The closed form of $\mathcal{C}_{\theta}$ collecting all six stages is given as Eq.~\eqref{eq:dpa4-conv} at the end of the subsection.
+Each interaction block applies the EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution $\mathcal{C}_{\Theta}$, an SO(3)-equivariant convolution that takes the per-atom node features $\mathbf{h}_j\in V_{\le L}\otimes\mathbb{R}^{C}$, $j=1,\dots,N$, and returns a per-atom update $(\mathcal{C}_{\Theta}\mathbf{h})_i\in V_{\le L}\otimes\mathbb{R}^{C}$ obtained by aggregating information from the neighbors of atom $i$.
+The operator is built in six stages: (i) transport each source node feature into a per-edge SO(2) gauge aligning the bond direction with a fixed reference axis; (ii) construct the in-frame message through a \emph{low-rank edge--node SO(2)-equivariant degree coupling} (A1); (iii) introduce message nonlinearity through a \emph{multi-focus design} (A2); (iv) lift the in-frame message back to the global frame; (v) aggregate neighbor messages with envelope-gated attention (A3) modulated by a destination-side output gate; and (vi) project the result back to representation width through a channel post-mixer.
+The closed form of $\mathcal{C}_{\Theta}$ collecting all six stages is given as Eq.~\eqref{eq:dpa4-conv} at the end of the subsection.
 
 \paragraph{Edge-local frame.}
 Full SO(3)-equivariant tensor products require Clebsch--Gordan expansions whose cost grows steeply with angular order~\cite{batatia2022mace,liao2023equiformerv2}.
 DPA4 instead reduces SO(3)
 convolutions to SO(2) by rotating each directed edge $(i,j)$ into a gauge that
-aligns its bond direction with the reference axis~\cite{passaro2023reducing},
-\begin{equation}
-    R_{ij}\widehat{\mathbf{r}}_{ij}=(0,0,1)^{\top}.
-    \label{eq:dpa4-local-gauge}
-\end{equation}
+aligns its bond direction with the reference axis,
+$R_{ij}\widehat{\mathbf{r}}_{ij}=(0,0,1)^{\top}$~\cite{passaro2023reducing}.
 In this frame the residual symmetry is the abelian group SO(2), so angular orders $m$ decouple into independent strata.
-DPA4 retains coefficients with $|m|\leq M\leq L$ inside the convolution and applies a degree-dependent lift factor $\Xi_M$ after rotating back to compensate the norm loss from truncation.
+DPA4 retains coefficients with $|m|\leq M\leq L$ inside the convolution and applies a degree-dependent lift factor $\Xi_M$ (Eq.~\eqref{eq:sm-rescale}) after rotating back to compensate the norm loss from truncation.
 
 \paragraph{Per-edge equivariant message.}
-For each directed edge $(i,j)$, the source node feature $\mathbf{h}_j$ is
-transported into the edge-local frame and yields
+For each directed edge $(i,j)$, the source node feature is pre-mixed to hidden
+width and transported into the edge-local frame,
 \begin{equation}
     \mathbf{x}_{ij}=P_M\,D(R_{ij})\,\mathbf{h}_j',
     \qquad
@@ -258,41 +239,47 @@ with $\mathbf{x}_{ij}\in\mathbb{R}^{D_M\times H}$, where
 $L^{\mathrm{pre}}_{\mathrm{deg}}$ is a degree-wise channel pre-mixer
 (Eq.~\eqref{eq:sm-degree-linear}) that lifts the representation width from
 $C$ to a hidden width $H=F\,C_f$ (with focus count $F$ and per-focus width
-$C_f$), $\mathbf{h}_j'$ is the pre-mixed node feature at hidden width,
-$D(R_{ij})$ is block-diagonal in $l$ (Eq.~\eqref{eq:sm-direct-sum}), and
+$C_f$), $D(R_{ij})$ is block-diagonal in $l$ (Eq.~\eqref{eq:sm-direct-sum}), and
 $P_M$ selects the retained $m$-strata to dimension $D_M$
 (Eq.~\eqref{eq:sm-trunc-index}).
-Let $\widetilde{\rho}_{ij}\in\mathbb{R}^{(L+1)\times H}$ be the radial-species feature $\rho_{ij}$ of Eq.~\eqref{eq:dpa4-rho} lifted from representation width $C$ to hidden width $H$ by a degree-wise channel map $L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H}$ applied independently at each degree $l$ (Eq.~\eqref{eq:sm-degree-linear}).
+The radial-species feature $\rho_{ij}$ of Eq.~\eqref{eq:dpa4-rho} depends only on the pair distance and the species pair, so it is computed once and reused by every interaction block.
+Each block lifts it to hidden width by its own degree-wise channel map applied independently at each degree $l$ (Eq.~\eqref{eq:sm-degree-linear}),
+\begin{equation}
+    \widetilde{\rho}_{ij} = L^{\mathrm{rad}}_{\mathrm{lift}}\,\rho_{ij}
+    \in\mathbb{R}^{(L+1)\times H},
+    \qquad
+    L^{\mathrm{rad}}_{\mathrm{lift}}:\mathbb{R}^{C}\to\mathbb{R}^{H},
+    \label{eq:dpa4-rho-lift}
+\end{equation}
+giving the edge-side operand at the same width as $\mathbf{x}_{ij}$.
 
 \paragraph{Low-rank edge--node SO(2)-equivariant degree coupling.}
 This stage realizes the architectural design A1.
-In the local frame, the edge angular feature $Y_l(\widehat{\mathbf{r}}_{ij})$ collapses to its $m=0$ component for every degree $l$, so $\widetilde{\rho}_{ij}$ serves as the radial-modulated $m=0$ slice of the per-degree edge SO(2) irreps.
-The
-edge--node degree coupling takes these edge-side SO(2) irreps and multiplies them with
-the node-side SO(2)-equivariant irreps $\mathbf{x}_{ij}$ via a learnable linear
-map that, at each fixed $|m|$-stratum, mixes the different angular degrees $l$
-without coupling different $|m|$,
+In the local frame, the edge angular feature $Y_l(\widehat{\mathbf{r}}_{ij})$ collapses to its $m=0$ component for every degree $l$, so $\widetilde{\rho}_{ij}$ of Eq.~\eqref{eq:dpa4-rho-lift} serves as the radial-modulated $m=0$ slice of the per-degree edge SO(2) irreps.
+The edge--node degree coupling lets the edge-side irreps parameterize a learnable linear map acting on the node-side irreps $\mathbf{x}_{ij}$ that, at each fixed $|m|$-stratum, mixes the different angular degrees $l$ without coupling different $|m|$,
 \begin{equation}
     \mathbf{x}_{ij,l,m,c}\;\leftarrow\;
     \sum_{l'\geq |m|}
     \mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\,\mathbf{x}_{ij,l',m,c},
     \label{eq:dpa4-radial-coupling}
 \end{equation}
-where each kernel entry $\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\in
-    \mathbb{R}$ is a learnable linear functional of $\widetilde{\rho}_{ij}$. To
-keep the parameter count tractable when the hidden width $H$ is large,
-$\mathcal{K}$ is parameterized by a low-rank factorization across the
-channel index $c$,
+where each kernel entry $\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})\in \mathbb{R}$ is a learnable linear functional of $\widetilde{\rho}_{ij}$.
+Because $\mathcal{K}$ depends only on rotation-invariant radial-species information and never mixes different $|m|$, the $(-m,+m)$ pair continues to transform as a single two-dimensional real SO(2) representation.
+Under the edge-local reduction, the Clebsch--Gordan tensor product of a standard SO(3)-equivariant convolution is exactly an SO(2) map that mixes angular degrees within each fixed $|m|$ stratum (Proposition~3.1 of ref.~\cite{passaro2023reducing}), and Eq.~\eqref{eq:dpa4-radial-coupling} is a learnable map of that form.
+Kernels constrained to be diagonal in $l$, as when the degree-$l$ edge feature multiplies only the degree-$l$ node feature, form a strict subspace of those maps: the cross-degree entries $l\neq l'$ are therefore not an enhancement of the reduction but what makes it faithful to the product it replaces.
+
+The per-channel kernel of Eq.~\eqref{eq:dpa4-radial-coupling} improves accuracy over the degree-diagonal baseline, but carries $H$ independent copies of the degree-pair coefficients, raising the training and inference costs by factors of $3.36$ and $2.22$, respectively (Supplementary Table~\ref{tab:dpa4_radial_degree_ablation}).
+$\mathcal{K}$ is therefore parameterized by a low-rank factorization across the channel index $c$,
 \begin{equation}
     \mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})
     =
     \sum_{r=1}^{R}
-    K^{(r)}_{l,l',|m|}(\widetilde{\rho}_{ij})\,B_{r,c}, \label{eq:dpa4-K-lowrank} \end{equation} with rank $R\leq H$, learnable scalar coefficients $K^{(r)}_{l,l',|m|}(\widetilde{\rho}_{ij})\in\mathbb{R}$ (each a linear functional of $\widetilde{\rho}_{ij}$), and a learnable channel basis $B\in\mathbb{R}^{R\times H}$.
+    \bigl[K_{l,l',|m|}(\widetilde{\rho}_{ij})\bigr]_{r}\,B_{r,c},
+    \label{eq:dpa4-K-lowrank}
+\end{equation}
+with rank $R\leq H$, where $K_{l,l',|m|}:\mathbb{R}^{(L+1)\times H}\to\mathbb{R}^{R}$ is a learnable linear map and $B\in\mathbb{R}^{R\times H}$ is a learnable channel basis.
 The diagonal special case $\mathcal{K}_{l,l',|m|,c}(\widetilde{\rho}_{ij})=\widetilde{\rho}_{ij,l,c}\, \delta_{l,l'}$ reduces to per-degree scalar radial modulation.
-Because $\mathcal{K}$ depends only on rotation-invariant radial-species information and never mixes different $|m|$, the $(-m,+m)$ pair continues to transform as a single two-dimensional real SO(2) representation.
-Equations \eqref{eq:dpa4-radial-coupling}--\eqref{eq:dpa4-K-lowrank} together realize a direct edge--node SO(2)-equivariant multiplication at low parameter and compute cost, replacing the Clebsch--Gordan tensor product of a standard SO(3)-equivariant convolution.
-Under the edge-local reduction, that tensor product is exactly an SO(2) map that mixes angular degrees within each fixed $|m|$ stratum~\cite{passaro2023reducing}.
-The cross-degree entries $l\neq l'$ of $\mathcal{K}$ are therefore not an enhancement of the reduction but what makes it faithful to the product it replaces: a kernel constrained to be diagonal in $l$, as it is when the degree-$l$ edge feature multiplies only the degree-$l$ node feature, spans a strict subspace of the couplings available at that stratum.
+The rank sweep favors small ranks on both counts: the rank-1 to rank-4 kernels attain lower energy and force MAEs than the dense one at a fraction of its cost (Supplementary Table~\ref{tab:dpa4_radial_degree_ablation}).
 
 \paragraph{Multi-focus design for message nonlinearity.}
 The in-frame edge feature is processed by two distinct nonlinear mechanisms that together realize the architectural design A2.
@@ -376,7 +363,7 @@ from which we define per-edge per-(focus, head) queries and keys
 with learnable per-focus query/key matrices $Q^{(f)},K^{(f)}\in
     \mathbb{R}^{d_a\times d_a}$. The attention logit for edge $(i,j)$ at focus
 $f$, head $a$ combines a scaled dot product with a radial bias linear in the
-$l=0$ lifted radial-species feature $\widetilde{\rho}_{ij,0,c}$,
+$l=0$ lifted radial-species feature $\widetilde{\rho}_{ij,0,c}$ of Eq.~\eqref{eq:dpa4-rho-lift},
 \begin{equation}
     \ell_{ij}^{(f,a)}
     =
@@ -393,7 +380,7 @@ The attention weight is
         s_5(r_{ik})^2\,\eta_k\,\exp\!\bigl(\ell_{ik}^{(f,a)}\bigr)},
     \label{eq:dpa4-attention}
 \end{equation}
-with the $C^3$ envelope $s_5$ of Eq.~\eqref{eq:dpa4-envelope}, the
+with the $C^3$ envelope $s_5$ of Supplementary Section~\ref{sec:sm-radial}, the
 source-freeze gate $\eta_j$ of Eq.~\eqref{eq:dpa4-source-freeze}, and a
 learnable null-logit $\zeta_{f,a}\in\mathbb{R}$.
 Two mechanisms make $w_{ij}^{(f,a)}$ smooth at the cutoff: the numerator factor $s_5(r_{ij})^2$ drives the weight $C^3$-smoothly to zero as $r_{ij}\to r_{\mathrm{c}}$, and the $\operatorname{softplus}(\zeta_{f,a})$ term in the denominator keeps the denominator strictly positive even when every incident edge of atom $i$ is silenced ($s_5\to 0$ or $\eta\to 0$), removing $0/0$ indeterminacies.
@@ -429,7 +416,7 @@ gate $G_i^{(f,a)}$ of Eq.~\eqref{eq:dpa4-attn-gate}, and the channel post-mixer
 $L^{\mathrm{post}}_{\mathrm{deg}}$, the EMFA SO(2) convolution at atom
 $i$ is
 \begin{equation}
-    \bigl(\mathcal{C}_{\theta}\mathbf{h}\bigr)_i
+    \bigl(\mathcal{C}_{\Theta}\mathbf{h}\bigr)_i
     =
     L^{\mathrm{post}}_{\mathrm{deg}}\!\biggl[
         \operatorname{concat}_{(f,a)}\!\Bigl(
@@ -445,7 +432,7 @@ per-$(f,a)$ aggregations along the channel axis according to the inverse of
 the $H=F\cdot H_a\cdot d_a$ focus/head split.
 The architectural designs A1 and A2 are absorbed into the per-edge message $\mathbf{m}_{ij}$, while A3 appears explicitly through the attention weight $w_{ij}^{(f,a)}$ and the destination-side output gate $G_i^{(f,a)}$.
 Equivariance follows because $w_{ij}^{(f,a)}$ and $G_i^{(f,a)}$ are SO(3)-invariant scalars and every other operation is either degree-wise or acts inside an SO(2)-equivariant local frame.
-The post-mixer is zero-initialized so $\mathcal{C}_{\theta}\equiv 0$ at the start of training.
+The post-mixer is zero-initialized so $\mathcal{C}_{\Theta}\equiv 0$ at the start of training.
 
 \subsubsection{Equivariant feed-forward network}
 \label{sec:s2-method}
@@ -562,6 +549,30 @@ The restriction to the sphere is not free.
 Re-expanding a product of spherical harmonics is governed by the Gaunt coefficients, which vanish whenever $l_1+l_2+l$ is odd; the parity-odd couplings -- the cross product $1\otimes 1\to 1$, and with it any construction of the signed volume $\det[\mathbf{r}_1,\mathbf{r}_2,\mathbf{r}_3]$ -- are annihilated, and no composition of sphere-based bilinear layers can recover them.
 Retaining $k=\pm 1$ reopens exactly these channels at modest extra cost, which motivates the default $k_{\max}=1$.
 Numerically, the Lebedev axis rule attains a given algebraic order with substantially fewer points than the latitude--longitude tensor grids used by EquiformerV2 and EquiformerV3, and the measured equivariance error of the resulting FFN is at machine precision (Table~\ref{tab:s2_full_equivariance}; Supplementary Table~\ref{tab:sm_s2_truncated_equivariance}).
+
+\subsubsection{Atomic energy head}
+\label{sec:ener-head}
+
+The scalar energy of the learned branch is read out in two steps.
+The read-out first reduces the final node feature to an invariant vector $\mathbf{s}_i\in\mathbb{R}^{C}$, in one of two modes.
+In the equivariant mode the Wigner bilinear block $\mathcal{B}$ of Eq.~\eqref{eq:dpa4-ffn}, whose residual connection is part of the block, is applied at the node degree of the last interaction block and the $l=0$ slice of the result is extracted,
+\begin{equation}
+    \mathbf{s}_i = \bigl[\mathcal{B}\bigl(\mathbf{h}_i^{(N_{\mathrm{layer}})}\bigr)\bigr]^{(l=0)}
+    \in\mathbb{R}^{C},
+    \label{eq:dpa4-readout}
+\end{equation}
+so that the angular information carried by the $l>0$ coefficients is coupled into the invariant slot before the slice is taken.
+In the scalar mode the $l>0$ coefficients are discarded and a scalar block acts on the $l=0$ slice alone.
+DPA4-Mini, DPA4-Neo, DPA4-Air and DPA4-Plus use the equivariant mode and DPA4-Pro the scalar mode (Supplementary Table~\ref{tab:sm_model_config}); every variant uses a single read-out block.
+A gated multilayer perceptron then maps $\mathbf{s}_i$ to the atomic energy: each hidden layer doubles its width and splits the output into a value and a gate, $\mathbf{x}\leftarrow\mathbf{v}\odot\mathrm{SiLU}(\mathbf{g})$, and a bias-free linear map returns a single number, to which a per-species constant $b_{Z_i}$ is added,
+\begin{equation}
+    E^{\mathrm{NN}}_{\Theta,i}=\mathbf{w}^{\top}\mathrm{MLP}(\mathbf{s}_i)+b_{Z_i},
+    \qquad
+    E^{\mathrm{NN}}_{\Theta}=\sum_{i=1}^{N}E^{\mathrm{NN}}_{\Theta,i}.
+    \label{eq:dpa4-ener-head}
+\end{equation}
+The released variants use a single hidden layer of width $32\lceil 8C/96\rceil$ ($192$ for the $C=64$ variants).
+The network is shared by all species: chemistry enters through the embeddings of Section~\ref{sec:gie} and through $b_{Z_i}$, which is fixed to the per-species mean energy of the training set rather than learned.
 
 \subsubsection{Native ZBL Zone Bridging}
 \label{sec:zbl_method}

@@ -107,10 +107,18 @@ This is the algebraic reason DPA4 can use SO(2)-equivariant local operators inst
 \subsection{Closed-form cutoff coefficients}
 \label{sec:sm-radial}
 
-The four boundary conditions
+The cutoff envelopes of the learned branch (main-text Section~\ref{sec:gie}) are the polynomials
+\begin{equation}
+    s_p(r) =
+    \begin{cases}
+        1+x^p\bigl(a_p+b_p x+c_p x^2+d_p x^3\bigr), & x=r/r_{\mathrm{c}}\in[0,1), \\
+        0,                                          & x\ge 1,
+    \end{cases}
+    \label{eq:sm-envelope}
+\end{equation}
+whose four boundary conditions
 $s_p(r_{\mathrm{c}})=s_p'(r_{\mathrm{c}})=s_p''(r_{\mathrm{c}})=s_p'''(r_{\mathrm{c}})=0$
-of the cutoff envelope $s_p(r)$ in main-text
-Eq.~\eqref{eq:dpa4-envelope} uniquely fix the coefficients to
+uniquely fix the coefficients to
 \begin{align}
     a_p & =-\frac{(p+1)(p+2)(p+3)}{6}, &
     b_p & =\frac{p(p+2)(p+3)}{2},        \\
@@ -118,9 +126,9 @@ Eq.~\eqref{eq:dpa4-envelope} uniquely fix the coefficients to
     d_p & =\frac{p(p+1)(p+2)}{6}.
     \label{eq:sm-cutoff-coefficients}
 \end{align}
-For the two values used in DPA4 ($s_5$ for edge weighting and the smooth
-degree, $s_7$ inside the radial basis of main-text
-Eq.~\eqref{eq:dpa4-radial-basis}), the explicit polynomials are
+For the two values used in DPA4 ($s_5$ for edge weighting and the degree
+normalization, $s_7$ in the Bessel radial basis of main-text
+Section~\ref{sec:gie}), the explicit polynomials are
 \begin{align}
     s_5(r) & =1-56x^5+140x^6-120x^7+35x^8,       \\
     s_7(r) & =1-120x^7+540x^8-1080x^9+840x^{10},

@@ -632,9 +632,9 @@ All ASE baseline environments used ASE 3.28.0 and NumPy 2.4.4.
 \section{Close-contact probe of the ZBL branch}
 \label{sec:sm-zbl}
 
-The benchmark datasets of Sections~\ref{sec:matbench}--\ref{sec:small_mol} do not sample the sub-\AA{} regime, so the close-contact behavior of Native ZBL Zone Bridging (Section~\ref{sec:zbl_method}) is probed directly with a C--Si dimer scan derived from an ABACUS-computed~\cite{li2016abacus} 3C-SiC dataset.
+The benchmark datasets of Sections~\ref{sec:matbench}--\ref{sec:small_mol} do not sample the sub-\AA{} regime, so the close-contact behavior of Native ZBL Zone Bridging (Section~\ref{sec:zbl_method}) is probed directly with a C--Si dimer scan.
+Both a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging are trained on a 3C-SiC (cubic silicon carbide) dataset computed with the ABACUS DFT package~\cite{li2016abacus}.
 The scan drives the pair into the regime where ordinary DFT training data are sparse and the screened nuclear repulsion should dominate, and therefore tests the transition between the learned potential and the analytical ZBL limit.
-The comparison uses a DPA3 baseline with the DeePMD DP-ZBL pairwise correction~\cite{wang2019dpzbl} and a DPA4 model with Native ZBL Zone Bridging enabled.
 
 Figure~\ref{fig:zbl} shows that the energy curves appear smooth over most of the scan, whereas the force curves expose the difference between the two coupling strategies.
 The DPA3 DP-ZBL baseline develops a sharp force excursion near the switching region, producing a local attractive impulse even though the analytical ZBL force~\cite{ziegler1985} is strongly repulsive at these distances.
