@@ -39,7 +39,7 @@
 \label{sec:sm-ablation}
 
 This section provides the complete ablation evidence behind Section~\ref{sec:ablation}.
-The first subsection reports the cumulative ablation behind main-text Fig.~\ref{fig:ablation}, and the following six give the full mechanism-level sweeps for graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, $\Sph$ activation and the Wigner bilinear network.
+The first subsection reports the cumulative ablation behind main-text Fig.~\ref{fig:ablation}, and the following six give the full mechanism-level sweeps for graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, the spherical-grid nonlinearity and the Wigner bilinear network.
 The remaining subsections report model-selection and robustness studies.
 All ablations use the same WBM-subsampled evaluation protocol.
 Relative efficiency metrics are normalized within each controlled group under matched H20 hardware, batch-size, data-loading and precision settings.
@@ -149,7 +149,7 @@ We therefore enable \texttt{torch.compile}, bf16 AMP, and TF32 in the following 
 \end{table}
 
 \FloatBarrier
-\subsection{Attention aggregation}
+\subsection{Attention versus sum aggregation}
 \label{sec:sm-attention-aggregation}
 
 The attention ablation isolates the aggregation rule while holding the feature dimension and focus count fixed within each pair of rows (Table~\ref{tab:dpa4_attention_ablation}).
@@ -294,7 +294,7 @@ These results suggest that compact per-channel kernels act as a structural regul
 
 \FloatBarrier
 
-\subsection{\texorpdfstring{$\Sph$}{S2} activation and quadrature}
+\subsection{Spherical-grid nonlinearity and quadrature rule}
 
 This ablation separates two coupled design choices in the spherical-grid nonlinearity, referred to as the $\Sph$ activation in the following: the model component to which the activation is applied and the quadrature rule used to project grid features back to equivariant coefficients (Table~\ref{tab:sm_quadrature_ablation}).
 When $\Sph$ activation is restricted to the FFN component, replacing the latitude--longitude product grid with the Lebedev rule slightly reduces the energy MAE while leaving the force MAE and computational cost essentially unchanged.
@@ -334,7 +334,7 @@ These results indicate that the FFN-only $\Sph$ activation configuration with Le
 
 \FloatBarrier
 
-\subsection{Wigner bilinear network}
+\subsection{Placement of the Wigner bilinear network}
 
 This ablation isolates the two places where the Wigner bilinear network (WBN) enters an interaction block: the equivariant FFN, where the WBN grid replaces the $\Sph$-grid nonlinearity, and the post-aggregation message--node path, where a WBN grid couples the aggregated message with the destination node state (Table~\ref{tab:sm_wbn_ablation}).
 Each of the two insertions is assessed with the other held fixed.
@@ -380,7 +380,7 @@ The cost of the added capacity falls almost entirely on the parameter count rath
 
 \FloatBarrier
 
-\subsection{Layers}
+\subsection{Interaction depth and stack depth}
 
 Interaction depth is the strongest determinant of accuracy among the structural hyperparameters (Tables~\ref{tab:sm_layers}--\ref{tab:sm_ffn_stack}).
 Both errors fall most rapidly over the first few interaction blocks and then with diminishing returns, while training and inference cost grow approximately linearly with depth (Table~\ref{tab:sm_layers}); the depth of each DPA4 variant is therefore chosen to balance accuracy against cost rather than to minimize the error alone.
@@ -592,7 +592,7 @@ SO(2) post-normalization combined with feed-forward pre-normalization yields the
 \end{table}
 
 \FloatBarrier
-\subsection{Learning-rate scheduler comparison}
+\subsection{Learning-rate schedule}
 
 Under otherwise identical settings, the warmup--stable--decay (WSD) schedule lowers both the energy and force MAEs relative to a cosine schedule (Table~\ref{tab:sm_training_recipe}).
 This advantage is consistent with its extended high-learning-rate phase and short terminal decay, and the WSD schedule is used for the released DPA4 variants.
@@ -661,7 +661,7 @@ This dimer scan is a local close-contact probe; validating long-time energy drif
 
 \subsection{Ablation model configurations}
 
-Table~\ref{tab:sm_main_ablation_config} gives the configurations for the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN grid in the FFN, the edge--node degree coupling and the attention aggregation, and for the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, $\Sph$ activation and the Wigner bilinear network.
+Table~\ref{tab:sm_main_ablation_config} gives the configurations for the cumulative ablation of main-text Fig.~\ref{fig:ablation}, whose four controlled switches are the message node WBN, the WBN grid in the FFN, the edge--node degree coupling and the attention aggregation, and for the mechanism ablations: graph compilation, attention aggregation, multi-focus design, the low-rank edge--node SO(2)-equivariant degree coupling, the spherical-grid nonlinearity and the Wigner bilinear network.
 Table~\ref{tab:sm_supplementary_ablation_config} gives those for the model-selection and robustness ablations.
 Entries marked by ``--'' are the controlled variables within the corresponding experiment family; all other entries define the shared reference setting.
 Horizontal rules separate related groups of hyperparameters without adding category labels to the table body.

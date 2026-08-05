@@ -1,10 +1,11 @@
-\section{Mathematical notation and equivariant operators}
+\section{Mathematical formulation, operators and proofs}
 \label{sec:sm-model-formulation}
 \label{sec:sm-methods}
 
 This section collects the mathematical details that supplement the architecture description in Section~\ref{sec:methods}: the formal SO(3) representation notation, the edge-local frame and SO(2) decomposition, the closed-form cutoff envelope coefficients, the truncated SO(2) layout and rescaled lift, the SO(2)-equivariant operator algebra, and the cutoff-consistent first-layer bias correction used by the ablations in later supplementary sections.
+It closes with two results on the equivariant nonlinearity: the numerical equivariance of the truncated local layouts used inside the EMFA SO(2) convolution, and a proof that the Wigner bilinear network is complete in its full-frame form.
 
-\subsection{SO(3) representation: notation}
+\subsection{Notation for SO(3) representations}
 \label{sec:sm-representation}
 
 For each integer $l\ge 0$, let $V_l\cong\mathbb{R}^{2l+1}$ be the real $(2l+1)$-dimensional irreducible representation of SO(3), spanned by the real spherical harmonics $\{Y_l^m\}_{m=-l}^{l}$.
@@ -443,7 +444,7 @@ A bare stack of Wigner bilinear blocks on a common feature space is therefore it
 \end{remark}
 
 \FloatBarrier
-\section{Training and systems methods}
+\section{Training methods}
 \label{sec:sm-training-systems}
 
 \subsection{Training objective}
