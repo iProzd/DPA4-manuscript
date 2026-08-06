@@ -23,6 +23,7 @@ from pareto_plot_style import (
     create_broken_axis_figure,
     draw_axis_break,
     draw_param_scale,
+    draw_ratio_arrow,
     finalize_figure,
     marker_size,
     style_log_axis,
@@ -295,6 +296,21 @@ def plot_summary(summary: pd.DataFrame) -> tuple[Figure, tuple[Axes, Axes]]:
     )
 
     indexed = summary.set_index("model")
+    equiformer = indexed.loc["EquiformerV3+DeNS-MP"]
+    dpa4_plus = indexed.loc["DPA4-Plus"]
+    equiformer_throughput = float(equiformer["saturated_throughput_atoms_per_ms"])
+    dpa4_plus_throughput = float(dpa4_plus["saturated_throughput_atoms_per_ms"])
+    draw_ratio_arrow(
+        ax_top,
+        source_x=equiformer_throughput,
+        target_x=dpa4_plus_throughput,
+        y=float(equiformer["cps"]),
+        ratio=dpa4_plus_throughput / equiformer_throughput,
+        label_x=1.15,
+        shrink_source=15,
+        shrink_target=11,
+    )
+
     for model in MODELS:
         row = indexed.loc[model.label]
         is_dpa4 = model.label.startswith("DPA4-")

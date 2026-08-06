@@ -16,12 +16,14 @@ from matplotlib.ticker import NullFormatter
 FIGURE_SIZE: Final = (7.3, 5.05)
 FIGURE_DPI: Final = 300
 BASE_FONT_SIZE: Final = 12.0
-AXIS_LABEL_SIZE: Final = 14.0
+AXIS_LABEL_SIZE: Final = 13.0
 TICK_LABEL_SIZE: Final = 11.2
 ANNOTATION_FONT_SIZE: Final = 10.5
 PARAM_SIZE_SCALE: Final = 16.0
 PARETO_LINE_WIDTH: Final = 1.6
 PARETO_LINE_STYLE: Final = (0, (4, 2))
+RATIO_ARROW_COLOR: Final = "#6E6E6E"
+RATIO_ARROW_FONT_SIZE: Final = 10.5
 
 DPA4_COLOR: Final = "#C91D13"
 DPA4_COLORS: Final = {
@@ -193,6 +195,80 @@ def marker_size(params_m: float) -> float:
     if params_m <= 0:
         raise ValueError("params_m must be positive")
     return params_m * PARAM_SIZE_SCALE
+
+
+def draw_ratio_arrow(
+    ax: Axes,
+    source_x: float,
+    target_x: float,
+    y: float,
+    ratio: float,
+    label_x: float,
+    shrink_source: float,
+    shrink_target: float,
+    label_y_offset: float = -0.004,
+) -> None:
+    """Draw a horizontal ratio arrow shared by the two Pareto figures.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axis on which the arrow is drawn.
+    source_x : float
+        Horizontal coordinate of the baseline model.
+    target_x : float
+        Horizontal coordinate of the compared DPA4 model or frontier.
+    y : float
+        Vertical coordinate shared by the arrow endpoints.
+    ratio : float
+        Positive comparison ratio shown next to the arrow.
+    label_x : float
+        Horizontal coordinate of the ratio label.
+    shrink_source : float
+        Padding at the source end in points.
+    shrink_target : float
+        Padding at the arrowhead in points.
+    label_y_offset : float, optional
+        Vertical offset of the ratio label in CPS units.
+
+    Raises
+    ------
+    ValueError
+        If a log-axis coordinate or ratio is not positive, or if padding is
+        negative.
+    """
+    if min(source_x, target_x, label_x) <= 0:
+        raise ValueError("ratio-arrow x coordinates must be positive")
+    if ratio <= 0:
+        raise ValueError("ratio must be positive")
+    if min(shrink_source, shrink_target) < 0:
+        raise ValueError("ratio-arrow padding must be non-negative")
+
+    ax.annotate(
+        "",
+        xy=(target_x, y),
+        xytext=(source_x, y),
+        arrowprops={
+            "arrowstyle": "->",
+            "color": RATIO_ARROW_COLOR,
+            "linewidth": 1.0,
+            "shrinkA": shrink_source,
+            "shrinkB": shrink_target,
+            "zorder": 1,
+        },
+        zorder=1,
+    )
+    ratio_label = f"{ratio:.0f}x" if ratio >= 20 else f"{ratio:.1f}x"
+    ax.text(
+        label_x,
+        y + label_y_offset,
+        ratio_label,
+        fontsize=RATIO_ARROW_FONT_SIZE,
+        color=RATIO_ARROW_COLOR,
+        fontweight="bold",
+        va="top",
+        zorder=6,
+    )
 
 
 def draw_param_scale(

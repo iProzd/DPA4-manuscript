@@ -15,6 +15,7 @@ from pareto_plot_style import (
     create_broken_axis_figure,
     draw_axis_break,
     draw_param_scale,
+    draw_ratio_arrow,
     finalize_figure,
     marker_size,
     style_log_axis,
@@ -202,52 +203,6 @@ def trend_cost_at_cps(cps, lower, upper):
     return 10 ** (np.log10(x0) + frac * (np.log10(x1) - np.log10(x0)))
 
 
-def draw_speedup_arrow(ax, source, target_x, label_x, shrink_target):
-    """
-    Draw a horizontal arrow from a baseline to the DPA4 frontier at equal CPS.
-
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Target axes.
-    source : dict
-        Entry of ``models`` from which the arrow starts.
-    target_x : float
-        Training cost at which the arrow ends, in A100 GPU-days.
-    label_x : float
-        Horizontal position of the speedup annotation.
-    shrink_target : float
-        Padding at the arrow head, in points.
-    """
-    y = source["y"]
-    ax.annotate(
-        "",
-        xy=(target_x, y),
-        xytext=(source["x"], y),
-        arrowprops=dict(
-            arrowstyle="->",
-            color="#6E6E6E",
-            lw=1.0,
-            shrinkA=15,
-            shrinkB=shrink_target,
-            zorder=1,
-        ),
-        zorder=1,
-    )
-    ax.text(
-        label_x,
-        y - 0.004,
-        f"{source['x'] / target_x:.0f}x"
-        if source["x"] / target_x >= 10
-        else f"{source['x'] / target_x:.1f}x",
-        fontsize=10.5,
-        color="#6E6E6E",
-        fontweight="bold",
-        va="top",
-        zorder=6,
-    )
-
-
 def draw_dpa4_trend(ax):
     dpa4_xy = [
         (models["DPA4-mini"]["x"], models["DPA4-mini"]["y"]),
@@ -333,18 +288,28 @@ def main() -> None:
         color=DPA4_COLOR,
     )
 
-    draw_speedup_arrow(
+    eqv3 = models["EqV3+DeNS-MP"]
+    plus_cost = models["DPA4-plus"]["x"]
+    draw_ratio_arrow(
         ax_top,
-        source=models["EqV3+DeNS-MP"],
-        target_x=models["DPA4-plus"]["x"],
+        source_x=eqv3["x"],
+        target_x=plus_cost,
+        y=eqv3["y"],
+        ratio=eqv3["x"] / plus_cost,
         label_x=62,
+        shrink_source=15,
         shrink_target=11,
     )
-    draw_speedup_arrow(
+    esen = models["eSEN-30M-MP"]
+    esen_target_cost = trend_cost_at_cps(esen["y"], "DPA4-neo", "DPA4-air")
+    draw_ratio_arrow(
         ax_top,
-        source=models["eSEN-30M-MP"],
-        target_x=trend_cost_at_cps(models["eSEN-30M-MP"]["y"], "DPA4-neo", "DPA4-air"),
+        source_x=esen["x"],
+        target_x=esen_target_cost,
+        y=esen["y"],
+        ratio=esen["x"] / esen_target_cost,
         label_x=42,
+        shrink_source=15,
         shrink_target=3,
     )
 
@@ -413,7 +378,9 @@ def main() -> None:
     )
 
     finalize_figure(fig, ax_bottom, "Training cost (A100 GPU-days)")
-    output_path = Path(__file__).resolve().parents[1] / "fig" / "fig1_CPS.pdf"
+    output_path = (
+        Path(__file__).resolve().parents[1] / "fig" / "cps-training-cost-pareto.pdf"
+    )
     fig.savefig(output_path)
     plt.close(fig)
     print(f"Saved to {output_path}")
