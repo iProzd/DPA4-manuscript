@@ -59,7 +59,8 @@ Inside the inner zone the learned branch contributes no force, so the short-rang
 \begin{table}[p]
     \PaperTableStyle
     \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.
-        The five DPA4 variants, trained on MPtrj in the compliant setting, are compared with all compliant leaderboard entries on the ranked metrics CPS, F1, $\kappa$SRME and RMSD, together with parameter counts and training cost.}
+        The five DPA4 variants, trained on MPtrj in the compliant setting, are compared with all compliant leaderboard entries on the ranked metrics CPS, F1, $\kappa$SRME and RMSD, together with parameter counts and training cost.
+    }
     \label{tab:matbench}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
@@ -118,7 +119,20 @@ The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric sensiti
 Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
 Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
 
-Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} shows the corresponding accuracy--cost frontier in terms of CPS versus training cost.
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{fig/fig1_CPS.pdf}
+    \caption{
+        Training cost and Combined Performance Score (CPS) for compliant Matbench Discovery models with reported training budgets~\cite{riebesell2025matbench}.
+        Marker area is proportional to the number of model parameters, and training cost is reported in A100-equivalent GPU-days on a logarithmic scale.
+        Dashed marker outlines identify models trained with DeNS or direct-force pretraining.
+        Horizontal arrows give the training-cost ratio between a baseline and a DPA4 variant with comparable or higher CPS.
+    }
+    \label{fig:cps}
+\end{figure}
+
+Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} plots CPS against training cost.
+Figure~\ref{fig:cps-throughput} plots the same score against saturated ASE throughput.
 DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.842 with an F1 score of 0.865, a $\kappa$SRME of 0.227 and an RMSD of 0.068~\AA{} at 25.2M parameters.
 It is the leading compliant model in every ranked metric of the leaderboard, spanning stability classification, thermal conductivity and relaxation quality.
 Its CPS exceeds that of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} by 0.012 (0.842 versus 0.830) while using 17\% fewer parameters (25.2M versus 30.3M).
@@ -152,7 +166,8 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
     \PaperTableStyle
     \caption{Results on the OMat24 validation set.
         The five DPA4 size classes, trained on OMat24 through the conservative energy-gradient objective, are compared with published baselines on energy, force and stress mean absolute errors, together with parameter counts and training cost.
-        The Prediction column distinguishes conservative models, whose forces are energy gradients, from models using direct force prediction or direct-force pre-training.}
+        The Prediction column distinguishes conservative models, whose forces are energy gradients, from models using direct force prediction or direct-force pre-training.
+    }
     \label{tab:omat24}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} c c c c c c c @{}}
@@ -287,7 +302,8 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
 \begin{table}[tp]
     \PaperTableStyle
     \caption{SPICE-MACE-OFF small-molecule benchmark performance.
-        Per-subset energy and force test MAEs of the DPA4-Neo, DPA4-Air and DPA4-Plus variants trained on SPICE-MACE-OFF are compared with MACE-OFF, eSEN and DPA3 baselines, together with parameter counts and training cost; LWAMAE aggregates the subsets as an equal-weight geometric mean.}
+        Per-subset energy and force test MAEs of the DPA4-Neo, DPA4-Air and DPA4-Plus variants trained on SPICE-MACE-OFF are compared with MACE-OFF, eSEN and DPA3 baselines, together with parameter counts and training cost; LWAMAE aggregates the subsets as an equal-weight geometric mean.
+    }
     \label{table:spice}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
@@ -360,12 +376,13 @@ In controlled ablations, the compiled path under \texttt{torch.compile}~\cite{an
 The gain is obtained without replacing energy-based force matching by a direct-force surrogate: the compiled path preserves the scalar energy-to-force relation of the uncompiled model.
 
 Inference efficiency is evaluated through the ASE calculator interface~\cite{ase-paper}, which provides a common end-to-end route for single-point energy, force and stress evaluation across DPA4, DPA3, MACE and EquiformerV3 baselines.
-The DPA4 calculators use compiled inference.
 The MACE baselines are evaluated both in their standard path and with NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
 The comparison sweeps diamond supercells at experimental density from 96 atoms upwards and therefore includes neighbor-list construction, model evaluation and calculator-interface overhead, while holding the local environment fixed at 158 neighbors per atom within the 6~\AA{} DPA4 cutoff.
 All inference benchmarks are run on the same H20 hardware and software environment, with the full configuration reported in Supplementary Section~\ref{sec:sm-inference}.
 
-Figure~\ref{fig:infer_diamond} shows that throughput rises with system size and then saturates once the GPU is fully occupied, so the plateau value characterizes each model.
+Figure~\ref{fig:infer_diamond} shows that throughput rises with system size and approaches a saturated regime as the GPU becomes fully occupied.
+For Fig.~\ref{fig:cps-throughput}, saturated throughput is taken as the largest atom-normalized throughput within the contiguous successful size sweep.
+Among the fifteen compliant models tested, DPA4-Pro has the highest CPS, DPA4-Mini has the highest saturated throughput, and the three intermediate DPA4 variants are non-dominated between these endpoints.
 The MACE-Omat and EquiformerV3 baselines of this sweep share their architecture and parameter count with the corresponding entries of Table~\ref{tab:omat24} (EquiformerV3 in its $L_{\max}=4$, 30M configuration), so accuracy and throughput can be read together.
 
 Against MACE-Omat~\cite{batatia2022mace,batatia2025crosslearning}, DPA4 is simultaneously smaller, more accurate and faster.

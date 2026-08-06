@@ -1,11 +1,24 @@
 from pathlib import Path
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerBase
-from matplotlib.patches import Circle, FancyBboxPatch
-from matplotlib.ticker import NullFormatter
+from matplotlib.patches import Circle
 import numpy as np
+
+from pareto_plot_style import (
+    ANNOTATION_FONT_SIZE,
+    DPA4_COLOR,
+    DPA4_COLORS,
+    PARETO_LINE_STYLE,
+    PARETO_LINE_WIDTH,
+    apply_publication_style,
+    create_broken_axis_figure,
+    draw_axis_break,
+    draw_param_scale,
+    finalize_figure,
+    marker_size,
+    style_log_axis,
+)
 
 try:
     import seaborn as sns
@@ -14,23 +27,31 @@ except ImportError:
 
 
 RMSD_BASELINE = 0.15
-PARAM_SIZE_SCALE = 16
 
-# DPA4 is drawn in the deep red that marks DPA4-Pro in the inference-throughput
-# figure, keeping the family identity consistent across figures. The remaining
-# families follow the same convention: DPA3 the Blues ramp, MACE the Greens ramp
-# and the Equiformer family neutral grays. Other baselines take muted accents.
-DPA4_COLOR = "#C91D13"
+# DPA4 uses the same variant-specific gradient as the inference figures. The
+# remaining families follow the same convention: DPA3 the Blues ramp, MACE the
+# Greens ramp and the Equiformer family neutral grays. Other baselines take
+# muted accents.
 if sns is not None:
     MUTED = sns.color_palette("muted", 10).as_hex()
+
     def _family(name, index=5):
         return sns.color_palette(name, 8).as_hex()[index]
+
     DPA3_COLOR = _family("Blues")
     MACE_COLOR = _family("Greens")
 else:
     MUTED = [
-        "#4878D0", "#EE854A", "#6ACC64", "#D65F5F", "#956CB4",
-        "#8C613C", "#DC7EC0", "#797979", "#D5BB67", "#82C6E2",
+        "#4878D0",
+        "#EE854A",
+        "#6ACC64",
+        "#D65F5F",
+        "#956CB4",
+        "#8C613C",
+        "#DC7EC0",
+        "#797979",
+        "#D5BB67",
+        "#82C6E2",
     ]
     DPA3_COLOR, MACE_COLOR = "#2b7bba", "#41a45c"
 
@@ -57,10 +78,6 @@ def calculate_cps(f1, ksrme, rmsd):
     return 0.5 * f1_norm + 0.4 * ksrme_norm + 0.1 * rmsd_norm
 
 
-def marker_size(params_m):
-    return params_m * PARAM_SIZE_SCALE
-
-
 class DashedCircleLegend:
     def __init__(self, color, label, marker="o"):
         self.color = color
@@ -72,7 +89,9 @@ class DashedCircleLegend:
 
 
 class DashedCircleHandler(HandlerBase):
-    def create_artists(self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans):
+    def create_artists(
+        self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans
+    ):
         radius = min(width, height) * 0.58
         circle = Circle(
             (xdescent + width / 2, ydescent + height / 2),
@@ -86,95 +105,44 @@ class DashedCircleHandler(HandlerBase):
         return [circle]
 
 
-def draw_param_scale(ax, box_x, box_y, box_w, box_h):
-    frame = FancyBboxPatch(
-        (box_x, box_y),
-        box_w,
-        box_h,
-        transform=ax.transAxes,
-        boxstyle="round,pad=0,rounding_size=0.004",
-        facecolor="white",
-        edgecolor="#bbbbbb",
-        linewidth=1.0,
-        alpha=0.95,
-        zorder=8,
-    )
-    ax.add_patch(frame)
-    ax.text(
-        box_x + box_w / 2,
-        box_y + box_h - 0.025,
-        "Params",
-        transform=ax.transAxes,
-        ha="center",
-        va="top",
-        fontsize=8.8,
-        zorder=9,
-    )
-
-    # Centers are not equally spaced: larger bubbles need more center distance
-    # to keep the visible edge gaps balanced.
-    entries = [(1, "1M", 0.73), (10, "10M", 0.48), (25, "25M", 0.22)]
-    for params_m, label, rel_y in entries:
-        y = box_y + box_h * rel_y
-        ax.scatter(
-            [box_x + 0.032],
-            [y],
-            s=marker_size(params_m),
-            transform=ax.transAxes,
-            facecolors="none",
-            edgecolors="#444444",
-            linewidths=0.8,
-            clip_on=False,
-            zorder=9,
-        )
-        ax.text(
-            box_x + 0.078,
-            y,
-            label,
-            transform=ax.transAxes,
-            ha="left",
-            va="center",
-            fontsize=8.4,
-            zorder=9,
-        )
-
-
 # x = A100 GPU-days, y = CPS score, params_m = model parameters in millions.
 models = {
     "Nequix MP": dict(x=21, y=0.729, params_m=0.708, color=NEQUIX_COLOR, marker="o"),
-    "Nequix MP PFT": dict(x=27, y=0.755, params_m=0.708, color=NEQUIX_PFT_COLOR, marker="o"),
-    "eSEN-30M-MP": dict(x=335, y=0.797, params_m=30.1, color=COLORS["purple"], marker="o"),
+    "Nequix MP PFT": dict(
+        x=27, y=0.755, params_m=0.708, color=NEQUIX_PFT_COLOR, marker="o"
+    ),
+    "eSEN-30M-MP": dict(
+        x=335, y=0.797, params_m=30.1, color=COLORS["purple"], marker="o"
+    ),
     "EqV2 S DeNS": dict(x=228, y=0.522, params_m=31.2, color=EQV2_COLOR, marker="o"),
     "Eqnorm-MP": dict(x=83, y=0.756, params_m=1.31, color=COLORS["pink"], marker="o"),
     "MACE-MP-0": dict(x=108, y=0.637, params_m=4.69, color=MACE_COLOR, marker="o"),
     "HIENet": dict(x=120, y=0.707, params_m=7.51, color=COLORS["orange"], marker="o"),
-    "SevenNet-l3i5": dict(x=381, y=0.714, params_m=1.17, color=COLORS["yellow"], marker="o"),
+    "SevenNet-l3i5": dict(
+        x=381, y=0.714, params_m=1.17, color=COLORS["yellow"], marker="o"
+    ),
     "DPA3": dict(x=104, y=0.718, params_m=4.81, color=DPA3_COLOR, marker="o"),
     "EqV3+DeNS-MP": dict(x=157, y=0.830, params_m=30.3, color=EQV3_COLOR, marker="o"),
-    "DPA4-mini": dict(x=5.8, y=0.733, params_m=0.660, color=DPA4_COLOR, marker="o"),
-    "DPA4-neo": dict(x=8.6, y=0.782, params_m=1.125, color=DPA4_COLOR, marker="o"),
-    "DPA4-air": dict(x=16, y=0.811, params_m=5.148, color=DPA4_COLOR, marker="o"),
-    "DPA4-plus": dict(x=31, y=0.829, params_m=8.796, color=DPA4_COLOR, marker="o"),
-    "DPA4-pro": dict(x=233, y=0.842, params_m=25.211, color=DPA4_COLOR, marker="o"),
+    "DPA4-mini": dict(
+        x=5.8, y=0.733, params_m=0.660, color=DPA4_COLORS["Mini"], marker="o"
+    ),
+    "DPA4-neo": dict(
+        x=8.6, y=0.782, params_m=1.125, color=DPA4_COLORS["Neo"], marker="o"
+    ),
+    "DPA4-air": dict(
+        x=16, y=0.811, params_m=5.148, color=DPA4_COLORS["Air"], marker="o"
+    ),
+    "DPA4-plus": dict(
+        x=31, y=0.829, params_m=8.796, color=DPA4_COLORS["Plus"], marker="o"
+    ),
+    "DPA4-pro": dict(
+        x=233, y=0.842, params_m=25.211, color=DPA4_COLORS["Pro"], marker="o"
+    ),
 }
 
 matris = {
     "L": dict(x=224, y=0.778, params_m=10.4),
 }
-
-
-def style_axis(ax):
-    ax.set_xscale("log")
-    ax.set_xlim(4.6, 470)
-    ax.set_xticks([5, 10, 30, 60, 100, 200, 400])
-    ax.set_xticklabels(["5", "10", "30", "60", "100", "200", "400"])
-    ax.xaxis.set_minor_formatter(NullFormatter())
-    ax.grid(True, which="major", linestyle="--", linewidth=0.6, color="#cccccc", alpha=0.7)
-    ax.grid(True, which="minor", axis="x", linestyle=":", linewidth=0.35, color="#dddddd", alpha=0.45)
-    ax.set_axisbelow(True)
-    for spine in ax.spines.values():
-        spine.set_linewidth(1.2)
-    ax.tick_params(axis="both", width=1.1, length=4)
 
 
 def plot_model_points(ax):
@@ -256,14 +224,21 @@ def draw_speedup_arrow(ax, source, target_x, label_x, shrink_target):
         "",
         xy=(target_x, y),
         xytext=(source["x"], y),
-        arrowprops=dict(arrowstyle="->", color="#6E6E6E", lw=1.0,
-                        shrinkA=15, shrinkB=shrink_target, zorder=1),
+        arrowprops=dict(
+            arrowstyle="->",
+            color="#6E6E6E",
+            lw=1.0,
+            shrinkA=15,
+            shrinkB=shrink_target,
+            zorder=1,
+        ),
         zorder=1,
     )
     ax.text(
         label_x,
         y - 0.004,
-        f"{source['x'] / target_x:.0f}x" if source["x"] / target_x >= 10
+        f"{source['x'] / target_x:.0f}x"
+        if source["x"] / target_x >= 10
         else f"{source['x'] / target_x:.1f}x",
         fontsize=10.5,
         color="#6E6E6E",
@@ -284,43 +259,25 @@ def draw_dpa4_trend(ax):
     ax.plot(
         [p[0] for p in dpa4_xy],
         [p[1] for p in dpa4_xy],
-        linestyle="--",
+        linestyle=PARETO_LINE_STYLE,
         color=DPA4_COLOR,
-        linewidth=1.3,
-        alpha=0.85,
+        linewidth=PARETO_LINE_WIDTH,
+        alpha=0.88,
         zorder=2,
     )
 
 
-def draw_axis_break(ax_top, ax_bottom):
-    ax_top.spines["bottom"].set_visible(False)
-    ax_bottom.spines["top"].set_visible(False)
-    ax_top.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
-    ax_bottom.tick_params(axis="x", which="both", top=False)
-
-    d = 0.008
-    kwargs = dict(color="black", clip_on=False, linewidth=1.0)
-    ax_top.plot((-d, +d), (-d, +d), transform=ax_top.transAxes, **kwargs)
-    ax_top.plot((1 - d, 1 + d), (-d, +d), transform=ax_top.transAxes, **kwargs)
-    ax_bottom.plot((-d, +d), (1 - d, 1 + d), transform=ax_bottom.transAxes, **kwargs)
-    ax_bottom.plot((1 - d, 1 + d), (1 - d, 1 + d), transform=ax_bottom.transAxes, **kwargs)
-
-
-def main():
-    mpl.rcParams["font.family"] = "Times New Roman"
-    mpl.rcParams["font.serif"] = ["Times New Roman"]
-    mpl.rcParams["font.size"] = 12
-
-    fig, (ax_top, ax_bottom) = plt.subplots(
-        2,
-        1,
-        sharex=True,
-        figsize=(6.4, 5.05),
-        gridspec_kw={"height_ratios": [2.0, 1.0], "hspace": 0.04},
-    )
+def main() -> None:
+    apply_publication_style()
+    fig, (ax_top, ax_bottom) = create_broken_axis_figure()
 
     for ax in (ax_top, ax_bottom):
-        style_axis(ax)
+        style_log_axis(
+            ax,
+            x_limits=(4.6, 470),
+            ticks=(5, 10, 30, 60, 100, 200, 400),
+            tick_labels=("5", "10", "30", "60", "100", "200", "400"),
+        )
         plot_model_points(ax)
 
     ax_top.set_ylim(0.695, 0.862)
@@ -335,7 +292,7 @@ def main():
         xy=(models["DPA4-mini"]["x"], models["DPA4-mini"]["y"]),
         xytext=(3, -15),
         textcoords="offset points",
-        fontsize=10.5,
+        fontsize=ANNOTATION_FONT_SIZE,
         fontweight="bold",
         color=DPA4_COLOR,
     )
@@ -344,7 +301,7 @@ def main():
         xy=(models["DPA4-neo"]["x"], models["DPA4-neo"]["y"]),
         xytext=(4, -15),
         textcoords="offset points",
-        fontsize=10.5,
+        fontsize=ANNOTATION_FONT_SIZE,
         fontweight="bold",
         color=DPA4_COLOR,
     )
@@ -353,7 +310,7 @@ def main():
         xy=(models["DPA4-air"]["x"], models["DPA4-air"]["y"]),
         xytext=(-17, 8),
         textcoords="offset points",
-        fontsize=10.5,
+        fontsize=ANNOTATION_FONT_SIZE,
         fontweight="bold",
         color=DPA4_COLOR,
     )
@@ -362,7 +319,7 @@ def main():
         xy=(models["DPA4-plus"]["x"], models["DPA4-plus"]["y"]),
         xytext=(-22, 10),
         textcoords="offset points",
-        fontsize=10.5,
+        fontsize=ANNOTATION_FONT_SIZE,
         fontweight="bold",
         color=DPA4_COLOR,
     )
@@ -371,7 +328,7 @@ def main():
         xy=(models["DPA4-pro"]["x"], models["DPA4-pro"]["y"]),
         xytext=(-22, 10),
         textcoords="offset points",
-        fontsize=10.5,
+        fontsize=ANNOTATION_FONT_SIZE,
         fontweight="bold",
         color=DPA4_COLOR,
     )
@@ -442,8 +399,10 @@ def main():
     ax_bottom.add_artist(leg)
 
     fig.canvas.draw()
-    legend_bbox = leg.get_frame().get_window_extent(fig.canvas.get_renderer()).transformed(
-        ax_bottom.transAxes.inverted()
+    legend_bbox = (
+        leg.get_frame()
+        .get_window_extent(fig.canvas.get_renderer())
+        .transformed(ax_bottom.transAxes.inverted())
     )
     draw_param_scale(
         ax_bottom,
@@ -453,12 +412,10 @@ def main():
         legend_bbox.height * 0.90,
     )
 
-    ax_bottom.set_xlabel("Training cost (A100 GPU-days)", fontsize=14, labelpad=8)
-    fig.text(0.028, 0.54, "CPS score (higher is better)", va="center", rotation="vertical", fontsize=14)
-
-    fig.subplots_adjust(left=0.13, right=0.98, bottom=0.13, top=0.96, hspace=0.04)
+    finalize_figure(fig, ax_bottom, "Training cost (A100 GPU-days)")
     output_path = Path(__file__).resolve().parents[1] / "fig" / "fig1_CPS.pdf"
-    plt.savefig(output_path, bbox_inches="tight")
+    fig.savefig(output_path)
+    plt.close(fig)
     print(f"Saved to {output_path}")
 
 

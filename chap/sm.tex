@@ -622,16 +622,31 @@ This advantage is consistent with its extended high-learning-rate phase and shor
 \section{Inference benchmark protocol}
 \label{sec:sm-inference}
 
-The throughput reported in Section~\ref{sec:efficiency} is measured on diamond supercells, which give single-composition systems whose size can be varied over more than two orders of magnitude while the local environment stays fixed; at the 6~\AA{} cutoff used by DPA4 every atom carries 158 neighbors, so the test is representative of a comparatively dense environment.
-Each point averages 30 single-point evaluations after warm-up, and the sweep for each model terminates at the largest supercell that fits in the memory of one GPU.
-MACE-Omat-Small and MACE-Omat-Medium are the \texttt{mace-omat-0-small} and \texttt{mace-omat-0-medium} checkpoints of the MACE-OMAT-0 release~\cite{batatia2025crosslearning}, obtained from \url{https://github.com/ACEsuit/mace-foundations}; the same checkpoints supply the MACE-Omat rows of Table~\ref{tab:omat24}.
-The EquiformerV3 timing uses the MPtrj checkpoint of the $L_{\max}=4$ architecture, which carries the same parameter count and layer structure as the OMat24 model of Table~\ref{tab:omat24} and therefore the same inference cost.
+The ASE throughput benchmarks use periodic diamond supercells at a lattice constant of 3.567~\AA{}.
+This system permits a wide size sweep at fixed local geometry; within the 6~\AA{} DPA4 cutoff, every atom has 158 neighbors and therefore represents a comparatively dense inference workload.
+For each target size, the cubic eight-atom cell is repeated by a near-cubic integer triplet, so the realized atom count can differ slightly from the target.
+Each ASE calculator~\cite{ase-paper} is reset before requesting energy, forces and stress, with CUDA synchronized immediately before and after the timed region.
+After 10 warm-up evaluations, 30 evaluations are timed and their mean wall time is used to compute throughput.
 
-All ASE inference benchmarks were run on the same NVIDIA H20 hardware and base system environment with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0.
-The benchmarks used the ASE calculator interface~\cite{ase-paper}; DPA4 calculators used compiled inference with Python 3.13.13, PyTorch 2.11.0+cu128, ASE 3.28.0 and NumPy 2.4.4.
-The MACE baselines~\cite{batatia2022mace,barroso2024open,batatia2025crosslearning} used MACE 0.3.15 with Python 3.11.15 and PyTorch 2.10.0+cu128; the cuEq variants used NVIDIA cuEquivariance-accelerated equivariant kernels~\cite{nvidia_cuequivariance}.
-EquiformerV3~\cite{liao2026equiformerv3} used the \texttt{atomicarchitects/equiformer\_v3} implementation at commit \texttt{a7300c5} with Python 3.11.15 and PyTorch 2.8.0+cu128.
-All ASE baseline environments used ASE 3.28.0 and NumPy 2.4.4.
+The target atom counts are 100, 200, 300, 500, 700, 1{,}000, 1{,}500, 2{,}000, 2{,}500, 3{,}000, 3{,}500, 4{,}000, 4{,}500, 5{,}000, 6{,}000, 7{,}000, 8{,}000, 9{,}000, 10{,}000, 13{,}000, 16{,}000, 20{,}000, 25{,}000, 30{,}000, 35{,}000, 40{,}000, 45{,}000, 50{,}000, 60{,}000, 70{,}000, 80{,}000, 90{,}000 and 100{,}000.
+The sweep stops at its first out-of-memory target.
+For the CPS--throughput Pareto analysis in Fig.~\ref{fig:cps-throughput}, saturated throughput is defined as the largest throughput within the contiguous successful part of the sweep; the failed boundary point is excluded.
+CPS values are taken from Table~\ref{tab:matbench}.
+The comparison includes the five DPA4 variants and ten representative compliant baselines: DPA-3.1-MPtrj~\cite{zhang2025dpa3}, EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens}, MatRIS-10M-MP~\cite{zhou2026matris}, Nequix MP PFT~\cite{koker2026pft}, Nequip-MP-L~\cite{batzner2022nequip}, Allegro-MP-L~\cite{musaelian2022learning}, SevenNet-l3i5~\cite{park2024scalable}, MACE-MP-0~\cite{batatia2022mace,batatia2023foundation}, ORB v2 MPtrj~\cite{neumann2024orb} and CHGNet~\cite{deng2023chgnet}.
+For each baseline, we use the checkpoint corresponding to the compliant Matbench Discovery entry in Table~\ref{tab:matbench}.
+The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-1-pft}, \texttt{SevenNet-l3i5}, the \texttt{medium} MACE-MP-0 checkpoint, the ORB loader \texttt{orb\_mptraj\_only\_v2}, CHGNet 0.3.0, and version 0.1 of \texttt{mir-group/NequIP-MP-L} and \texttt{mir-group/Allegro-MP-L}; the EquiformerV3 artifact and implementation revision are specified below.
+
+All measurements are performed on a single NVIDIA H20 GPU with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0 through the ASE interface.
+DPA4 inference uses our Triton-fused operators with PyTorch 2.11.0.
+The baseline environments use model-compatible PyTorch 2.8.0 or 2.10.0 releases.
+MACE 0.3.15 and SevenNet 0.12.1 use cuEquivariance 0.10.0~\cite{nvidia_cuequivariance}; the SevenNet flash path is disabled.
+ORB 0.5.5 uses its CUDA \texttt{torch.compile} path, whereas Nequix 0.4.5 uses its Torch kernel path with graph compilation disabled.
+Nequip-MP-L and Allegro-MP-L are compiled on the H20 with AOTInductor and loaded through the NequIP 0.16.1 compiled-model calculator with matscipy 1.2.0 neighbor lists; the Allegro 0.8.0 package additionally uses its Triton contraction backend.
+MatRIS is evaluated at commit \texttt{c16f569c} with its compiled Cython graph converter, and CHGNet 0.3.0 uses its standard CUDA ASE calculator.
+These baseline environments use Python 3.11.15, ASE 3.28.0 and NumPy 2.4.4, except for the CHGNet 0.3.0 compatibility environment, which uses ASE 3.22.1 and NumPy 1.24.4.
+
+For Fig.~\ref{fig:infer_diamond}, MACE-Omat-Small and MACE-Omat-Medium are the \texttt{mace-omat-0-small} and \texttt{mace-omat-0-medium} checkpoints of the MACE-OMAT-0 release~\cite{batatia2025crosslearning}; these checkpoints also supply the corresponding rows of Table~\ref{tab:omat24}.
+The EquiformerV3 timing uses the MPtrj checkpoint of the $L_{\max}=4$ architecture and the \texttt{atomicarchitects/equiformer\_v3} implementation at commit \texttt{a7300c5}~\cite{liao2026equiformerv3}.
 
 \FloatBarrier
 \section{Close-contact probe of the ZBL branch}

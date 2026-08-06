@@ -21,15 +21,19 @@ Leading models such as EquiformerV3, eSEN and UMA work around this by pretrainin
 This two-stage protocol spends an additional pretraining stage and the engineering effort to maintain two objectives, motivating an architecture in which conservative energy-gradient training is itself compiler-friendly from the start.
 % These considerations motivate an architecture that treats directional expressiveness, and training efficiency as coupled design requirements rather than separate add-ons.
 
-\begin{figure}[t]
+\begin{figure}[!t]
     \centering
-    \includegraphics[width=0.6\linewidth]{fig/fig1_CPS.pdf}
+    \includegraphics[width=\linewidth]{fig/cps-throughput-pareto.pdf}
     \caption{
-        Combined Performance Score (CPS) versus training cost for representative MLIPs.
-        Marker area is proportional to the number of model parameters, and the x-axis uses a logarithmic scale of A100 GPU-days.
-        Dashed marker outlines indicate models trained with additional strategies such as direct-force pretraining or DeNS.
+        Accuracy--throughput Pareto frontier for compliant Matbench Discovery models~\cite{riebesell2025matbench}.
+        The Combined Performance Score (CPS) is plotted against saturated ASE throughput for the five DPA4 variants and ten representative baselines.
+        Marker area is proportional to the number of model parameters.
+        For each model, saturated throughput is the largest atom-normalized throughput within the contiguous successful diamond-supercell sweep; at each system size, throughput is computed from the mean wall time of 30 evaluations of energy, forces and stress after warm-up on a single NVIDIA H20 GPU.
+        Higher values are preferred on both axes; the dashed line joins the non-dominated DPA4 variants.
+        The break in the CPS axis omits the empty interval between 0.66 and 0.695.
+        The complete benchmark protocol is given in Supplementary Section~\ref{sec:sm-inference}.
     }
-    \label{fig:cps}
+    \label{fig:cps-throughput}
 \end{figure}
 
 Here we introduce DPA4, an SE(3)-equivariant interatomic-potential architecture built on an EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution and a Wigner bilinear network (WBN) nonlinearity, which achieves leading accuracy at substantially lower model and training cost on inorganic-crystal and organic-molecule benchmarks.
@@ -38,8 +42,8 @@ All four raise generalization accuracy at low computational cost relative to sta
 A shape-stable, compiler-friendly implementation of conservative energy-gradient training makes the energy-to-force path compatible with \texttt{torch.compile} and gives a threefold wall-clock training speedup in controlled ablations.
 In addition, native ZBL zone bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, so that at very close atomic distances, where the potential-energy surface is sparsely sampled by training data, the force is by construction the analytical repulsion.
 
-Across four datasets spanning inorganic crystals and organic molecules, DPA4 variants define a new accuracy--cost frontier.
-On Matbench Discovery~\cite{riebesell2025matbench}, the five variants trace that frontier from 5.8 to 233 A100-equivalent GPU-days (Fig.~\ref{fig:cps}), and no baseline matches any of them at less than four times its training budget.
+Across four datasets spanning inorganic crystals and organic molecules, DPA4 combines high accuracy with low training and inference cost.
+On Matbench Discovery~\cite{riebesell2025matbench}, all five variants lie on the Pareto frontier in CPS and saturated ASE throughput among the fifteen compliant models tested (Fig.~\ref{fig:cps-throughput}).
 At the top, the 25.2M-parameter DPA4-Pro leads every ranked metric of the compliant leaderboard, and on the much larger OMat24 dataset~\cite{barroso2024open} it attains the lowest energy error of all models compared, with 6.1$\times$ and 27.8$\times$ fewer parameters than the two next most accurate models.
 Lower down, the 8.8M-parameter DPA4-Plus matches the strongest Matbench baseline with 3.4$\times$ fewer parameters and 5.1$\times$ less training compute, is bettered on the out-of-distribution split of OMol25~\cite{levine2025open} only by a 1.4B-parameter multitask model, and attains the lowest aggregate errors on SPICE-MACE-OFF~\cite{kovacs2023mace} (Table~\ref{table:spice}).
 All of this is obtained through conservative energy-gradient training alone, without the denoising or direct-force pretraining on which the strongest baselines rely, offering a way past the training-cost bottleneck of current LAMs without sacrificing generalizability.

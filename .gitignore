@@ -341,3 +341,4 @@ __pycache__/
 *.pdf
 AGENTS.md
 tmp/
+data/
