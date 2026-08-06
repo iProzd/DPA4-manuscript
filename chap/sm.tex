@@ -43,7 +43,8 @@ The first subsection reports the cumulative ablation behind main-text Fig.~\ref{
 The remaining subsections report model-selection and robustness studies.
 All ablations use the same WBM-subsampled evaluation protocol.
 Relative efficiency metrics are normalized within each controlled group under matched H20 hardware, batch-size, data-loading and precision settings.
-Unless otherwise noted, \textit{Train time (rel.)} denotes relative training wall-clock time, and
+Unless otherwise noted, \textit{Train time (rel.)
+} denotes relative training wall-clock time, and
 \textit{Test time (rel.)} denotes the wall-clock time of a full test pass over the
 WBM-subsampled test set in DeePMD-kit.
 Boldface and underlining denote the best and second-best values only for metrics in which ranking is explicitly highlighted.
@@ -265,8 +266,8 @@ These results suggest that compact per-channel kernels act as a structural regul
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccc@{}}
             \toprule
             \makecell{\textbf{Edge--node}\\\textbf{degree coupling}} &
-            \textbf{Per-channel mod.} &
-            \textbf{Modulation rank} &
+            \textbf{Per-channel coupling} &
+            \textbf{Coupling rank} &
             \textbf{E MAE}$\downarrow$ &
             \textbf{F MAE}$\downarrow$ &
             \textbf{Train time (rel.)}$\downarrow$ &
@@ -319,7 +320,8 @@ The released DPA4 variants therefore use Lebedev quadrature.
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
             \item[a] Both rows apply the nonlinearity in the equivariant FFN only, on the $k_{\max}=0$ spherical grid; the SO(2) convolution carries no grid nonlinearity.
-            Train time (rel.) and Test time (rel.) are normalized to the
+            Train time (rel.
+            ) and Test time (rel.) are normalized to the
             latitude--longitude product-grid row.
             The quadrature rule is used when projecting spherical-grid features back to equivariant coefficients.
         \end{tablenotes}
@@ -679,9 +681,8 @@ Thin horizontal rules separate related groups of model or training hyperparamete
     \label{tab:sm_main_ablation_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.35cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention} & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{Sph. grid/}\\\textbf{quad.}} & \textbf{WBN} \\
+                L{3.35cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}C{1.58cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{Cumulative}\\\textbf{ablation}} & \makecell{\textbf{Compile/}\\\textbf{precision}} & \textbf{Attention} & \makecell{\textbf{Multi-focus}\\\textbf{SO(2)}} & \makecell{\textbf{Edge--node}\\\textbf{degree}\\\textbf{coupling}} & \makecell{\textbf{Sph.
+                    grid/}\\\textbf{quad.}} & \textbf{WBN} \\
             \midrule
             Feature dim.                  & 64                                                & 64                                               & 64/96/96                                                                     & --                                              & 64                                               & 64                                          & 64 \\
             No. focuses                   & 1                                                 & 1                                                & 1/1/2                                                                        & --                                              & 1                                                & 1                                           & 1 \\
@@ -696,8 +697,8 @@ Thin horizontal rules separate related groups of model or training hyperparamete
             Cutoff (\AA)                  & 6                                                 & 6                                                & 6                                                                            & 6                                               & 6                                                & 6                                           & 6 \\
             \midrule
             Edge--node degree coupling\tnote{g}   & --                                                & Degree mixing                                    & Scalar scaling                                                               & Scalar scaling                                  & --                                               & Degree mixing                               & Degree mixing \\
-            Per-channel mod.              & --                                                & True                                             & N/A                                                                          & N/A                                             & --                                               & True                                        & True \\
-            Modulation rank               & --                                                & 1                                                & N/A                                                                          & N/A                                             & --                                               & 1                                           & 2 \\
+            Per-channel coupling              & --                                                & True                                             & N/A                                                                          & N/A                                             & --                                               & True                                        & True \\
+            Coupling rank               & --                                                & 1                                                & N/A                                                                          & N/A                                             & --                                               & 1                                           & 2 \\
             \midrule
             Attn. heads                   & --                                                & 1                                                & --                                                                           & 1                                               & 1                                                & 1                                           & 1 \\
             Attn. value/output proj.  & False                                             & False                                            & False                                                                        & False                                           & False                                            & False                                       & False \\
@@ -719,14 +720,10 @@ Thin horizontal rules separate related groups of model or training hyperparamete
             TF32 matmul                   & True                                              & --                                               & True                                                                         & True                                            & True                                             & True                                        & True \\
             \midrule
             LR scheduler                  & WSD                                               & Cosine                                           & Cosine                                                                       & WSD                                             & Cosine                                           & Cosine                                      & WSD \\
-            Max. LR                       & $4\times10^{-4}$                                  & $4\times10^{-4}$                                 & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$}                                    & $4\times10^{-4}$                                & $4.5\times10^{-4}$                               & $4.5\times10^{-4}$                          & $4\times10^{-4}$ \\
-            Min. LR                       & $1\times10^{-6}$                                  & $1\times10^{-6}$                                 & $1\times10^{-6}$                                                             & $1\times10^{-6}$                                & $1\times10^{-6}$                                 & $1\times10^{-6}$                            & $1\times10^{-6}$ \\
-            Warmup ratio                  & 0.003                                             & 0.003                                            & 0.003                                                                        & 0.003                                           & 0.003                                            & 0.003                                       & 0.003 \\
-            Decay ratio                   & 0.65                                              & N/A                                              & N/A                                                                          & 0.65                                            & N/A                                              & N/A                                         & 0.65 \\
-            Decay type                    & Cosine                                            & N/A                                              & N/A                                                                          & Cosine                                          & N/A                                              & N/A                                         & Cosine \\
-            Batch size (per GPU)\tnote{c} & $\lceil 900/N\rceil$                              & $\lceil 450/N\rceil$                             & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$                            & $\lceil 1000/N\rceil$                            & $\lceil 700/N\rceil$                        & $\lceil 900/N\rceil$ \\
-            Training steps                & $1\times10^6$                                     & $1\times10^6$                                    & $1\times10^6$                                                                & $2\times10^6$                                   & $1\times10^6$                                    & $1\times10^6$                               & $5\times10^5$ \\
-            No. GPUs                      & 1                                                 & 1                                                & 1                                                                            & 1                                               & 1                                                & 1                                           & 1 \\
+            Max.
+            LR & $4\times10^{-4}$ & $4\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ & $4.5\times10^{-4}$ & $4\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & N/A & N/A & 0.65 & N/A & N/A & 0.65 \\ Decay type & Cosine & N/A & N/A & Cosine & N/A & N/A & Cosine \\ Batch size (per GPU)\tnote{c} & $\lceil 900/N\rceil$ & $\lceil 450/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 600/N\rceil$ & $\lceil 1000/N\rceil$ & $\lceil 700/N\rceil$ & $\lceil 900/N\rceil$ \\ Training steps & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $5\times10^5$ \\ No.
+            GPUs                      & 1                                                 & 1                                                & 1                                                                            & 1                                               & 1                                                & 1                                           & 1 \\
             \midrule
             Loss                          & MAE                                               & MAE                                              & MAE                                                                          & MAE                                             & MAE                                              & MAE                                         & MAE \\
             Loss weights $(E,F,V)$        & 20, 20, 5                                         & 20, 20, 5                                        & 20, 20, 5                                                                    & 20, 20, 5                                       & 20, 20, 5                                        & 20, 20, 5                                   & 20, 20, 5 \\
@@ -764,9 +761,8 @@ Thin horizontal rules separate related groups of model or training hyperparamete
     \label{tab:sm_supplementary_ablation_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.15cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \textbf{Layers} & \makecell{\textbf{SO(2)}\\\textbf{stack}} & \makecell{\textbf{FFN}\\\textbf{stack}} & \textbf{Attention} & \makecell{\textbf{Norm.}\\\textbf{placement}} & \makecell{\textbf{LR}\\\textbf{scheduler}} \\
+                L{3.15cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{Layers} & \makecell{\textbf{SO(2)}\\\textbf{stack}} & \makecell{\textbf{FFN}\\\textbf{stack}} & \textbf{Attention} & \makecell{\textbf{Norm.
+                }\\\textbf{placement}} & \makecell{\textbf{LR}\\\textbf{scheduler}} \\
             \midrule
             Feature dim. & 64 & 64 & 64 & 64/96/96 & 64 & 64 \\
             No. focuses & 1 & 1 & 1 & 1/1/2 & 1 & 1 \\
@@ -781,8 +777,8 @@ Thin horizontal rules separate related groups of model or training hyperparamete
             Cutoff (\AA) & 6 & 6 & 6 & 6 & 6 & 6 \\
             \midrule
             Edge--node degree coupling & Scalar scaling & Degree mixing & Degree mixing & Scalar scaling & Scalar scaling & Degree mixing \\
-            Per-channel mod. & N/A & True & True & N/A & N/A & True \\
-            Modulation rank & N/A & 1 & 1 & N/A & N/A & 1 \\
+            Per-channel coupling & N/A & True & True & N/A & N/A & True \\
+            Coupling rank & N/A & 1 & 1 & N/A & N/A & 1 \\
             \midrule
             Attn. heads & 1 & 1 & 1 & -- & 1 & 1 \\
             Attn. value/output proj. & False & False & False & -- & False & False \\
@@ -804,14 +800,10 @@ Thin horizontal rules separate related groups of model or training hyperparamete
             TF32 matmul & True & True & True & True & True & True \\
             \midrule
             LR scheduler & Cosine & WSD & WSD & Cosine & WSD & -- \\
-            Max. LR & $5\times10^{-4}$ & $6.5\times10^{-4}$ & $4.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\
-            Decay ratio & N/A & 0.65 & 0.65 & N/A & 0.65 & -- \\
-            Decay type & N/A & Cosine & Cosine & N/A & Cosine & -- \\
-            Batch size (per GPU) & $\lceil 512/N\rceil$ & $\lceil 2100/N\rceil$ & $\lceil 900/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 1000/N\rceil$ & $\lceil 1000/N\rceil$ \\
-            Training steps & $2\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ \\
-            No. GPUs & 1 & 1 & 1 & 1 & 1 & 1 \\
+            Max.
+            LR & $5\times10^{-4}$ & $6.5\times10^{-4}$ & $4.5\times10^{-4}$ & \makecell{$4.5/4.2/3.5$\\$\times10^{-4}$} & $4\times10^{-4}$ & $4.5\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & N/A & 0.65 & 0.65 & N/A & 0.65 & -- \\ Decay type & N/A & Cosine & Cosine & N/A & Cosine & -- \\ Batch size (per GPU) & $\lceil 512/N\rceil$ & $\lceil 2100/N\rceil$ & $\lceil 900/N\rceil$ & \makecell{$\lceil 1000/N\rceil$\\$\lceil 700/N\rceil$\\$\lceil 400/N\rceil$} & $\lceil 1000/N\rceil$ & $\lceil 1000/N\rceil$ \\ Training steps & $2\times10^6$ & $2\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ & $1\times10^6$ \\ No.
+            GPUs & 1 & 1 & 1 & 1 & 1 & 1 \\
             \midrule
             Loss & MAE & MAE & MAE & MAE & MAE & MAE \\
             Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
@@ -851,11 +843,8 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_model_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{4.2cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\
-            \midrule
-            Feature dim.                 & 32                 & 64                 & 64                 & 64                 & 128                \\
+                L{4.2cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule Feature dim.
+            & 32                 & 64                 & 64                 & 64                 & 128                \\
             No. focuses                  & 1                  & 2                  & 1                  & 1                  & 2                  \\
             No. layers                   & 2                  & 2                  & 3                  & 4                  & 6                  \\
             SO(2) layers                 & 3                  & 3                  & 4                  & 4                  & 4                  \\
@@ -868,8 +857,8 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
             Cutoff (\AA)                 & 6                  & 6                  & 6                  & 6                  & 6                  \\
             \midrule
             Edge--node degree coupling\tnote{a}  & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
-            Per-channel mod.             & True               & True               & True               & True               & True               \\
-            Modulation rank              & 1                  & 1                  & 1                  & 2                  & 2                  \\
+            Per-channel coupling             & True               & True               & True               & True               & True               \\
+            Coupling rank              & 1                  & 1                  & 1                  & 2                  & 2                  \\
             \midrule
             Attn. heads                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
             Attn. value/output proj. & False              & False              & False              & False              & False              \\
@@ -917,19 +906,10 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_matbench_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\
-            \midrule
-            LR scheduler & WSD & WSD & WSD & WSD & WSD \\
-            Max. LR & $2\times10^{-3}$ & $7\times10^{-4}$ & $4.2\times10^{-4}$ & $4.7\times10^{-4}$ & $4.3\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\
-            Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\
-            Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\
-            Batch size (per GPU)\tnote{a} & $\lceil 7000/N\rceil$ & $\lceil 3000/N\rceil$ & $\lceil 1800/N\rceil$ & $\lceil 1500/N\rceil$ & $\lceil 300/N\rceil$ \\
-            Training epochs & 150 & 100 & 100 & 100 & 140 \\
-            No. GPUs & 1 & 2 & 2 & 4 & 16 \\
+                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & WSD & WSD & WSD & WSD & WSD \\ Max.
+            LR & $2\times10^{-3}$ & $7\times10^{-4}$ & $4.2\times10^{-4}$ & $4.7\times10^{-4}$ & $4.3\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 7000/N\rceil$ & $\lceil 3000/N\rceil$ & $\lceil 1800/N\rceil$ & $\lceil 1500/N\rceil$ & $\lceil 300/N\rceil$ \\ Training epochs & 150 & 100 & 100 & 100 & 140 \\ No.
+            GPUs & 1 & 2 & 2 & 4 & 16 \\
             \midrule
             Loss & MAE & MAE & MAE & MAE & MAE \\
             Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
@@ -949,17 +929,10 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_omat24_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\
-            \midrule
-            LR scheduler & Cosine & Cosine & Cosine & Cosine & Cosine \\
-            Max. LR & $1\times10^{-3}$ & $8\times10^{-4}$ & $4\times10^{-4}$ & $3\times10^{-4}$ & $2\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\
-            Batch size (per GPU)\tnote{a} & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\
-            Training epochs & 7 & 7 & 6 & 5 & 5 \\
-            No. GPUs & 2 & 2 & 4 & 4 & 16 \\
+                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & Cosine & Cosine & Cosine & Cosine & Cosine \\ Max.
+            LR & $1\times10^{-3}$ & $8\times10^{-4}$ & $4\times10^{-4}$ & $3\times10^{-4}$ & $2\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Batch size (per GPU)\tnote{a} & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\ Training epochs & 7 & 7 & 6 & 5 & 5 \\ No.
+            GPUs & 2 & 2 & 4 & 4 & 16 \\
             \midrule
             Loss & MAE & MAE & MAE & MAE & MAE \\
             Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
@@ -979,19 +952,10 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_omol25_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\
-            \midrule
-            LR scheduler & WSD & WSD & WSD & WSD & WSD \\
-            Max. LR & $6\times10^{-4}$ & $8\times10^{-4}$ & $3.5\times10^{-4}$ & $3.5\times10^{-4}$ & $3\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\
-            Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\
-            Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\
-            Batch size (per GPU)\tnote{a} & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\
-            Training epochs & 18 & 16 & 14 & 12 & 10 \\
-            No. GPUs & 4 & 8 & 16 & 24 & 32 \\
+                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & WSD & WSD & WSD & WSD & WSD \\ Max.
+            LR & $6\times10^{-4}$ & $8\times10^{-4}$ & $3.5\times10^{-4}$ & $3.5\times10^{-4}$ & $3\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\ Training epochs & 18 & 16 & 14 & 12 & 10 \\ No.
+            GPUs & 4 & 8 & 16 & 24 & 32 \\
             \midrule
             Loss & MAE & MAE & MAE & MAE & MAE \\
             Loss weights $(E,F,V)$ & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 \\
@@ -1011,19 +975,10 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_spice_mace_off_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.6cm}C{2.8cm}C{2.8cm}C{2.8cm}@{}}
-            \toprule
-            \textbf{Hyperparameter} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} \\
-            \midrule
-            LR scheduler & WSD & WSD & WSD \\
-            Max. LR & $8\times10^{-4}$ & $5\times10^{-4}$ & $3.5\times10^{-4}$ \\
-            Min. LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\
-            Warmup ratio & 0.003 & 0.003 & 0.003 \\
-            Decay ratio & 0.65 & 0.65 & 0.65 \\
-            Decay type & Cosine & Cosine & Cosine \\
-            Batch size (per GPU)\tnote{a} & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 1000/N\rceil$ \\
-            Training steps & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\
-            No. GPUs & 1 & 1 & 1 \\
+                L{3.6cm}C{2.8cm}C{2.8cm}C{2.8cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} \\ \midrule LR scheduler & WSD & WSD & WSD \\ Max.
+            LR & $8\times10^{-4}$ & $5\times10^{-4}$ & $3.5\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 1000/N\rceil$ \\ Training steps & $2\times10^6$ & $2\times10^6$ & $2\times10^6$ \\ No.
+            GPUs & 1 & 1 & 1 \\
             \midrule
             Loss & MAE & MAE & MAE \\
             Loss weights $(E,F,V)$ & 15, 20, 0 & 15, 20, 0 & 15, 20, 0 \\
