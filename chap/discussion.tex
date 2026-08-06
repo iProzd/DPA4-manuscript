@@ -11,7 +11,7 @@ Across materials and molecular benchmarks, DPA4 reaches leading accuracy at a fr
 On Matbench Discovery, DPA4-Pro leads every ranked metric of the compliant leaderboard, and the five variants define an accuracy--cost frontier that no baseline matches at less than four times its training budget.
 On OMat24, DPA4-Pro attains the lowest validation energy MAE of all models compared, with $6.1\times$ and $27.8\times$ fewer parameters than the two next most accurate models.
 On the out-of-distribution split of OMol25, DPA4-Plus is bettered only by a 1.4B-parameter multitask model.
-On SPICE-MACE-OFF, DPA4-Plus lowers the aggregate energy and force errors of the best published model by $36\%$ and $32\%$.
+On SPICE-MACE-OFF, DPA4-Plus lowers the aggregate energy and force errors of the best published model by $39\%$ and $36\%$.
 These results are obtained through the conservative energy-gradient path alone, without the denoising or direct-force pretraining stages on which the strongest baselines rely; the compiled implementation removes the double-backward overhead that motivated such two-stage protocols.
 This makes compact, single-task energy-conservative potentials practical to train, ablate and redeploy in molecular-dynamics and structure-relaxation workflows.
 
