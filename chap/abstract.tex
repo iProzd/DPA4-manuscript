@@ -3,7 +3,7 @@
     We introduce DPA4, an SE(3)-equivariant architecture whose five size classes, from 0.66 to 25 million parameters, match or exceed the strongest published models at several-fold to an order of magnitude lower training cost.
     Its EMFA (Edge--node degree coupling, Multi-Focus, Attention) convolution acts in an edge-local frame where the rotation-equivariant message reduces exactly to SO(2), and there couples edge and node features across all pairs of angular degrees rather than degree by degree.
     The nonlinearity is a Wigner bilinear network, which in its full form approximates any rotation-equivariant map to arbitrary accuracy and, evaluated on an exact quadrature grid, is equivariant to machine precision.
-    On Matbench Discovery, DPA4 leads every ranked metric, and all five variants lie on the Pareto frontier in CPS and saturated ASE throughput among the fifteen compliant models tested.
+    On Matbench Discovery, DPA4 leads every ranked metric, and all five variants lie on the Pareto frontier in CPS and saturated inference throughput among the fifteen compliant models tested.
     On OMat24, DPA4-Pro attains the lowest energy error of all models compared; DPA4-Plus matches EquiformerV3+DeNS-MP at 3.4$\times$ fewer parameters and 5.1$\times$ less training compute.
     On the out-of-distribution split of OMol25 that variant is bettered only by a 1.4B-parameter multitask model, and on SPICE-MACE-OFF it lowers aggregate energy and force errors by 39\% and 36\% against the best published model.
     All variants are trained through the conservative energy-gradient path with no denoising or direct-force stage, made practical by a compiled double-backward implementation that is threefold faster.

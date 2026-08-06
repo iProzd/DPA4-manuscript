@@ -622,7 +622,7 @@ This advantage is consistent with its extended high-learning-rate phase and shor
 \section{Inference benchmark protocol}
 \label{sec:sm-inference}
 
-The ASE throughput benchmarks use periodic diamond supercells at a lattice constant of 3.567~\AA{}.
+The inference-throughput benchmarks use periodic diamond supercells at a lattice constant of 3.567~\AA{}.
 This system permits a wide size sweep at fixed local geometry; within the 6~\AA{} DPA4 cutoff, every atom has 158 neighbors and therefore represents a comparatively dense inference workload.
 For each target size, the cubic eight-atom cell is repeated by a near-cubic integer triplet, so the realized atom count can differ slightly from the target.
 Each ASE calculator~\cite{ase-paper} is reset before requesting energy, forces and stress, with CUDA synchronized immediately before and after the timed region.

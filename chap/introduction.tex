@@ -26,7 +26,7 @@ This two-stage protocol spends an additional pretraining stage and the engineeri
     \includegraphics[width=\linewidth]{fig/cps-throughput-pareto.pdf}
     \caption{
         Accuracy--throughput Pareto frontier for compliant Matbench Discovery models~\cite{riebesell2025matbench}.
-        The Combined Performance Score (CPS) is plotted against saturated ASE throughput for the five DPA4 variants and ten representative baselines.
+        The Combined Performance Score (CPS) is plotted against saturated inference throughput for the five DPA4 variants and ten representative baselines.
         Marker area is proportional to the number of model parameters.
         For each model, saturated throughput is the largest atom-normalized throughput within the contiguous successful diamond-supercell sweep; at each system size, throughput is computed from the mean wall time of 30 evaluations of energy, forces and stress after warm-up on a single NVIDIA H20 GPU.
         Higher values are preferred on both axes; the dashed line joins the non-dominated DPA4 variants.
@@ -44,7 +44,7 @@ A shape-stable, compiler-friendly implementation of conservative energy-gradient
 In addition, native ZBL zone bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, so that at very close atomic distances, where the potential-energy surface is sparsely sampled by training data, the force is by construction the analytical repulsion.
 
 Across four datasets spanning inorganic crystals and organic molecules, DPA4 combines high accuracy with low training and inference cost.
-On Matbench Discovery~\cite{riebesell2025matbench}, all five variants lie on the Pareto frontier in CPS and saturated ASE throughput among the fifteen compliant models tested (Fig.~\ref{fig:cps-throughput}).
+On Matbench Discovery~\cite{riebesell2025matbench}, all five variants lie on the Pareto frontier in CPS and saturated inference throughput among the fifteen compliant models tested (Fig.~\ref{fig:cps-throughput}).
 At the top, the 25.2M-parameter DPA4-Pro leads every ranked metric of the compliant leaderboard, and on the much larger OMat24 dataset~\cite{barroso2024open} it attains the lowest energy error of all models compared, with 6.1$\times$ and 27.8$\times$ fewer parameters than the two next most accurate models.
 Lower down, the 8.8M-parameter DPA4-Plus matches the strongest Matbench baseline with 3.4$\times$ fewer parameters and 5.1$\times$ less training compute, is bettered on the out-of-distribution split of OMol25~\cite{levine2025open} only by a 1.4B-parameter multitask model, and attains the lowest aggregate errors on SPICE-MACE-OFF~\cite{kovacs2023mace} (Table~\ref{table:spice}).
 All of this is obtained through conservative energy-gradient training alone, without the denoising or direct-force pretraining on which the strongest baselines rely, offering a way past the training-cost bottleneck of current LAMs without sacrificing generalizability.

@@ -15,6 +15,7 @@ from pareto_plot_style import (
     create_broken_axis_figure,
     draw_axis_break,
     draw_param_scale,
+    draw_pareto_legend,
     draw_ratio_arrow,
     finalize_figure,
     marker_size,
@@ -369,12 +370,21 @@ def main() -> None:
         .get_window_extent(fig.canvas.get_renderer())
         .transformed(ax_bottom.transAxes.inverted())
     )
+    param_box_x = legend_bbox.x1 - 0.032
+    param_box_y = legend_bbox.y0
+    param_box_w = 0.135
+    param_box_h = legend_bbox.height * 0.90
     draw_param_scale(
         ax_bottom,
-        legend_bbox.x1 - 0.032,
-        legend_bbox.y0,
-        0.135,
-        legend_bbox.height * 0.90,
+        param_box_x,
+        param_box_y,
+        param_box_w,
+        param_box_h,
+    )
+    draw_pareto_legend(
+        ax_bottom,
+        anchor_x=param_box_x + param_box_w + 0.02,
+        anchor_y=param_box_y + param_box_h / 2,
     )
 
     finalize_figure(fig, ax_bottom, "Training cost (A100 GPU-days)")

@@ -9,6 +9,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 from matplotlib.patches import FancyBboxPatch
 from matplotlib.ticker import NullFormatter
 
@@ -338,6 +339,45 @@ def draw_param_scale(
             fontsize=8.4,
             zorder=9,
         )
+
+
+def draw_pareto_legend(ax: Axes, anchor_x: float, anchor_y: float) -> None:
+    """Place the Pareto-frontier key beside the parameter scale.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axis that owns the legend.
+    anchor_x, anchor_y : float
+        Left-centre anchor of the legend in axis coordinates.
+
+    Raises
+    ------
+    ValueError
+        If the anchor lies outside the axis coordinate range.
+    """
+    if not 0 <= anchor_x <= 1 or not 0 <= anchor_y <= 1:
+        raise ValueError("Pareto legend anchor must lie within the axis")
+
+    handle = Line2D(
+        [0],
+        [0],
+        color=DPA4_COLOR,
+        linewidth=PARETO_LINE_WIDTH,
+        linestyle=PARETO_LINE_STYLE,
+        label="Pareto frontier",
+    )
+    legend = ax.legend(
+        handles=[handle],
+        loc="center left",
+        bbox_to_anchor=(anchor_x, anchor_y),
+        frameon=False,
+        fontsize=10,
+        handlelength=2.4,
+        handletextpad=0.55,
+        borderaxespad=0,
+    )
+    legend.set_zorder(10)
 
 
 def finalize_figure(

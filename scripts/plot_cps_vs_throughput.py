@@ -1,4 +1,4 @@
-"""Plot Matbench Discovery CPS against saturated ASE inference throughput."""
+"""Plot Matbench Discovery CPS against saturated inference throughput."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from typing import Final
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
@@ -23,6 +22,7 @@ from pareto_plot_style import (
     create_broken_axis_figure,
     draw_axis_break,
     draw_param_scale,
+    draw_pareto_legend,
     draw_ratio_arrow,
     finalize_figure,
     marker_size,
@@ -365,19 +365,23 @@ def plot_summary(summary: pd.DataFrame) -> tuple[Figure, tuple[Axes, Axes]]:
             zorder=6,
         )
 
-    legend = [
-        Line2D(
-            [0],
-            [0],
-            color=DPA4_COLOR,
-            linewidth=PARETO_LINE_WIDTH,
-            linestyle=PARETO_LINE_STYLE,
-            label="Pareto frontier",
-        )
-    ]
-    ax_top.legend(handles=legend, loc="lower left", frameon=False, fontsize=10)
-    draw_param_scale(ax_bottom, box_x=0.018, box_y=0.06, box_w=0.14, box_h=0.78)
-    finalize_figure(figure, ax_bottom, "Saturated ASE throughput (atoms/ms)")
+    param_box_x = 0.018
+    param_box_y = 0.06
+    param_box_w = 0.14
+    param_box_h = 0.78
+    draw_param_scale(
+        ax_bottom,
+        box_x=param_box_x,
+        box_y=param_box_y,
+        box_w=param_box_w,
+        box_h=param_box_h,
+    )
+    draw_pareto_legend(
+        ax_bottom,
+        anchor_x=param_box_x + param_box_w + 0.03,
+        anchor_y=param_box_y + param_box_h / 2,
+    )
+    finalize_figure(figure, ax_bottom, "Saturated inference throughput (atoms/ms)")
     return figure, (ax_top, ax_bottom)
 
 
