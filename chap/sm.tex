@@ -632,9 +632,47 @@ The target atom counts are 100, 200, 300, 500, 700, 1{,}000, 1{,}500, 2{,}000, 2
 The sweep stops at its first out-of-memory target.
 For the CPS--throughput Pareto analysis in Fig.~\ref{fig:cps-throughput}, saturated throughput is defined as the largest throughput within the contiguous successful part of the sweep; the failed boundary point is excluded.
 CPS values are taken from Table~\ref{tab:matbench}.
+The saturated throughput of each model, the system size at which it is attained and the largest system evaluated within the memory of one GPU are collected in Table~\ref{tab:sm_saturated_throughput}.
 The comparison includes the five DPA4 variants and ten representative compliant baselines: DPA-3.1-MPtrj~\cite{zhang2025dpa3}, EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens}, MatRIS-10M-MP~\cite{zhou2026matris}, Nequix MP PFT~\cite{koker2026pft}, Nequip-MP-L~\cite{batzner2022nequip}, Allegro-MP-L~\cite{musaelian2022learning}, SevenNet-l3i5~\cite{park2024scalable}, MACE-MP-0~\cite{batatia2022mace,batatia2023foundation}, ORB v2 MPtrj~\cite{neumann2024orb} and CHGNet~\cite{deng2023chgnet}.
 For each baseline, we use the checkpoint corresponding to the compliant Matbench Discovery entry in Table~\ref{tab:matbench}.
 The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-1-pft}, \texttt{SevenNet-l3i5}, the \texttt{medium} MACE-MP-0 checkpoint, the ORB loader \texttt{orb\_mptraj\_only\_v2}, CHGNet 0.3.0, and version 0.1 of \texttt{mir-group/NequIP-MP-L} and \texttt{mir-group/Allegro-MP-L}; the EquiformerV3 artifact and implementation revision are specified below.
+
+\begin{table}[ht]
+    \PaperTableStyle
+    \caption{
+        Saturated inference throughput on the diamond supercell sweep.
+        The saturating size is the realized atom count at which the largest throughput of the contiguous successful sweep is attained, and the largest size is the largest supercell evaluated within the memory of one NVIDIA H20 GPU.
+    }
+    \label{tab:sm_saturated_throughput}
+    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l
+            S[table-format=2.3]
+            S[table-format=5.0,group-separator={{,}},group-minimum-digits=4]
+            S[table-format=5.0,group-separator={{,}},group-minimum-digits=4]@{}}
+        \toprule
+        \textbf{Model} &
+        {\textbf{Sat.\ throughput (atoms/ms)}} &
+        {\textbf{Saturating size (atoms)}} &
+        {\textbf{Largest size (atoms)}} \\
+        \midrule
+        DPA4-Pro             & 1.30  & 1440  & 1440  \\
+        DPA4-Plus            & 5.01  & 4536  & 5040  \\
+        DPA4-Air             & 10.8  & 8000  & 9984  \\
+        DPA4-Neo             & 25.5  & 9984  & 9984  \\
+        DPA4-Mini            & 62.8  & 39304 & 39304 \\
+        \midrule
+        ORB v2 MPtrj         & 52.2  & 1440  & 25088 \\
+        SevenNet-l3i5        & 27.8  & 30056 & 30056 \\
+        Nequix MP PFT        & 18.2  & 16016 & 25088 \\
+        MACE-MP-0            & 11.5  & 5832  & 39304 \\
+        Nequip-MP-L          & 3.35  & 2016  & 2016  \\
+        Allegro-MP-L         & 1.40  & 2016  & 3024  \\
+        DPA-3.1-MPtrj        & 0.94  & 720   & 720   \\
+        EquiformerV3+DeNS-MP & 0.43  & 288   & 288   \\
+        CHGNet               & 0.37  & 96    & 1000  \\
+        MatRIS-10M-MP        & 0.055 & 512   & 512   \\
+        \bottomrule
+    \end{tabular*}
+\end{table}
 
 All measurements are performed on a single NVIDIA H20 GPU with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0 through the ASE interface.
 DPA4 inference uses our Triton-fused operators with PyTorch 2.11.0.
