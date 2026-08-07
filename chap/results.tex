@@ -119,36 +119,24 @@ The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric sensiti
 Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
 Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
 
-\begin{figure}[!t]
-    \centering
-    \includegraphics[width=\linewidth]{fig/cps-training-cost-pareto.pdf}
-    \caption{
-        Training cost and Combined Performance Score (CPS) for compliant Matbench Discovery models with reported training budgets~\cite{riebesell2025matbench}.
-        Marker area is proportional to the number of model parameters, and training cost is reported in A100-equivalent GPU-days on a logarithmic scale.
-        Dashed marker outlines identify models trained with DeNS or direct-force pretraining.
-        Horizontal arrows give the training-cost ratio between a baseline and a DPA4 variant with comparable or higher CPS.
-    }
-    \label{fig:cps}
-\end{figure}
-
-Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics, while Fig.~\ref{fig:cps} plots CPS against training cost.
+Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics together with the parameter count and training cost of each model.
 Figure~\ref{fig:cps-throughput} plots the same score against saturated inference throughput.
 DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.842 with an F1 score of 0.865, a $\kappa$SRME of 0.227 and an RMSD of 0.068~\AA{} at 25.2M parameters.
 It is the leading compliant model in every ranked metric of the leaderboard, spanning stability classification, thermal conductivity and relaxation quality.
 Its CPS exceeds that of EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens} by 0.012 (0.842 versus 0.830) while using 17\% fewer parameters (25.2M versus 30.3M).
 
-This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked in the DeNS column of Table~\ref{tab:matbench} and by dashed marker outlines in Fig.~\ref{fig:cps}.
+This comparison is notable because several high-ranking baselines use additional accuracy-enhancing training stages, marked in the DeNS column of Table~\ref{tab:matbench}.
 DeNS~\cite{liao2024dens} has been shown to improve equivariant force fields by denoising non-equilibrium structures, and EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3} further combines this strategy with direct-force pretraining.
 DPA4-Pro uses neither DeNS nor direct-force training; it is trained through the conservative energy-gradient path and still surpasses the DeNS-assisted EquiformerV3 baseline in CPS.
 This suggests that the accuracy advantage originates in the architecture itself rather than in an auxiliary denoising or direct-force objective.
 
-The smaller DPA4 variants extend this accuracy--cost trade-off across model scales, matching or surpassing much larger baselines at a small fraction of their model size and training budget.
-DPA4-Plus reaches a CPS of 0.829 with 8.8M parameters, matching EquiformerV3+DeNS-MP to within 0.001 CPS while using 3.4$\times$ fewer parameters and 5.1$\times$ less training compute (31 versus 157 A100-equivalent GPU-days).
+The smaller DPA4 variants extend this trade-off across model scales: all five variants lie on the Pareto frontier in CPS and saturated inference throughput (Fig.~\ref{fig:cps-throughput}), and each matches or surpasses much larger baselines at a small fraction of their model size and training budget.
+DPA4-Plus reaches a CPS of 0.829 with 8.8M parameters, matching EquiformerV3+DeNS-MP to within 0.001 CPS while running 11.6$\times$ faster at saturated inference and using 3.4$\times$ fewer parameters and 5.1$\times$ less training compute (31 versus 157 A100-equivalent GPU-days).
 DPA4-Air reaches a CPS of 0.811 with 5.1M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with a 5.9$\times$ smaller model and 20.9$\times$ less training compute (16 versus 335 GPU-days).
 DPA4-Neo contains only 1.1M parameters but still reaches a CPS of 0.782, above MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a 9.5$\times$ smaller model and 26$\times$ less training compute (8.6 versus 224 GPU-days).
 DPA4-Mini, the smallest variant at 0.66M parameters, reaches a CPS of 0.733 at a training budget of 5.8 GPU-days, above the Nequip-MP-L and Nequix MP entries of Table~\ref{tab:matbench} (0.730 and 0.729 CPS) at 7.1$\times$ and 3.6$\times$ less training compute.
 
-Within the DPA4 series, the accuracy--cost curve in Fig.~\ref{fig:cps} flattens sharply at the top end.
+Within the DPA4 series, the accuracy--cost trade-off of Table~\ref{tab:matbench} flattens sharply at the top end.
 The step from DPA4-Plus to DPA4-Pro multiplies the parameter count by 2.9 and the training budget by 7.5 (31 to 233 GPU-days) yet raises CPS by only 0.013, whereas the Mini--Neo, Neo--Air and Air--Plus steps gain 0.049, 0.029 and 0.018 CPS for 1.5$\times$, 1.9$\times$ and 1.9$\times$ the budget.
 DPA4-Plus therefore sits at the knee of the frontier: it is the smallest and cheapest model in the table that matches the accuracy of the strongest baseline, while DPA4-Pro converts a disproportionate compute investment into the remaining margin at the top of the leaderboard.
 The training cost also grows sublinearly with model size at the lower end, rising by only 1.9$\times$ from Neo to Air against a 4.6$\times$ increase in parameters, because neighbor-list construction, geometric preprocessing and memory traffic occupy a larger fraction of each step once the arithmetic workload no longer saturates the GPU.
@@ -157,7 +145,7 @@ Rescaled by the peak-FLOP ratio, the 16 GPU-day budget of DPA4-Air corresponds t
 
 With the leading compliant models now separated by only small CPS margins, substantial further gains in accuracy are likely to require training data beyond the fixed MPtrj set.
 The compliant setting nevertheless remains the appropriate basis for the present comparison: holding the training data fixed across models attributes the observed CPS differences to the architectures themselves.
-Within this setting, the accuracy--cost frontier remains open in the cost direction, namely how far equal accuracy can be attained at further reduced training cost.
+Within this setting, the accuracy--cost frontier remains open in the cost direction, namely how far equal accuracy can be attained at further reduced inference and training cost.
 
 \subsection{OMat24 inorganic materials benchmark}
 \label{sec:omat24}

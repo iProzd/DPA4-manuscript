@@ -4,8 +4,8 @@ Machine-learning interatomic potentials (MLIPs) are moving from case-specific mo
 The lineage runs from the descriptor- and kernel-based potentials of the case-specific era~\cite{behler2007generalized,bartok2010gaussian,schutt2017schnet,unke2019physnet,zhang2018deep,wang2018deepmd} to the graph neural network models that define the LAM era~\cite{chen2022universal,deng2023chgnet,batatia2022mace,kovacs2023mace,yang2024mattersim,neumann2024orb,rhodes2025orbv3,liao2023equiformerv2,liao2026equiformerv3,wood2025umafamilyuniversalmodels,zhang2024dpa2,zhang2025dpa3}.
 
 That promise is expensive to realize: pretraining UMA-M~\cite{wood2025umafamilyuniversalmodels}, built on the eSEN architecture~\cite{fu2025esen}, required 129{,}024 H200 GPU-hours.
-The barrier is not confined to pretraining: fine-tuning to a target domain runs the same architecture, so the per-step expense that makes pretraining costly is paid again by every downstream user.
-This motivates the question whether comparable accuracy can be reached at substantially lower training cost.
+The barrier is not confined to pretraining: the per-step expense that makes pretraining costly is paid again in fine-tuning to a target domain, and then at every step of molecular dynamics or structure relaxation in deployment.
+This motivates the question whether comparable accuracy can be reached at substantially lower cost, at inference as well as in training.
 % The next challenge is no longer accuracy alone, but the joint optimization of accuracy, efficiency and physical robustness.
 
 On the accuracy side, equivariant architectures carry directional information as first-class features that transform under SO(3), instead of compressing it immediately into rotation-invariant features; NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace}, the Equiformer family~\cite{liao2022equiformer,liao2023equiformerv2,liao2026equiformerv3} and eSEN~\cite{fu2025esen} have shown that explicit directional features substantially improve data efficiency and benchmark accuracy.
@@ -23,7 +23,7 @@ This two-stage protocol spends an additional pretraining stage and the engineeri
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=\linewidth]{fig/cps-throughput-pareto.pdf}
+    \includegraphics[width=.7\linewidth]{fig/cps-throughput-pareto.pdf}
     \caption{
         Accuracy--throughput Pareto frontier for compliant Matbench Discovery models~\cite{riebesell2025matbench}.
         The Combined Performance Score (CPS) is plotted against saturated inference throughput for the five DPA4 variants and ten representative baselines.
@@ -37,13 +37,13 @@ This two-stage protocol spends an additional pretraining stage and the engineeri
     \label{fig:cps-throughput}
 \end{figure}
 
-Here we introduce DPA4, an SE(3)-equivariant interatomic-potential architecture built on an EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution and a Wigner bilinear network (WBN) nonlinearity, which achieves leading accuracy at substantially lower model and training cost on inorganic-crystal and organic-molecule benchmarks.
+Here we introduce DPA4, an SE(3)-equivariant interatomic-potential architecture built on an EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution and a Wigner bilinear network (WBN) nonlinearity, which achieves leading accuracy at substantially lower inference and training cost on inorganic-crystal and organic-molecule benchmarks.
 Its architectural innovations, co-designed for efficiency and accuracy, are (A1) a low-rank edge--node SO(2)-equivariant degree coupling in an edge-local frame, (A2) a multi-focus design for message nonlinearity, (A3) envelope-gated attention for message aggregation --- the E, MF and A of EMFA --- and (A4) a Wigner bilinear network, a universal architecture for nonlinear SO(3)-equivariant maps between irreps, provably complete in its full-frame form.
 All four raise generalization accuracy at low computational cost relative to standard SO(2)-equivariant baselines; the WBN, evaluated by exact Lebedev--uniform quadrature on the rotation group, is in addition equivariant to machine precision.
 A shape-stable, compiler-friendly implementation of conservative energy-gradient training makes the energy-to-force path compatible with \texttt{torch.compile} and gives a threefold wall-clock training speedup in controlled ablations.
 In addition, native ZBL zone bridging couples the analytical Ziegler--Biersack--Littmark short-range repulsion~\cite{ziegler1985} to the learned branch inside the energy model, so that at very close atomic distances, where the potential-energy surface is sparsely sampled by training data, the force is by construction the analytical repulsion.
 
-Across four datasets spanning inorganic crystals and organic molecules, DPA4 combines high accuracy with low training and inference cost.
+Across four datasets spanning inorganic crystals and organic molecules, DPA4 combines high accuracy with low inference and training cost.
 On Matbench Discovery~\cite{riebesell2025matbench}, all five variants lie on the Pareto frontier in CPS and saturated inference throughput among the fifteen compliant models tested (Fig.~\ref{fig:cps-throughput}).
 At the top, the 25.2M-parameter DPA4-Pro leads every ranked metric of the compliant leaderboard, and on the much larger OMat24 dataset~\cite{barroso2024open} it attains the lowest energy error of all models compared, with 6.1$\times$ and 27.8$\times$ fewer parameters than the two next most accurate models.
 Lower down, the 8.8M-parameter DPA4-Plus matches the strongest Matbench baseline with 3.4$\times$ fewer parameters and 5.1$\times$ less training compute, is bettered on the out-of-distribution split of OMol25~\cite{levine2025open} only by a 1.4B-parameter multitask model, and attains the lowest aggregate errors on SPICE-MACE-OFF~\cite{kovacs2023mace} (Table~\ref{table:spice}).

@@ -5,11 +5,11 @@ DPA4 shows that the accuracy--cost trade-off of equivariant interatomic potentia
 Inside the EMFA SO(2) convolution, which avoids the full cost of SO(3) Clebsch--Gordan tensor products while remaining more expressive than prior SO(2) reductions, the edge--node degree coupling (A1), the multi-focus design (A2) and the envelope-gated attention (A3) each raise accuracy at low cost.
 The Wigner bilinear network (A4) supplies the nonlinearity: it couples all angular degrees at once, in its full form approximates any continuous SO(3)-equivariant map, and, evaluated by exact Lebedev--uniform quadrature, is equivariant to machine precision.
 Complementing the architecture, a compiler-friendly implementation makes the conservative energy-to-force path compatible with \texttt{torch.compile} and removes the systems overhead that usually limits expressive equivariant models.
-The cumulative ablation confirms that every mechanism contributes (Section~\ref{sec:ablation}); together, these designs move DPA4 onto a new accuracy--cost Pareto frontier on Matbench Discovery and a better accuracy--parameter frontier across inorganic crystals and organic molecules.
+The cumulative ablation confirms that every mechanism contributes (Section~\ref{sec:ablation}); together, these designs move DPA4 onto a new accuracy--cost frontier, in inference, training and parameter cost alike, across inorganic-crystal and organic-molecule benchmarks.
 
-Across materials and molecular benchmarks, DPA4 reaches leading accuracy at a fraction of the parameter count and training cost of the strongest baselines.
+Across materials and molecular benchmarks, DPA4 reaches leading accuracy at a fraction of the cost of the strongest baselines.
 On Matbench Discovery, DPA4-Pro leads every ranked metric of the compliant leaderboard, and all five variants lie on the Pareto frontier in CPS and saturated inference throughput among the fifteen compliant models tested (Fig.~\ref{fig:cps-throughput}).
-They also define an accuracy--training-cost frontier that no baseline matches at less than four times its training budget (Fig.~\ref{fig:cps}).
+They also define an accuracy--training-cost frontier that no baseline matches at less than four times its training budget (Table~\ref{tab:matbench}).
 On OMat24, DPA4-Pro attains the lowest validation energy MAE of all models compared, with $6.1\times$ and $27.8\times$ fewer parameters than the two next most accurate models.
 On the out-of-distribution split of OMol25, DPA4-Plus is bettered only by a 1.4B-parameter multitask model.
 On SPICE-MACE-OFF, DPA4-Plus lowers the aggregate energy and force errors of the best published model by $39\%$ and $36\%$.
