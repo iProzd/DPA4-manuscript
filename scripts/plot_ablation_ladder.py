@@ -4,9 +4,10 @@ Draw the cumulative ablation of the DPA4 architectural components.
 The left matrix states which components each configuration retains: a filled marker
 denotes a component that is present and an open marker one that has been removed.
 Reading downwards, one further component is switched off at every row, so each row
-accumulates the removals above it. The two bar panels give the resulting test error
-relative to the complete architecture, and the segments of a bar are the increments
-contributed by the individual removals.
+accumulates the removals above it. The three bar panels give the resulting test error
+and inference time relative to the complete architecture. Each segment is the
+increment contributed by one removal, normalized by the complete-architecture value,
+so the segments sum to the cumulative label at every rung.
 
 Segment colours follow the sequential ``Blues`` ramp of the inference-throughput
 figure, ordered so that later removals appear darker.
@@ -44,13 +45,15 @@ class Rung:
 
 
 # Ordered from the complete architecture downwards; `removed` names the component
-# switched off at that row, on top of every removal above it.
+# switched off at that row, on top of every removal above it. Accuracy metrics are
+# the t-1 entries in section 2.2 of X.0 Ablation.ipynb; inference times are the
+# corresponding three-checkpoint averages.
 LADDER = (
-    Rung("", "", 31.007, 39.169, 20.2),
-    Rung("Message node WBN", "MN", 31.585, 38.957, 19.8),
-    Rung("WBN in FFN", "WBN", 33.226, 39.918, 18.7),
-    Rung("Low-rank edge\u2013node product", "EC", 34.529, 42.004, 18.1),
-    Rung("Envelope-gated attention", "Attn", 39.671, 44.581, 17.7),
+    Rung("", "", 31.00681, 39.16882, 20.2),
+    Rung("Message node WBN", "MN", 31.58496, 38.95662, 19.8),
+    Rung("WBN in FFN", "WBN", 33.22586, 39.91841, 18.7),
+    Rung("Low-rank edge\u2013node product", "EC", 34.52942, 42.00412, 18.1),
+    Rung("Envelope-gated attention", "Attn", 39.67069, 44.58118, 17.7),
 )
 
 PANELS = (
@@ -74,9 +77,9 @@ def segment_palette() -> list[tuple[float, float, float]]:
     return sns.color_palette("Blues", n_steps + 4)[3:-1]
 
 
-def cumulative_increase(field: str) -> list[float]:
+def cumulative_change(field: str) -> list[float]:
     """
-    Accumulate the error increase along the ablation, in percent.
+    Calculate the cumulative change from the complete architecture.
 
     Parameters
     ----------
@@ -86,7 +89,8 @@ def cumulative_increase(field: str) -> list[float]:
     Returns
     -------
     list[float]
-        Increase of every configuration relative to the complete architecture.
+        Relative change of every configuration from the complete architecture,
+        in percent.
     """
     values = [getattr(rung, field) for rung in LADDER]
     return [100 * (value / values[0] - 1) for value in values]
@@ -169,7 +173,7 @@ def draw_panel(
     colors : list[tuple[float, float, float]]
         One colour per removal step.
     """
-    cumulative = cumulative_increase(field)
+    cumulative = cumulative_change(field)
     span = xlim[1] - xlim[0]
 
     for row, total in enumerate(cumulative):

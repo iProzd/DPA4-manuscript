@@ -5,14 +5,15 @@ To establish that the accuracy--cost gains originate from the proposed mechanism
 Starting from the complete DPA4 interaction block, the components are removed one after another, with each removal retained in all subsequent configurations; every configuration is retrained under an identical protocol and evaluated on a subsample of the WBM test set~\cite{WBM}.
 Figure~\ref{fig:ablation} reports the outcome, with the underlying numbers in Supplementary Table~\ref{tab:sm_cumulative_ablation}; the complete sweeps, protocols and configurations are given in Supplementary Section~\ref{sec:sm-ablation}.
 
-Every component contributes, and the four together lower the energy and force MAEs by 21.8\% and 12.1\% relative to the fully ablated baseline (energy 31.007 against 39.671~meV/atom, force 39.169 against 44.581~meV/\AA{}); the per-component percentages below are the relative increments between successive rungs of the ladder.
-Envelope-gated attention (A3) is the largest single contributor: switching it off raises the energy MAE by 14.9\% and the force MAE by 6.1\%.
+Removing all four components raises the energy and force MAEs by 27.9\% and 13.8\%, respectively, relative to the complete architecture (31.007 to 39.671~meV/atom and 39.169 to 44.581~meV/\AA{}).
+To make this cumulative decomposition additive, every percentage quoted for the ladder is an absolute increment divided by the corresponding complete-architecture value, rather than a ratio between adjacent rungs.
+Envelope-gated attention (A3) is the largest single contributor: switching it off accounts for 16.6 percentage points of the energy increase and 6.6 points of the force increase.
 Because its weights are computed from rotationally invariant scalar channels, this gain reflects adaptive neighbor weighting rather than any relaxation of SO(3) equivariance.
-The low-rank edge--node SO(2)-equivariant degree coupling (A1) accounts for 3.9\% and 5.2\%, and thus matters more for forces than for energies, whereas the WBN inside the equivariant FFN (A4) accounts for 5.2\% and 2.5\% and shows the opposite balance.
-The second WBN, acting on the post-aggregation message--node path, i.e.\ the term $\mathcal{M}_i$ of Eq.~\eqref{eq:dpa4-message-node} (MN in Fig.~\ref{fig:ablation}), adds a further 1.9\% in energy with no resolvable effect on forces (Fig.~\ref{fig:ablation}b).
+The low-rank edge--node SO(2)-equivariant degree coupling (A1) accounts for 4.2 energy and 5.3 force percentage points, and thus matters more for forces than for energies, whereas the WBN inside the equivariant FFN (A4) accounts for 5.3 and 2.5 points and shows the opposite balance.
+The second WBN, acting on the post-aggregation message--node path, i.e.\ the term $\mathcal{M}_i$ of Eq.~\eqref{eq:dpa4-message-node} (MN in Fig.~\ref{fig:ablation}), contributes 1.9 energy percentage points; its force contribution is $-0.5$ points because removing it marginally lowers the force MAE, so this ladder does not resolve a force benefit (Fig.~\ref{fig:ablation}b).
 
-These four components cost little at inference: together they multiply the parameter count by 1.7, from 1.19M to 2.05M, but raise the inference time by only 14\% (Fig.~\ref{fig:ablation}c).
-The trade is most favorable for the envelope-gated attention, whose 14.9\% energy contribution costs about 2\% of inference time; the remaining components purchase their gains at roughly percent-for-percent cost.
+The aggregate inference overhead is modest: removing all four components reduces the parameter count from 2.05M to 1.19M but shortens the inference time by only 12.4\%, from 20.2 to 17.7~s (Fig.~\ref{fig:ablation}c).
+Within the same additive decomposition, attention contributes 16.6 energy and 6.6 force percentage points while accounting for 2.0 points of the complete-model inference time.
 
 \begin{figure}[t]
     \centering
@@ -21,7 +22,7 @@ The trade is most favorable for the envelope-gated attention, whose 14.9\% energ
         Cumulative ablation of the DPA4 architectural components.
         The matrix states which components each configuration retains: a filled marker denotes a component that is present and an open marker one that has been switched off, so that reading downwards accumulates the removals of the rows above.
         The row labels denote the four components: MN, the Wigner bilinear network (WBN) grid on the post-aggregation message--node path; WBN, the grid inside the equivariant feed-forward network (A4); EC, the low-rank edge--node SO(2)-equivariant degree coupling (A1); and Attn, the envelope-gated attention aggregation (A3).
-        (a--c) Per-atom energy MAE, force MAE and inference time of each configuration relative to the complete architecture; the segments of a bar are the increments contributed by the individual removals, in the order of the matrix columns.
+        (a--c) Per-atom energy MAE, force MAE and inference time of each configuration relative to the complete architecture; every change is normalized by the corresponding complete-architecture value, and the segments therefore sum to the cumulative label at each rung.
         Inference time is the wall-clock time of a full test pass over the WBM subsample.
         Every configuration uses a single focus stream: the multi-focus design (A2) redistributes a fixed angular budget across parallel streams rather than adding a branch, and is therefore compared at matched SO(2) width in Supplementary Section~\ref{sec:sm-ablation}.
     }

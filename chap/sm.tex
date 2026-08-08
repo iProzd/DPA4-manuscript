@@ -58,8 +58,8 @@ This ablation is the numerical basis of main-text Fig.~\ref{fig:ablation}.
 Starting from the complete interaction block, the four components that can be switched off without changing the dimensions of the equivariant representation are removed one after another, and every configuration is retrained under the identical protocol given in the cumulative-ablation column of Table~\ref{tab:sm_main_ablation_config}; the resulting errors are collected in Table~\ref{tab:sm_cumulative_ablation}.
 All five configurations use a single focus stream, so the multi-focus design contributes nothing to the reported differences; it is assessed separately at matched SO(2) width in Section~\ref{sec:sm-multifocus}.
 
-Removing all four components raises the energy MAE from 31.007 to 39.671~meV/atom and the force MAE from 39.169 to 44.581~meV/\AA{}.
-In return, the four components together raise the parameter count by 1.7$\times$, from 1.19~M to 2.05~M, and the wall-clock time of a full test pass by 14\%.
+Removing all four components raises the energy MAE from 31.007 to 39.671~meV/atom and the force MAE from 39.169 to 44.581~meV/\AA{}, increases of 27.9\% and 13.8\% relative to the complete architecture.
+It reduces the parameter count from 2.05~M to 1.19~M and shortens the wall-clock time of a full test pass from 20.2 to 17.7~s, a 12.4\% reduction on the same denominator.
 The energy error increases monotonically along the chain, whereas the force error does not: removing the message node WBN leaves it marginally lower, so the two WBN insertions are separated by the force metric only in the controlled comparison of Table~\ref{tab:sm_wbn_ablation}.
 
 \begin{table}[ht]
