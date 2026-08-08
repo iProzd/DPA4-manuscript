@@ -632,8 +632,8 @@ The target atom counts are 100, 200, 300, 500, 700, 1{,}000, 1{,}500, 2{,}000, 2
 The sweep stops at its first out-of-memory target.
 For the CPS--throughput Pareto analysis in Fig.~\ref{fig:cps-throughput}, saturated throughput is defined as the largest throughput within the contiguous successful part of the sweep; the failed boundary point is excluded.
 CPS values are taken from Table~\ref{tab:matbench}.
-The saturated throughput of each model, the system size at which it is attained and the largest system evaluated within the memory of one GPU are collected in Table~\ref{tab:sm_saturated_throughput}.
-The comparison includes the five DPA4 variants and ten representative compliant baselines: DPA-3.1-MPtrj~\cite{zhang2025dpa3}, EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens}, MatRIS-10M-MP~\cite{zhou2026matris}, Nequix MP PFT~\cite{koker2026pft}, Nequip-MP-L~\cite{batzner2022nequip}, Allegro-MP-L~\cite{musaelian2022learning}, SevenNet-l3i5~\cite{park2024scalable}, MACE-MP-0~\cite{batatia2022mace,batatia2023foundation}, ORB v2 MPtrj~\cite{neumann2024orb} and CHGNet~\cite{deng2023chgnet}.
+The saturated throughput of all six DPA4 size classes, the system size at which it is attained and the largest system evaluated within the memory of one GPU are collected in Table~\ref{tab:sm_saturated_throughput}, together with the corresponding values for ten representative compliant baselines.
+The CPS--throughput comparison in Fig.~\ref{fig:cps-throughput} includes the five DPA4 variants evaluated on Matbench Discovery and the ten baselines: DPA-3.1-MPtrj~\cite{zhang2025dpa3}, EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens}, MatRIS-10M-MP~\cite{zhou2026matris}, Nequix MP PFT~\cite{koker2026pft}, Nequip-MP-L~\cite{batzner2022nequip}, Allegro-MP-L~\cite{musaelian2022learning}, SevenNet-l3i5~\cite{park2024scalable}, MACE-MP-0~\cite{batatia2022mace,batatia2023foundation}, ORB v2 MPtrj~\cite{neumann2024orb} and CHGNet~\cite{deng2023chgnet}.
 For each baseline, we use the checkpoint corresponding to the compliant Matbench Discovery entry in Table~\ref{tab:matbench}.
 The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-1-pft}, \texttt{SevenNet-l3i5}, the \texttt{medium} MACE-MP-0 checkpoint, the ORB loader \texttt{orb\_mptraj\_only\_v2}, CHGNet 0.3.0, and version 0.1 of \texttt{mir-group/NequIP-MP-L} and \texttt{mir-group/Allegro-MP-L}; the EquiformerV3 artifact and implementation revision are specified below.
 
@@ -645,7 +645,7 @@ The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-
     }
     \label{tab:sm_saturated_throughput}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l
-            S[table-format=2.3]
+            S[table-format=3.3]
             S[table-format=5.0,group-separator={{,}},group-minimum-digits=4]
             S[table-format=5.0,group-separator={{,}},group-minimum-digits=4]@{}}
         \toprule
@@ -659,6 +659,7 @@ The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-
         DPA4-Air             & 10.8  & 8000  & 9984  \\
         DPA4-Neo             & 25.5  & 9984  & 9984  \\
         DPA4-Mini            & 62.8  & 39304 & 39304 \\
+        DPA4-Nano            & 134   & 89056 & 89056 \\
         \midrule
         ORB v2 MPtrj         & 52.2  & 1440  & 25088 \\
         SevenNet-l3i5        & 27.8  & 30056 & 30056 \\
@@ -887,57 +888,58 @@ Thin horizontal rules separate related groups of model or training hyperparamete
 
 \subsection{Benchmark model configurations}
 
-Table~\ref{tab:sm_model_config} lists the model and systems configurations of the five released DPA4 size classes, which are shared by every benchmark reported in this work; only the training schedule varies between datasets.
+Table~\ref{tab:sm_model_config} lists the model and systems configurations of the six DPA4 size classes considered in this work.
+The model settings of each size class are dataset-independent; only the training schedule varies between datasets.
 Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omol25_config} and \ref{tab:sm_spice_mace_off_config} give the training hyperparameters for the Matbench Discovery, OMat24, OMol25 and SPICE-MACE-OFF benchmarks, respectively.
 
 \begin{table}[p]
     \PaperTableStyle
-    \caption{DPA4 model and systems configurations of the five released size classes, shared by all benchmarks.}
+    \caption{DPA4 model and systems configurations of the six size classes used in this work.}
     \label{tab:sm_model_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{4.2cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}C{1.8cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule Feature dim.
-            & 32                 & 64                 & 64                 & 64                 & 128                \\
-            No. focuses                  & 1                  & 2                  & 1                  & 1                  & 2                  \\
-            No. layers                   & 2                  & 2                  & 3                  & 4                  & 6                  \\
-            SO(2) layers                 & 3                  & 3                  & 4                  & 4                  & 4                  \\
-            FFN layers                   & 1                  & 1                  & 1                  & 1                  & 1                  \\
+                L{2.6cm}C{1.65cm}C{1.65cm}C{1.65cm}C{1.65cm}C{1.65cm}C{1.65cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Nano} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule Feature dim.
+            & 32                 & 32                 & 64                 & 64                 & 64                 & 128                \\
+            No. focuses                  & 1                  & 1                  & 2                  & 1                  & 1                  & 2                  \\
+            No. layers                   & 2                  & 2                  & 2                  & 3                  & 4                  & 6                  \\
+            SO(2) layers                 & 3                  & 3                  & 3                  & 4                  & 4                  & 4                  \\
+            FFN layers                   & 1                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
             \midrule
-            Radial basis                 & Bessel             & Bessel             & Bessel             & Bessel             & Bessel             \\
-            No. radial bases             & 16                 & 16                 & 16                 & 16                 & 16                 \\
-            $L_{\max}$                   & 2                  & 3                  & 3                  & 4                  & 5                  \\
-            $M_{\max}$                   & 1                  & 1                  & 1                  & 1                  & 1                  \\
-            Cutoff (\AA)                 & 6                  & 6                  & 6                  & 6                  & 6                  \\
+            Radial basis                 & Bessel             & Bessel             & Bessel             & Bessel             & Bessel             & Bessel             \\
+            No. radial bases             & 16                 & 16                 & 16                 & 16                 & 16                 & 16                 \\
+            $L_{\max}$                   & 1                  & 2                  & 3                  & 3                  & 4                  & 5                  \\
+            $M_{\max}$                   & 1                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
+            Cutoff (\AA)                 & 6                  & 6                  & 6                  & 6                  & 6                  & 6                  \\
             \midrule
-            Edge--node degree coupling\tnote{a}  & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
-            Per-channel coupling             & True               & True               & True               & True               & True               \\
-            Coupling rank              & 1                  & 1                  & 1                  & 2                  & 2                  \\
+            Edge--node degree coupling\tnote{a}  & Scalar scaling     & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
+            Per-channel coupling             & N/A                & True               & True               & True               & True               & True               \\
+            Coupling rank              & N/A                & 1                  & 1                  & 1                  & 2                  & 2                  \\
             \midrule
-            Attn. heads                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
-            Attn. value/output proj. & False              & False              & False              & False              & False              \\
-            Pre mixing                   & False              & False              & False              & False              & False              \\
+            Attn. heads                  & 1                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
+            Attn. value/output proj. & False              & False              & False              & False              & False              & False              \\
+            Pre mixing                   & False              & False              & False              & False              & False              & False              \\
             \midrule
-            Message node WBN             & True               & True               & True               & True               & True               \\
-            WBN in FFN                   & True               & True               & True               & True               & True               \\
-            Quadrature                   & Lebedev            & Lebedev            & Lebedev            & Lebedev            & Lebedev            \\
+            Message node WBN             & True               & True               & True               & True               & True               & True               \\
+            WBN in FFN                   & True               & True               & True               & True               & True               & True               \\
+            Quadrature                   & Lebedev            & Lebedev            & Lebedev            & Lebedev            & Lebedev            & Lebedev            \\
             \midrule
-            Norm. placement\tnote{b}     & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        \\
-            Activation func.             & SiLU               & SiLU               & SiLU               & SiLU               & SiLU               \\
-            FFN hidden dim.              & Auto\tnote{c}      & Auto               & Auto               & Auto               & Auto               \\
-            SO(3) read-out               & True               & True               & True               & True               & False              \\
-            Output fitting dim.          & Auto               & Auto               & Auto               & Auto               & Auto               \\
-            Output fitting layers        & 1                  & 1                  & 1                  & 1                  & 1                  \\
+            Norm. placement\tnote{b}     & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        & Post \& Pre        \\
+            Activation func.             & SiLU               & SiLU               & SiLU               & SiLU               & SiLU               & SiLU               \\
+            FFN hidden dim.              & Auto\tnote{c}      & Auto               & Auto               & Auto               & Auto               & Auto               \\
+            SO(3) read-out               & True               & True               & True               & True               & True               & False              \\
+            Output fitting dim.          & Auto               & Auto               & Auto               & Auto               & Auto               & Auto               \\
+            Output fitting layers        & 1                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
             \midrule[\heavyrulewidth]
-            Compile                      & True               & True               & True               & True               & True               \\
-            BF16 AMP                     & True               & True               & True               & True               & True               \\
-            TF32 matmul                  & True               & True               & True               & True               & True               \\
+            Compile                      & True               & True               & True               & True               & True               & True               \\
+            BF16 AMP                     & True               & True               & True               & True               & True               & True               \\
+            TF32 matmul                  & True               & True               & True               & True               & True               & True               \\
             \midrule
-            Optimizer                    & HybridMuon         & HybridMuon         & HybridMuon         & HybridMuon         & HybridMuon         \\
-            Muon mode                    & Slice              & Slice              & Slice              & Slice              & Slice              \\
-            Magma Lite                   & True               & True               & True               & True               & True               \\
-            Weight decay                 & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   \\
+            Optimizer                    & Hybrid\hspace{0pt}Muon & Hybrid\hspace{0pt}Muon & Hybrid\hspace{0pt}Muon & Hybrid\hspace{0pt}Muon & Hybrid\hspace{0pt}Muon & Hybrid\hspace{0pt}Muon \\
+            Muon mode                    & Slice              & Slice              & Slice              & Slice              & Slice              & Slice              \\
+            Magma Lite                   & True               & True               & True               & True               & True               & True               \\
+            Weight decay                 & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   & $1\times10^{-3}$   \\
             \midrule
-            Params                       & 0.66M              & 1.1M               & 5.1M               & 8.8M               & 25.2M              \\
+            Params                       & 0.48M              & 0.66M              & 1.1M               & 5.1M               & 8.8M               & 25.2M              \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
@@ -982,13 +984,13 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_omat24_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & Cosine & Cosine & Cosine & Cosine & Cosine \\ Max.
-            LR & $1\times10^{-3}$ & $8\times10^{-4}$ & $4\times10^{-4}$ & $3\times10^{-4}$ & $2\times10^{-4}$ \\ Min.
-            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Batch size (per GPU)\tnote{a} & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\ Training epochs & 7 & 7 & 6 & 5 & 5 \\ No.
-            GPUs & 2 & 2 & 4 & 4 & 16 \\
+                L{2.65cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{DPA4-}\\\textbf{Nano}} & \makecell{\textbf{DPA4-}\\\textbf{Mini}} & \makecell{\textbf{DPA4-}\\\textbf{Neo}} & \makecell{\textbf{DPA4-}\\\textbf{Air}} & \makecell{\textbf{DPA4-}\\\textbf{Plus}} & \makecell{\textbf{DPA4-}\\\textbf{Pro}} \\ \midrule LR scheduler & Cosine & Cosine & Cosine & Cosine & Cosine & Cosine \\ Max.
+            LR & $3\times10^{-3}$ & $1\times10^{-3}$ & $8\times10^{-4}$ & $4\times10^{-4}$ & $3\times10^{-4}$ & $2\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Batch size (per GPU)\tnote{a} & $\lceil 30000/N\rceil$ & $\lceil 10000/N\rceil$ & $\lceil 5000/N\rceil$ & $\lceil 3900/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 400/N\rceil$ \\ Training epochs & 10 & 7 & 7 & 6 & 5 & 5 \\ No.
+            GPUs & 1 & 2 & 2 & 4 & 4 & 16 \\
             \midrule
-            Loss & MAE & MAE & MAE & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
+            Loss & MAE & MAE & MAE & MAE & MAE & MAE \\
+            Loss weights $(E,F,V)$ & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 & 20, 20, 5 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
@@ -1005,13 +1007,13 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
     \label{tab:sm_omol25_config}
     \begin{threeparttable}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
-                L{3.6cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}} \toprule \textbf{Hyperparameter} & \textbf{DPA4-Mini} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} & \textbf{DPA4-Pro} \\ \midrule LR scheduler & WSD & WSD & WSD & WSD & WSD \\ Max.
-            LR & $6\times10^{-4}$ & $8\times10^{-4}$ & $3.5\times10^{-4}$ & $3.5\times10^{-4}$ & $3\times10^{-4}$ \\ Min.
-            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\ Training epochs & 18 & 16 & 14 & 12 & 10 \\ No.
-            GPUs & 4 & 8 & 16 & 24 & 32 \\
+                L{2.65cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{DPA4-}\\\textbf{Nano}} & \makecell{\textbf{DPA4-}\\\textbf{Mini}} & \makecell{\textbf{DPA4-}\\\textbf{Neo}} & \makecell{\textbf{DPA4-}\\\textbf{Air}} & \makecell{\textbf{DPA4-}\\\textbf{Plus}} & \makecell{\textbf{DPA4-}\\\textbf{Pro}} \\ \midrule LR scheduler & WSD & WSD & WSD & WSD & WSD & WSD \\ Max.
+            LR & $1\times10^{-3}$ & $6\times10^{-4}$ & $8\times10^{-4}$ & $3.5\times10^{-4}$ & $3.5\times10^{-4}$ & $3\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{a} & $\lceil 25000/N\rceil$ & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\ Training epochs & 20 & 18 & 16 & 14 & 12 & 10 \\ No.
+            GPUs & 2 & 4 & 8 & 16 & 24 & 32 \\
             \midrule
-            Loss & MAE & MAE & MAE & MAE & MAE \\
-            Loss weights $(E,F,V)$ & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 \\
+            Loss & MAE & MAE & MAE & MAE & MAE & MAE \\
+            Loss weights $(E,F,V)$ & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 & 10, 5, 0 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
