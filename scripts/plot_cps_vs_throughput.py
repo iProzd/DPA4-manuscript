@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Final
 
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
-
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from pareto_plot_style import (
     ANNOTATION_FONT_SIZE,
     DPA4_COLOR,
@@ -28,7 +27,6 @@ from pareto_plot_style import (
     marker_size,
     style_log_axis,
 )
-
 
 REPO_ROOT: Final = Path(__file__).resolve().parents[1]
 DATA_DIR: Final = REPO_ROOT / "data" / "saturated_throughput"
@@ -112,8 +110,8 @@ class ModelSpec:
 
 MODELS: Final = (
     ModelSpec("DPA4-Pro", "DPA4-Pro.csv", 0.842, 25.211, DPA4_COLORS["Pro"], (0, 11)),
-    ModelSpec("DPA4-Plus", "DPA4-Plus.csv", 0.829, 8.796, DPA4_COLORS["Plus"], (0, 11)),
-    ModelSpec("DPA4-Air", "DPA4-Air.csv", 0.811, 5.148, DPA4_COLORS["Air"], (0, 18)),
+    ModelSpec("DPA4-Plus", "DPA4-Plus.csv", 0.829, 8.796, DPA4_COLORS["Plus"], (0, 16)),
+    ModelSpec("DPA4-Air", "DPA4-Air.csv", 0.816, 5.148, DPA4_COLORS["Air"], (0, 18)),
     ModelSpec("DPA4-Neo", "DPA4-Neo.csv", 0.782, 1.125, DPA4_COLORS["Neo"], (0, 18)),
     ModelSpec("DPA4-Mini", "DPA4-Mini.csv", 0.733, 0.660, DPA4_COLORS["Mini"], (0, 30)),
     ModelSpec(

@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.patches import Circle
-import numpy as np
-
 from pareto_plot_style import (
     ANNOTATION_FONT_SIZE,
     DPA4_COLOR,
@@ -132,7 +131,7 @@ models = {
         x=8.6, y=0.782, params_m=1.125, color=DPA4_COLORS["Neo"], marker="o"
     ),
     "DPA4-air": dict(
-        x=16, y=0.811, params_m=5.148, color=DPA4_COLORS["Air"], marker="o"
+        x=16, y=0.816, params_m=5.148, color=DPA4_COLORS["Air"], marker="o"
     ),
     "DPA4-plus": dict(
         x=31, y=0.829, params_m=8.796, color=DPA4_COLORS["Plus"], marker="o"
