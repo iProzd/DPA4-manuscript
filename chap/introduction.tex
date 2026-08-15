@@ -28,7 +28,7 @@ This two-stage protocol spends an additional pretraining stage and the engineeri
         Accuracy--throughput Pareto frontier for compliant Matbench Discovery models~\cite{riebesell2025matbench}.
         The Combined Performance Score (CPS) is plotted against saturated inference throughput for the five DPA4 variants and ten representative baselines.
         Marker area is proportional to the number of model parameters.
-        For each model, saturated throughput is the largest atom-normalized throughput within the contiguous successful diamond-supercell sweep; at each system size, throughput is computed from the mean wall time of 30 evaluations of energy, forces and stress after warm-up on a single NVIDIA H20 GPU.
+        For each model, saturated throughput is the largest atom-normalized throughput among the successful trials of an adaptive diamond-supercell sweep; at each system size, throughput is computed from the mean wall time of 100 evaluations of energy, forces and stress after 10 warm-up evaluations on a single NVIDIA H20 GPU.
         Higher values are preferred on both axes; the dashed line joins the non-dominated DPA4 variants.
         The horizontal arrow gives the throughput ratio between EquiformerV3+DeNS-MP and DPA4-Plus at comparable CPS.
         The break in the CPS axis omits the empty interval between 0.66 and 0.695.

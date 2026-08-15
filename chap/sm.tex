@@ -626,11 +626,12 @@ The inference-throughput benchmarks use periodic diamond supercells at a lattice
 This system permits a wide size sweep at fixed local geometry; within the 6~\AA{} DPA4 cutoff, every atom has 158 neighbors and therefore represents a comparatively dense inference workload.
 For each target size, the cubic eight-atom cell is repeated by a near-cubic integer triplet, so the realized atom count can differ slightly from the target.
 Each ASE calculator~\cite{ase-paper} is reset before requesting energy, forces and stress, with CUDA synchronized immediately before and after the timed region.
-After 10 warm-up evaluations, 30 evaluations are timed and their mean wall time is used to compute throughput.
+After 10 warm-up evaluations, 100 evaluations are timed and their mean wall time is used to compute throughput.
 
-The target atom counts are 100, 200, 300, 500, 700, 1{,}000, 1{,}500, 2{,}000, 2{,}500, 3{,}000, 3{,}500, 4{,}000, 4{,}500, 5{,}000, 6{,}000, 7{,}000, 8{,}000, 9{,}000, 10{,}000, 13{,}000, 16{,}000, 20{,}000, 25{,}000, 30{,}000, 35{,}000, 40{,}000, 45{,}000, 50{,}000, 60{,}000, 70{,}000, 80{,}000, 90{,}000 and 100{,}000.
-The sweep stops at its first out-of-memory target.
-For the CPS--throughput Pareto analysis in Fig.~\ref{fig:cps-throughput}, saturated throughput is defined as the largest throughput within the contiguous successful part of the sweep; the failed boundary point is excluded.
+The adaptive size search begins at a target of 128 atoms and doubles the target after each successful trial until the first out-of-memory result.
+The interval between the last successful target and the first failed target is then refined by three bisection trials; after each trial, the corresponding successful or failed boundary is replaced by the midpoint.
+All ASE inference throughputs reported in this work use this size-search and timing protocol.
+For the CPS--throughput Pareto analysis in Fig.~\ref{fig:cps-throughput}, saturated throughput is defined as the largest throughput among all successful trials, including the bisection trials; out-of-memory trials are excluded.
 CPS values are taken from Table~\ref{tab:matbench}.
 The saturated throughput of all six DPA4 size classes, the system size at which it is attained and the largest system evaluated within the memory of one GPU are collected in Table~\ref{tab:sm_saturated_throughput}, together with the corresponding values for ten representative compliant baselines.
 The CPS--throughput comparison in Fig.~\ref{fig:cps-throughput} includes the five DPA4 variants evaluated on Matbench Discovery and the ten baselines: DPA-3.1-MPtrj~\cite{zhang2025dpa3}, EquiformerV3+DeNS-MP~\cite{liao2026equiformerv3,liao2024dens}, MatRIS-10M-MP~\cite{zhou2026matris}, Nequix MP PFT~\cite{koker2026pft}, Nequip-MP-L~\cite{batzner2022nequip}, Allegro-MP-L~\cite{musaelian2022learning}, SevenNet-l3i5~\cite{park2024scalable}, MACE-MP-0~\cite{batatia2022mace,batatia2023foundation}, ORB v2 MPtrj~\cite{neumann2024orb} and CHGNet~\cite{deng2023chgnet}.
@@ -641,7 +642,7 @@ The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-
     \PaperTableStyle
     \caption{
         Saturated inference throughput on the diamond supercell sweep.
-        The saturating size is the realized atom count at which the largest throughput of the contiguous successful sweep is attained, and the largest size is the largest supercell evaluated within the memory of one NVIDIA H20 GPU.
+        The saturating size is the realized atom count at which the largest throughput among all successful trials is attained, and the largest size is the largest successfully evaluated supercell within the memory of one NVIDIA H20 GPU.
     }
     \label{tab:sm_saturated_throughput}
     \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}l
@@ -654,12 +655,12 @@ The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-
         {\textbf{Saturating size (atoms)}} &
         {\textbf{Largest size (atoms)}} \\
         \midrule
-        DPA4-Pro             & 1.30  & 1440  & 1440  \\
-        DPA4-Plus            & 5.01  & 4536  & 5040  \\
-        DPA4-Air             & 10.8  & 8000  & 9984  \\
-        DPA4-Neo             & 25.5  & 9984  & 9984  \\
-        DPA4-Mini            & 62.8  & 39304 & 39304 \\
-        DPA4-Nano            & 134   & 89056 & 89056 \\
+        DPA4-Pro             & 1.36  & 1920  & 1920  \\
+        DPA4-Plus            & 5.14  & 6144  & 7200  \\
+        DPA4-Air             & 11.6  & 12320 & 12320 \\
+        DPA4-Neo             & 28.0  & 20384 & 20384 \\
+        DPA4-Mini            & 79.2  & 49248 & 53176 \\
+        DPA4-Nano            & 153   & 65664 & 97336 \\
         \midrule
         ORB v2 MPtrj         & 52.2  & 1440  & 25088 \\
         SevenNet-l3i5        & 27.8  & 30056 & 30056 \\
@@ -676,7 +677,7 @@ The public artifact identifiers are \texttt{matris\_10m\_mp}, \texttt{nequix-mp-
 \end{table}
 
 All measurements are performed on a single NVIDIA H20 GPU with CUDA 12.8, Ubuntu 20.04.6 LTS and GCC 9.4.0 through the ASE interface.
-DPA4 inference uses our Triton-fused operators with PyTorch 2.11.0.
+DPA4 inference uses our fused Triton operators and custom CUDA kernels with PyTorch 2.11.0.
 The baseline environments use model-compatible PyTorch 2.8.0 or 2.10.0 releases.
 MACE 0.3.15 and SevenNet 0.12.1 use cuEquivariance 0.10.0~\cite{nvidia_cuequivariance}; the SevenNet flash path is disabled.
 ORB 0.5.5 uses its CUDA \texttt{torch.compile} path, whereas Nequix 0.4.5 uses its Torch kernel path with graph compilation disabled.

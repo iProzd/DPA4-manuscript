@@ -32,41 +32,6 @@ REPO_ROOT: Final = Path(__file__).resolve().parents[1]
 DATA_DIR: Final = REPO_ROOT / "data" / "saturated_throughput"
 OUTPUT_PDF: Final = REPO_ROOT / "fig" / "cps-throughput-pareto.pdf"
 
-TARGET_NATOMS: Final = (
-    100,
-    200,
-    300,
-    500,
-    700,
-    1000,
-    1500,
-    2000,
-    2500,
-    3000,
-    3500,
-    4000,
-    4500,
-    5000,
-    6000,
-    7000,
-    8000,
-    9000,
-    10000,
-    13000,
-    16000,
-    20000,
-    25000,
-    30000,
-    35000,
-    40000,
-    45000,
-    50000,
-    60000,
-    70000,
-    80000,
-    90000,
-    100000,
-)
 CSV_COLUMNS: Final = (
     "model",
     "system",
@@ -113,7 +78,7 @@ MODELS: Final = (
     ModelSpec("DPA4-Plus", "DPA4-Plus.csv", 0.829, 8.796, DPA4_COLORS["Plus"], (0, 16)),
     ModelSpec("DPA4-Air", "DPA4-Air.csv", 0.816, 5.148, DPA4_COLORS["Air"], (0, 18)),
     ModelSpec("DPA4-Neo", "DPA4-Neo.csv", 0.782, 1.125, DPA4_COLORS["Neo"], (0, 18)),
-    ModelSpec("DPA4-Mini", "DPA4-Mini.csv", 0.733, 0.660, DPA4_COLORS["Mini"], (0, 30)),
+    ModelSpec("DPA4-Mini", "DPA4-Mini.csv", 0.733, 0.660, DPA4_COLORS["Mini"], (0, 34)),
     ModelSpec(
         "EquiformerV3+DeNS-MP",
         "EquiformerV3+DeNS-MP.csv",
@@ -141,42 +106,60 @@ MODELS: Final = (
 )
 
 
-def _successful_prefix(
+def _validated_successful_measurements(
     frame: pd.DataFrame, path: Path
 ) -> tuple[pd.DataFrame, int | None]:
-    """Return the contiguous successful prefix and first failed target."""
+    """Validate one benchmark table and return its successful measurements."""
     if tuple(frame.columns) != CSV_COLUMNS:
         raise ValueError(
-            f"{path.name} columns differ from the legacy nine-column schema: "
+            f"{path.name} columns differ from the nine-column benchmark schema: "
             f"{frame.columns.tolist()}"
         )
+    if frame.empty:
+        raise ValueError(f"{path.name} contains no benchmark measurements")
+    if frame["model"].nunique() != 1:
+        raise ValueError(f"{path.name} contains more than one model label")
+    if not frame["system"].eq("diamond").all():
+        raise ValueError(f"{path.name} contains a non-diamond benchmark system")
 
-    targets = frame["target_natoms"].astype(int).tolist()
-    if targets != list(TARGET_NATOMS[: len(targets)]):
-        raise ValueError(f"{path.name} does not follow the fixed target_natoms sweep")
+    targets = pd.to_numeric(frame["target_natoms"], errors="coerce")
+    atom_counts = pd.to_numeric(frame["n_atoms"], errors="coerce")
+    frame_counts = pd.to_numeric(frame["n_frames"], errors="coerce")
+    if targets.isna().any() or (targets <= 0).any() or targets.duplicated().any():
+        raise ValueError(f"{path.name} has invalid or repeated target atom counts")
+    if atom_counts.isna().any() or (atom_counts <= 0).any():
+        raise ValueError(f"{path.name} has invalid realized atom counts")
+    if (
+        frame_counts.isna().any()
+        or (frame_counts <= 0).any()
+        or frame_counts.nunique() != 1
+    ):
+        raise ValueError(f"{path.name} has inconsistent timed-evaluation counts")
 
-    success = np.isclose(frame["success_rate"].astype(float).to_numpy(), 100.0)
+    success_rates = pd.to_numeric(frame["success_rate"], errors="coerce").to_numpy()
+    success = np.isclose(success_rates, 100.0)
+    failed = np.isclose(success_rates, 0.0)
+    if not np.all(success | failed):
+        raise ValueError(f"{path.name} has a partial or invalid success rate")
     failure_indices = np.flatnonzero(~success)
-    first_failure_index = (
-        int(failure_indices[0]) if len(failure_indices) else len(frame)
-    )
-    if first_failure_index < len(frame) - 1:
-        raise ValueError(f"{path.name} contains rows after its first failed target")
-
-    successful = frame.iloc[:first_failure_index].copy()
+    successful = frame.loc[success].copy()
     if successful.empty:
         raise ValueError(f"{path.name} has no successful measurements")
-    if not (successful["n_frames"].astype(int) == 30).all():
-        raise ValueError(f"{path.name} does not use 30 timed evaluations")
 
-    throughput = pd.to_numeric(successful["atoms_per_ms"], errors="coerce")
-    if not np.isfinite(throughput).all() or not (throughput > 0).all():
-        raise ValueError(f"{path.name} has invalid successful throughput values")
-    successful["atoms_per_ms"] = throughput
+    for column in ("mean_s", "us_per_atom", "atoms_per_ms"):
+        values = pd.to_numeric(frame[column], errors="coerce")
+        successful_values = values.loc[success]
+        if not np.isfinite(successful_values).all() or not (
+            successful_values > 0
+        ).all():
+            raise ValueError(f"{path.name} has invalid successful {column} values")
+        if values.loc[failed].notna().any():
+            raise ValueError(f"{path.name} has finite {column} values for an OOM trial")
+        successful[column] = successful_values
 
     first_failed_target = (
-        int(frame.iloc[first_failure_index]["target_natoms"])
-        if first_failure_index < len(frame)
+        int(targets.iloc[int(failure_indices[0])])
+        if len(failure_indices)
         else None
     )
     return successful, first_failed_target
@@ -185,9 +168,8 @@ def _successful_prefix(
 def build_summary(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     """Build and validate the CPS--throughput summary table.
 
-    Saturated throughput is defined as the largest 30-evaluation mean among the
-    contiguous successful target sizes. A failed row, when present, must be the
-    final row in the CSV.
+    Saturated throughput is defined as the largest mean throughput among all
+    successful measured target sizes. Failed OOM trials are excluded.
 
     Parameters
     ----------
@@ -204,16 +186,18 @@ def build_summary(data_dir: Path = DATA_DIR) -> pd.DataFrame:
     FileNotFoundError
         If an expected raw CSV is missing.
     ValueError
-        If a CSV violates the fixed benchmark protocol.
+        If a CSV violates the benchmark-table invariants.
     """
     records: list[dict[str, object]] = []
     for model in MODELS:
         path = data_dir / model.csv_name
         if not path.is_file():
             raise FileNotFoundError(f"missing benchmark CSV: {path}")
-        successful, first_failed_target = _successful_prefix(pd.read_csv(path), path)
+        successful, first_failed_target = _validated_successful_measurements(
+            pd.read_csv(path), path
+        )
         peak = successful.loc[successful["atoms_per_ms"].idxmax()]
-        last = successful.iloc[-1]
+        largest = successful.loc[successful["n_atoms"].idxmax()]
         records.append(
             {
                 "model": model.label,
@@ -221,7 +205,8 @@ def build_summary(data_dir: Path = DATA_DIR) -> pd.DataFrame:
                 "saturated_throughput_atoms_per_ms": float(peak["atoms_per_ms"]),
                 "peak_target_natoms": int(peak["target_natoms"]),
                 "peak_n_atoms": int(peak["n_atoms"]),
-                "last_success_target_natoms": int(last["target_natoms"]),
+                "largest_success_target_natoms": int(largest["target_natoms"]),
+                "largest_success_n_atoms": int(largest["n_atoms"]),
                 "first_failed_target_natoms": first_failed_target,
                 "source_csv": model.csv_name,
             }
@@ -272,7 +257,7 @@ def plot_summary(summary: pd.DataFrame) -> tuple[Figure, tuple[Axes, Axes]]:
     for ax in (ax_top, ax_bottom):
         style_log_axis(
             ax,
-            x_limits=(0.04, 100),
+            x_limits=(0.04, 150),
             ticks=(0.05, 0.1, 0.3, 1, 3, 10, 30, 100),
             tick_labels=("0.05", "0.1", "0.3", "1", "3", "10", "30", "100"),
         )
