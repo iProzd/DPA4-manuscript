@@ -51,31 +51,32 @@ The main role of the Lebedev rule is therefore to remove a systematic numerical 
 
 \begin{table}[t]
     \PaperTableStyle
-    \caption{
-        Equivariance of the spherical-grid nonlinearity on the full coefficient layout
-        under random SO(3) rotations.
-        Product-grid rules are reported as $(R_{\phi},R_{\theta})$ after the square-grid lift, with the total number of grid points $R_{\phi}R_{\theta}$ given alongside.
-        Lebedev rules are reported by their algebraic order of accuracy $p$ and the corresponding number of points.
-        Errors are maximum absolute deviations between the two equivariance paths.
-    }
-    \label{tab:s2_full_equivariance}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccccc@{}}
-        \toprule
-        \textbf{$L$} &
-        \multicolumn{4}{c}{\textbf{Product grid}} &
-        \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
-        \cmidrule(lr){2-5}\cmidrule(lr){6-9}
-        & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
-        & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
-        \midrule
-        2 & $8\times8$   & 64  & $3.62\times10^{-7}$ & $4.77\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        3 & $12\times12$ & 144 & $7.04\times10^{-7}$ & $6.86\times10^{-7}$ & 9  & 38  & $3.58\times10^{-14}$ & $3.58\times10^{-7}$ \\
-        4 & $14\times14$ & 196 & $7.97\times10^{-7}$ & $1.55\times10^{-6}$ & 13 & 74  & $5.82\times10^{-14}$ & $6.56\times10^{-7}$ \\
-        5 & $18\times18$ & 324 & $1.48\times10^{-6}$ & $1.49\times10^{-6}$ & 15 & 86  & $3.22\times10^{-14}$ & $6.56\times10^{-7}$ \\
-        6 & $20\times20$ & 400 & $4.14\times10^{-6}$ & $2.27\times10^{-6}$ & 19 & 146 & $7.99\times10^{-14}$ & $8.35\times10^{-7}$ \\
-        7 & $24\times24$ & 576 & $3.19\times10^{-6}$ & $2.03\times10^{-6}$ & 21 & 170 & $6.86\times10^{-14}$ & $8.79\times10^{-7}$ \\
-        \bottomrule
-    \end{tabular*}
+    \begin{threeparttable}
+        \caption{Equivariance of the spherical-grid nonlinearity under random SO(3) rotations.}
+        \label{tab:s2_full_equivariance}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccccccc@{}}
+            \toprule
+            \textbf{$L$} &
+            \multicolumn{4}{c}{\textbf{Product grid}} &
+            \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
+            \cmidrule(lr){2-5}\cmidrule(lr){6-9}
+            & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
+            & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
+            \midrule
+            2 & $8\times8$   & 64  & $3.62\times10^{-7}$ & $4.77\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
+            3 & $12\times12$ & 144 & $7.04\times10^{-7}$ & $6.86\times10^{-7}$ & 9  & 38  & $3.58\times10^{-14}$ & $3.58\times10^{-7}$ \\
+            4 & $14\times14$ & 196 & $7.97\times10^{-7}$ & $1.55\times10^{-6}$ & 13 & 74  & $5.82\times10^{-14}$ & $6.56\times10^{-7}$ \\
+            5 & $18\times18$ & 324 & $1.48\times10^{-6}$ & $1.49\times10^{-6}$ & 15 & 86  & $3.22\times10^{-14}$ & $6.56\times10^{-7}$ \\
+            6 & $20\times20$ & 400 & $4.14\times10^{-6}$ & $2.27\times10^{-6}$ & 19 & 146 & $7.99\times10^{-14}$ & $8.35\times10^{-7}$ \\
+            7 & $24\times24$ & 576 & $3.19\times10^{-6}$ & $2.03\times10^{-6}$ & 21 & 170 & $6.86\times10^{-14}$ & $8.79\times10^{-7}$ \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
+            \item[] $L$ is the maximum spherical-harmonic degree. Product-grid rules are $(R_{\phi},R_{\theta})$ after the square-grid lift, and \#\,pts is the total number of grid points $R_{\phi}R_{\theta}$.
+            \item[] For Lebedev quadrature, $p$ is the algebraic order of accuracy. fp64 and fp32 denote 64- and 32-bit floating-point arithmetic, respectively; errors are maximum absolute deviations between the two equivariance paths.
+        \end{tablenotes}
+    \end{threeparttable}
 \end{table}
 
 Beyond the mechanism ablations above, Supplementary Section~\ref{sec:sm-ablation} reports additional sweeps over compiled mixed-precision training, interaction depth, attention design variants, normalization placement and the learning-rate schedule.

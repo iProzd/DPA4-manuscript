@@ -58,14 +58,12 @@ Inside the inner zone the learned branch contributes no force, so the short-rang
 
 \begin{table}[p]
     \PaperTableStyle
-    \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.
-        The five DPA4 variants, trained on MPtrj in the compliant setting, are compared with all compliant leaderboard entries on the ranked metrics CPS, F1, $\kappa$SRME and RMSD, together with parameter counts and training cost.
-    }
-    \label{tab:matbench}
     \begin{threeparttable}
+        \caption{Matbench Discovery leaderboard performance of DPA4 and compliant baseline models.}
+        \label{tab:matbench}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
             \toprule
-            \textbf{Model}       & \textbf{CPS}$\uparrow$\tnote{a} & \textbf{F1}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$\tnote{b} & \textbf{RMSD}$\downarrow$\tnote{b} & \textbf{Params} & \textbf{Train. cost}\tnote{c} & \textbf{DeNS}\tnote{d} & \textbf{Targets}\tnote{e} \\
+            \textbf{Model}       & \textbf{CPS}$\uparrow$\tnote{a} & \textbf{F1}$\uparrow$ & \textbf{$\kappa$SRME}$\downarrow$\tnote{b} & \textbf{RMSD}$\downarrow$\tnote{b} & \textbf{Params} & \textbf{Train time}\tnote{c} & \textbf{DeNS}\tnote{d} & \textbf{Targets}\tnote{e} \\
             \midrule
             DPA4-Pro             & \textbf{0.842}                  & \textbf{0.865}        & \textbf{0.227}                             & \textbf{0.068}                     & 25.2M           & 233                           & \xmark                 & EFSG                      \\
             DPA4-Plus            & 0.829                           & 0.847                 & \underline{0.240}                          & \underline{0.070}                  & 8.8M            & 31                            & \xmark                 & EFSG                      \\
@@ -96,18 +94,19 @@ Inside the inner zone the learned branch contributes no force, so the short-rang
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
+            \item[] The five DPA4 variants are trained on MPtrj in the compliant setting and compared with all compliant leaderboard entries on CPS, F1, $\kappa$SRME and RMSD, together with parameter counts and train times.
             \item[] Leaderboard entries comprise all compliant models accessed before August 1, 2026.
-            Boldface and underlining denote the best and second-best value of each ranked metric.
+            \item[] Boldface and underlining denote the best and second-best values of each ranked metric.
             \item[a] CPS, the combined performance score of the leaderboard, aggregates F1, $\kappa$SRME and RMSD with weights 0.5, 0.4 and 0.1~\cite{riebesell2025matbench}.
             \item[b] $\kappa$SRME is the symmetric relative mean error of the phonon thermal conductivity~\cite{pota2024thermal}; RMSD is the mean structural deviation from the DFT-relaxed geometry, in \AA.
-            \item[c] Training cost is reported in A100-equivalent GPU-days, obtained from the device count and wall-clock time recorded for each model~\cite{riebesell2025matbench} and rescaled by the theoretical FP32 peak throughput of the hardware used.
-            A dash marks entries for which no training cost is available.
+            \item[c] Train time is the aggregate accelerator time, reported in A100-equivalent GPU-days. It is calculated from the device count and wall-clock time recorded for each model~\cite{riebesell2025matbench} and rescaled by the theoretical FP32 peak throughput of the hardware used.
+            A dash indicates that no train-time estimate is available.
             \item[d] \cmark{} marks models trained with the DeNS denoising objective~\cite{liao2024dens}.
             \item[e] Targets denotes the quantities each model is trained to predict, following the Matbench Discovery convention~\cite{riebesell2025matbench}: E, F, S, M and H denote energy, forces, stress, magnetic moments and Hessian, while the suffix G or D indicates whether forces and stress are obtained by energy gradient (conservative) or direct prediction.
             All DPA4 variants are EFSG.
             \item[f] Nequix MP PFT is obtained by fine-tuning Nequix MP on force constants from
-            the MDR phonon database, co-trained with MPtrj~\cite{koker2026pft}; the reported cost is
-            the sum of the base-model and fine-tuning budgets, 500 and 140 GPU-hours respectively.
+            the MDR phonon database, co-trained with MPtrj~\cite{koker2026pft}; the reported value is
+            the sum of the base-model and fine-tuning budgets, 500 and 140 GPU-hours, respectively.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -119,7 +118,7 @@ The leaderboard also reports $\kappa$SRME, a thermal-conductivity metric sensiti
 Here we focus on the compliant leaderboard to keep the training data fixed across models and more directly compare architectural differences.
 Non-compliant leaderboard entries may additionally involve different training datasets or fine-tuning strategies and are left for future comparison.
 
-Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics together with the parameter count and training cost of each model.
+Table~\ref{tab:matbench} reports the Matbench Discovery leaderboard metrics together with the parameter count and train time of each model.
 Figure~\ref{fig:cps-throughput} plots the same score against saturated inference throughput.
 DPA4-Pro establishes the best CPS in Table~\ref{tab:matbench}, reaching 0.842 with an F1 score of 0.865, a $\kappa$SRME of 0.227 and an RMSD of 0.068~\AA{} at 25.2M parameters.
 It is the leading compliant model in every ranked metric of the leaderboard, spanning stability classification, thermal conductivity and relaxation quality.
@@ -152,13 +151,10 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
 
 \begin{table}[t]
     \PaperTableStyle
-    \caption{Results on the OMat24 validation set.
-        The six DPA4 size classes, trained on OMat24 through the conservative energy-gradient objective, are compared with published baselines on energy, force and stress mean absolute errors, together with parameter counts and training cost.
-        The Prediction column distinguishes conservative models, whose forces are energy gradients, from models using direct force prediction or direct-force pre-training.
-    }
-    \label{tab:omat24}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} c c c c c c c @{}}
+        \caption{Performance on the OMat24 validation set.}
+        \label{tab:omat24}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l c c c c c c @{}}
             \toprule
             \textbf{Model}                                                &
             \textbf{Prediction}\tnote{a}                                  &
@@ -166,7 +162,7 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
             \textbf{Force}\tnote{b}                                       &
             \textbf{Stress}\tnote{b}                                      &
             \textbf{Params}\tnote{c}                                      &
-            \textbf{Cost}\tnote{d}                                                                                                 \\
+            \textbf{Train time}\tnote{d}                                                                                           \\
             \midrule
             MACE-Omat-Small~\cite{batatia2022mace,batatia2025crosslearning} & Gradient    & 17.9          & 85.9                & 3.5              & 8.2M       & --\tnote{e}      \\
             MACE-Omat-Medium                                                 & Gradient    & 16.3          & 78.4                & 3.3              & 9.1M       & --\tnote{e}      \\
@@ -192,14 +188,14 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
-            \item[] Boldface and underlining denote the best and second-best value of each evaluation metric; values that coincide at the reported precision carry the same mark.
-            \item[a] Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning.
+            \item[] The six DPA4 size classes are trained on OMat24 through the conservative energy-gradient objective and compared with published baselines.
+            \item[] Boldface and underlining denote the best and second-best values of each evaluation metric; values that coincide at the reported precision carry the same mark.
+            \item[a] Prediction denotes the force-prediction pathway: Gradient obtains forces as energy gradients, Direct predicts forces directly, and Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning.
             \item[b] Values are mean absolute errors in meV per atom for energy, meV/\AA\ for forces and meV/\AA$^3$ for stress; lower values are better.
             \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            \item[d] Cost reports equivalent H100 GPU-hours.
-            DPA4 H20 training runs are converted using theoretical FP32 peak throughput.
-            \item[e] No OMat24 validation metrics are published for MACE-Omat; the values listed here were obtained in this work by evaluating the released checkpoints through the ASE interface, and their training cost is unavailable.
-            \item[f] UMA costs include multitask pre-training and fine-tuning, and are not OMat24-only training costs.
+            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            \item[e] No OMat24 validation metrics are published for MACE-Omat; the values listed here were obtained in this work by evaluating the released checkpoints through the ASE interface, and no train-time estimate is available.
+            \item[f] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMat24-only estimates.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -226,44 +222,53 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
 
 \begin{table}[t]
     \PaperTableStyle
-    \caption{Results on the OMol25 out-of-distribution composition validation split.}
-    \label{tab:omol25}
     \begin{threeparttable}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} c c c c c @{}}
+        \caption{Performance on the OMol25 OMol-0 out-of-distribution composition validation split.}
+        \label{tab:omol25}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l c c c c c @{}}
             \toprule
-            \textbf{Model}                                      &
-            \textbf{Energy}\tnote{a}                            &
-            \textbf{Force}\tnote{a}                             &
-            \textbf{Params}\tnote{b}                            &
-            \textbf{Cost}\tnote{c}                                                                                     \\
+            \textbf{Model}                               &
+            \multicolumn{2}{c}{\textbf{Energy MAE}}       &
+            \textbf{Force MAE}                            &
+            \textbf{Params}\tnote{c}                      &
+            \textbf{Train time}\tnote{d}                  \\
+            \cmidrule(lr){2-3}
+                                                         &
+            \textbf{kcal/mol}\tnote{a}                   &
+            \textbf{meV/atom}                            &
+            \textbf{meV/\AA{}}\tnote{b}                 &
+                                                         &
+                                                           \\
             \midrule
-            eSEN-S-OMol~\cite{wood2025umafamilyuniversalmodels}  & 3.67             & 11.56            & --         & --               \\
-            eSEN-sm-cons.~\cite{levine2025open}                 & 1.35             & \underline{7.39} & 6.3M       & --               \\
-            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels}   & 0.95             & 8.64             & 150M (6M)  & 46,080\tnote{d}  \\
-            UMA-M-1.1                                           & \textbf{0.74}    & \textbf{5.44}    & 1.4B (50M) & 129,024\tnote{d} \\
+            eSEN-S-OMol~\cite{fu2025esen,wood2025umafamilyuniversalmodels}            & --               & 3.67             & 11.56            & --         & --               \\
+            eSEN-sm-d.~\cite{fu2025esen,levine2025open}                              & 2.06             & --               & 9.97             & 6.3M       & --               \\
+            eSEN-sm-cons.~\cite{fu2025esen,levine2025open}                           & 1.77             & 1.27             & 8.25             & 6.3M       & --               \\
+            eSEN-md-d.~\cite{fu2025esen,levine2025open}                              & 1.15             & --               & \textbf{4.77}   & 50.7M      & --               \\
+            GemNet-OC~\cite{gasteiger2022gemnet,levine2025open}                       & \textbf{0.78}    & --               & 6.50             & 39.1M      & --               \\
+            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & 4.56             & --               & 10.84            & --         & --               \\
+            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & 1.45             & 0.95             & 8.64             & 150M (6M)  & 46,080\tnote{e}  \\
+            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & \underline{1.14} & \textbf{0.74}    & \underline{5.44} & 1.4B (50M) & 129,024\tnote{e} \\
             \addlinespace[0.25em]
             \midrule
             \addlinespace[0.15em]
-            DPA4-Nano                                           & 5.73             & 34.18            & 0.48M      & 220              \\
-            DPA4-Mini                                           & 3.41             & 21.91            & 0.66M      & 490              \\
-            DPA4-Neo                                            & 2.13             & 14.70            & 1.1M       & 776              \\
-            DPA4-Air                                            & 1.01             & 8.46             & 5.1M       & 1,393            \\
-            DPA4-Plus                                           & \underline{0.92} & 6.30             & 8.8M       & 2,714            \\
-            DPA4-Pro\tnote{e}                                   &                  &                  & 25.2M      &                  \\
+            DPA4-Nano                                      & --               & 5.73             & 34.18            & 0.48M      & 220              \\
+            DPA4-Mini                                      & --               & 3.41             & 21.91            & 0.66M      & 490              \\
+            DPA4-Neo                                       & --               & 2.13             & 14.70            & 1.1M       & 776              \\
+            DPA4-Air                                       & --               & 1.01             & 8.46             & 5.1M       & 1,393            \\
+            DPA4-Plus                                      & --               & \underline{0.92} & 6.30             & 8.8M       & 2,714            \\
+            DPA4-Pro                                       & --               & --               & --               & 25.2M      & --               \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
-            \item[] All models are trained on the $\sim$104M-structure OMol25 release, termed OMol-0 in the dataset paper~\cite{levine2025open} and used for the UMA-1.1 models.
-            Baseline values are taken from the UMA report~\cite{wood2025umafamilyuniversalmodels} for the same split and the same metric definitions.
-            Boldface and underlining denote the best and second-best value of each metric.
-            \item[a] Values are mean absolute errors, per atom in meV for energy and in meV/\AA\ for forces; lower values are better.
-            \item[b] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            No parameter count is reported for eSEN-S-OMol.
-            \item[c] Cost reports equivalent H100 GPU-hours.
-            DPA4 H20 training runs are converted using theoretical FP32 peak throughput.
-            \item[d] UMA costs include multitask pre-training and fine-tuning, and are not OMol25-only training costs.
-            \item[e] Training of DPA4-Pro on OMol25 was still in progress at the time of writing.
+            \item[] A dash indicates that a value is unavailable.
+            \item[] Boldface and underlining denote the best and second-best values within each MAE column.
+            \item[a] For unnormalized total energy, $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$; the meV/atom values use atom-normalized errors.
+            \item[b] Force MAEs reported only in kcal/mol/\AA{} by the cited source are converted using $1~\mathrm{kcal/mol}/\text{\AA}=43.3641~\mathrm{meV}/\text{\AA}$.
+            \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
+            No parameter count is reported here for eSEN-S-OMol or MACE-OMol-L-0.
+            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            \item[e] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMol25-only estimates.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -271,12 +276,10 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
 OMol25~\cite{levine2025open} is a molecular dataset of DFT single-point calculations at the $\omega$B97M-V/def2-TZVPD level, spanning biomolecules, metal complexes, electrolytes and recomputed community datasets, with charge and spin states as explicit inputs.
 It is substantially broader in chemistry than SPICE-MACE-OFF and therefore probes transferability across molecular classes rather than accuracy within a single class.
 The dataset has been released in successive versions; we train on the OMol-0 release, which the dataset paper describes as containing about 100 million DFT datapoints and which is also the release used for the UMA-1.1 models~\cite{levine2025open}, and we evaluate on its out-of-distribution composition validation split.
-Baseline values are taken from the UMA report~\cite{wood2025umafamilyuniversalmodels}, which reports this split with the same per-atom energy and force MAE definitions.
-
 The five completed DPA4 runs form a monotonic accuracy--cost sequence from Nano to Plus: as the parameter count increases from 0.48M to 8.8M and the training cost from 220 to 2,714 H100-equivalent GPU-hours, the energy and force MAEs decrease from 5.73 to 0.92~meV/atom and from 34.18 to 6.30~meV/\AA{}, respectively.
 At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters and 220--776 H100-equivalent GPU-hours; Mini and Neo already lower the energy MAE of the single-task eSEN-S-OMol baseline from 3.67 to 3.41 and 2.13~meV/atom, although their force MAEs remain higher.
 DPA4-Air then matches UMA-S-1.1 in energy to within 0.06~meV/atom and slightly improves on its force MAE (8.46 against 8.64~meV/\AA{}) with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
-DPA4-Plus reaches the most accurate completed DPA4 point, with an energy MAE below that of UMA-S-1.1 (0.92 versus 0.95~meV/atom) and a force MAE below that of eSEN-sm-cons.~\cite{levine2025open} (6.30 versus 7.39~meV/\AA{}); among the models compared, only UMA-M-1.1 is more accurate, at 0.74~meV/atom and 5.44~meV/\AA{} with 1.4B total and 50M active parameters.
+DPA4-Plus reaches the most accurate completed DPA4 point, with an energy MAE below that of UMA-S-1.1 (0.92 versus 0.95~meV/atom) and a force MAE below that of eSEN-sm-cons.~\cite{fu2025esen,levine2025open} (6.30 versus 8.25~meV/\AA{}); among the models compared, only UMA-M-1.1 is more accurate, at 0.74~meV/atom and 5.44~meV/\AA{} with 1.4B total and 50M active parameters.
 The advantage on this dataset is therefore concentrated in the energy channel and in the accuracy obtained per parameter, consistent with the Matbench Discovery and OMat24 results.
 
 \subsection{SPICE-MACE-OFF molecular benchmark}
@@ -290,14 +293,20 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
 
 \begin{table}[tp]
     \PaperTableStyle
-    \caption{SPICE-MACE-OFF small-molecule benchmark performance.
-        Per-subset energy and force test MAEs of the DPA4-Neo, DPA4-Air and DPA4-Plus variants trained on SPICE-MACE-OFF are compared with MACE-OFF, eSEN and DPA3 baselines, together with parameter counts and training cost; LWAMAE aggregates the subsets as an equal-weight geometric mean.
-    }
-    \label{table:spice}
     \begin{threeparttable}
+        \caption{SPICE-MACE-OFF small-molecule benchmark performance.}
+        \label{table:spice}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l *{8}{c} @{}}
             \toprule
-            \textbf{Dataset} & \textbf{MACE (M)} & \textbf{MACE (L)} & \textbf{eSEN (3.2M)} & \textbf{eSEN (6.5M)} & \textbf{DPA3-L24} & \textbf{DPA4-Neo} & \textbf{DPA4-Air} & \textbf{DPA4-Plus} \\
+            \textbf{Dataset} &
+            \makecell{\textbf{MACE}\\\textbf{(M)}} &
+            \makecell{\textbf{MACE}\\\textbf{(L)}} &
+            \makecell{\textbf{eSEN}\\\textbf{(3.2M)}} &
+            \makecell{\textbf{eSEN}\\\textbf{(6.5M)}} &
+            \makecell{\textbf{DPA3-}\\\textbf{L24}} &
+            \makecell{\textbf{DPA4-}\\\textbf{Neo}} &
+            \makecell{\textbf{DPA4-}\\\textbf{Air}} &
+            \makecell{\textbf{DPA4-}\\\textbf{Plus}} \\
             \midrule
             \multicolumn{9}{@{}l}{\textit{Energy MAE (meV/atom)}} \\
             \addlinespace[0.15em]
@@ -316,15 +325,16 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
             LWAMAE\tnote{a} & 15.42 & 11.66 & 3.83 & 2.58 & 5.78 & 3.89 & \underline{2.18} & \textbf{1.64} \\
             \midrule
             \textbf{Params}                  & 2.3M & 6.9M & 3.2M & 6.5M & 4.9M & 1.1M & 5.1M & 8.8M \\
-            \textbf{Training cost}\tnote{b} & 10   & 14   & --   & --   & 288  & 7    & 7.8  & 9 \\
+            \textbf{Train time}\tnote{b}       & 10   & 14   & --   & --   & 288  & 7    & 7.8  & 9 \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
+            \item[] The DPA4-Neo, DPA4-Air and DPA4-Plus variants are compared with MACE-OFF, eSEN and DPA3 baselines, together with parameter counts and train times.
             \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy MAEs are in meV/atom and force MAEs are in meV/\AA.
-            Boldface and underlining denote the best and second-best value of each dataset--target pair; values that coincide at the reported precision carry the same mark.
+            \item[] Boldface and underlining denote the best and second-best values for each dataset--target pair; values that coincide at the reported precision carry the same mark.
             \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
-            \item[b] Training cost denotes the equivalent GPU-days on A100 GPUs; a dash indicates that no public training cost information was found.
+            \item[b] Train time is the aggregate accelerator time, reported in A100-equivalent GPU-days; a dash indicates that no public train-time estimate is available.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}

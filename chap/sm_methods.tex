@@ -309,39 +309,41 @@ Table~\ref{tab:sm_s2_truncated_equivariance} extends the full-coefficient compar
 
 \begin{table}[p]
     \PaperTableStyle
-    \caption{
-        Equivariance of the $m$-truncated spherical-grid nonlinearity under random local
-        $z$-axis rotations.
-        These cases test the reduced local layout used in the EMFA SO(2) convolution.
-        Product-grid rules are $(R_{\phi},R_{\theta})$ with the total number of grid points $R_{\phi}R_{\theta}$ given alongside; Lebedev rules are reported by their algebraic order of accuracy $p$ and the corresponding number of points.
-        Errors are maximum absolute deviations between the two equivariance paths.
-    }
-    \label{tab:sm_s2_truncated_equivariance}
-    \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccccc@{}}
-        \toprule
-        \textbf{$M$} &
-        \textbf{$L$} &
-        \multicolumn{4}{c}{\textbf{Product grid}} &
-        \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
-        \cmidrule(lr){3-6}\cmidrule(lr){7-10}
-        & & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
-        & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
-        \midrule
-        1 & 2 & $6\times8$   & 48  & $2.36\times10^{-7}$ & $3.58\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        1 & 3 & $6\times12$  & 72  & $1.22\times10^{-7}$ & $5.96\times10^{-7}$ & 9  & 38  & $3.55\times10^{-14}$ & $2.98\times10^{-7}$ \\
-        1 & 4 & $6\times14$  & 84  & $1.12\times10^{-6}$ & $9.54\times10^{-7}$ & 13 & 74  & $1.04\times10^{-13}$ & $9.54\times10^{-7}$ \\
-        1 & 5 & $6\times18$  & 108 & $1.10\times10^{-7}$ & $1.43\times10^{-6}$ & 15 & 86  & $9.34\times10^{-14}$ & $7.15\times10^{-7}$ \\
-        1 & 6 & $6\times20$  & 120 & $7.64\times10^{-7}$ & $1.91\times10^{-6}$ & 19 & 146 & $8.56\times10^{-14}$ & $2.15\times10^{-6}$ \\
-        1 & 7 & $6\times24$  & 144 & $2.17\times10^{-7}$ & $1.91\times10^{-6}$ & 21 & 170 & $2.08\times10^{-13}$ & $3.34\times10^{-6}$ \\
-        \midrule
-        2 & 2 & $8\times8$   & 64  & $4.01\times10^{-7}$ & $8.34\times10^{-7}$ & 7  & 26  & $1.50\times10^{-14}$ & $2.38\times10^{-7}$ \\
-        2 & 3 & $8\times12$  & 96  & $5.99\times10^{-7}$ & $8.34\times10^{-7}$ & 9  & 38  & $5.71\times10^{-14}$ & $3.58\times10^{-7}$ \\
-        2 & 4 & $8\times14$  & 112 & $6.02\times10^{-7}$ & $1.67\times10^{-6}$ & 13 & 74  & $9.15\times10^{-14}$ & $5.96\times10^{-7}$ \\
-        2 & 5 & $8\times18$  & 144 & $1.19\times10^{-6}$ & $1.55\times10^{-6}$ & 15 & 86  & $7.83\times10^{-14}$ & $4.77\times10^{-7}$ \\
-        2 & 6 & $8\times20$  & 160 & $1.33\times10^{-6}$ & $2.15\times10^{-6}$ & 19 & 146 & $1.29\times10^{-13}$ & $9.54\times10^{-7}$ \\
-        2 & 7 & $8\times24$  & 192 & $1.41\times10^{-6}$ & $2.62\times10^{-6}$ & 21 & 170 & $1.56\times10^{-13}$ & $1.43\times10^{-6}$ \\
-        \bottomrule
-    \end{tabular*}
+    \begin{threeparttable}
+        \caption{Equivariance of the $m$-truncated spherical-grid nonlinearity under random local $z$-axis rotations.}
+        \label{tab:sm_s2_truncated_equivariance}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}cccccccccc@{}}
+            \toprule
+            \textbf{$M$} &
+            \textbf{$L$} &
+            \multicolumn{4}{c}{\textbf{Product grid}} &
+            \multicolumn{4}{c}{\textbf{Lebedev quadrature}} \\
+            \cmidrule(lr){3-6}\cmidrule(lr){7-10}
+            & & \textbf{Rule} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error}
+            & \textbf{$p$} & \textbf{\#\,pts} & \textbf{fp64 error} & \textbf{fp32 error} \\
+            \midrule
+            1 & 2 & $6\times8$   & 48  & $2.36\times10^{-7}$ & $3.58\times10^{-7}$ & 7  & 26  & $2.31\times10^{-14}$ & $2.38\times10^{-7}$ \\
+            1 & 3 & $6\times12$  & 72  & $1.22\times10^{-7}$ & $5.96\times10^{-7}$ & 9  & 38  & $3.55\times10^{-14}$ & $2.98\times10^{-7}$ \\
+            1 & 4 & $6\times14$  & 84  & $1.12\times10^{-6}$ & $9.54\times10^{-7}$ & 13 & 74  & $1.04\times10^{-13}$ & $9.54\times10^{-7}$ \\
+            1 & 5 & $6\times18$  & 108 & $1.10\times10^{-7}$ & $1.43\times10^{-6}$ & 15 & 86  & $9.34\times10^{-14}$ & $7.15\times10^{-7}$ \\
+            1 & 6 & $6\times20$  & 120 & $7.64\times10^{-7}$ & $1.91\times10^{-6}$ & 19 & 146 & $8.56\times10^{-14}$ & $2.15\times10^{-6}$ \\
+            1 & 7 & $6\times24$  & 144 & $2.17\times10^{-7}$ & $1.91\times10^{-6}$ & 21 & 170 & $2.08\times10^{-13}$ & $3.34\times10^{-6}$ \\
+            \midrule
+            2 & 2 & $8\times8$   & 64  & $4.01\times10^{-7}$ & $8.34\times10^{-7}$ & 7  & 26  & $1.50\times10^{-14}$ & $2.38\times10^{-7}$ \\
+            2 & 3 & $8\times12$  & 96  & $5.99\times10^{-7}$ & $8.34\times10^{-7}$ & 9  & 38  & $5.71\times10^{-14}$ & $3.58\times10^{-7}$ \\
+            2 & 4 & $8\times14$  & 112 & $6.02\times10^{-7}$ & $1.67\times10^{-6}$ & 13 & 74  & $9.15\times10^{-14}$ & $5.96\times10^{-7}$ \\
+            2 & 5 & $8\times18$  & 144 & $1.19\times10^{-6}$ & $1.55\times10^{-6}$ & 15 & 86  & $7.83\times10^{-14}$ & $4.77\times10^{-7}$ \\
+            2 & 6 & $8\times20$  & 160 & $1.33\times10^{-6}$ & $2.15\times10^{-6}$ & 19 & 146 & $1.29\times10^{-13}$ & $9.54\times10^{-7}$ \\
+            2 & 7 & $8\times24$  & 192 & $1.41\times10^{-6}$ & $2.62\times10^{-6}$ & 21 & 170 & $1.56\times10^{-13}$ & $1.43\times10^{-6}$ \\
+            \bottomrule
+        \end{tabular*}
+        \begin{tablenotes}[flushleft]
+            \PaperTableNotesStyle
+            \item[] $M$ and $L$ are the maximum retained azimuthal order and spherical-harmonic degree, respectively. These cases use the reduced local layout of the EMFA SO(2) convolution.
+            \item[] Product-grid rules are $(R_{\phi},R_{\theta})$, and \#\,pts is the total number of grid points $R_{\phi}R_{\theta}$. For Lebedev quadrature, $p$ is the algebraic order of accuracy.
+            \item[] fp64 and fp32 denote 64- and 32-bit floating-point arithmetic, respectively; errors are maximum absolute deviations between the two equivariance paths.
+        \end{tablenotes}
+    \end{threeparttable}
 \end{table}
 
 \subsection{Completeness of the Wigner bilinear network}
@@ -629,4 +631,3 @@ and the final Muon update is rescaled by
 \end{equation}
 This rule differs from stochastic masking: all blocks remain active, and poorly aligned updates are continuously damped rather than randomly skipped.
 The nonzero lower bound prevents the optimizer from freezing a block entirely, which is important for MLIP training, where force labels can make the alignment temporarily noisy without implying that the corresponding representation block should stop learning.
-
