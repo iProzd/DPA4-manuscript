@@ -1067,8 +1067,8 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
         \label{tab:sm_omol25_config}
         \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}
                 L{2.65cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}C{1.66cm}@{}} \toprule \textbf{Hyperparameter} & \makecell{\textbf{DPA4-}\\\textbf{Nano}} & \makecell{\textbf{DPA4-}\\\textbf{Mini}} & \makecell{\textbf{DPA4-}\\\textbf{Neo}} & \makecell{\textbf{DPA4-}\\\textbf{Air}} & \makecell{\textbf{DPA4-}\\\textbf{Plus}} & \makecell{\textbf{DPA4-}\\\textbf{Pro}} \\ \midrule LR scheduler\tnote{a} & WSD & WSD & WSD & WSD & WSD & WSD \\ Max.
-            LR & $1\times10^{-3}$ & $6\times10^{-4}$ & $8\times10^{-4}$ & $3.5\times10^{-4}$ & $3.5\times10^{-4}$ & $3\times10^{-4}$ \\ Min.
-            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{b} & $\lceil 25000/N\rceil$ & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\ Training epochs & 20 & 18 & 16 & 14 & 12 & 10 \\ No.
+            LR & $1\times10^{-3}$ & $5\times10^{-4}$ & $7\times10^{-4}$ & $3\times10^{-4}$ & $3\times10^{-4}$ & $3\times10^{-4}$ \\ Min.
+            LR & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ & $1\times10^{-6}$ \\ Warmup ratio & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 & 0.003 \\ Decay ratio & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 & 0.65 \\ Decay type & Cosine & Cosine & Cosine & Cosine & Cosine & Cosine \\ Batch size (per GPU)\tnote{b} & $\lceil 25000/N\rceil$ & $\lceil 20000/N\rceil$ & $\lceil 6000/N\rceil$ & $\lceil 4000/N\rceil$ & $\lceil 2000/N\rceil$ & $\lceil 800/N\rceil$ \\ Training epochs & 23 & 21 & 19 & 17 & 13 & 10 \\ No.
             GPUs & 2 & 4 & 8 & 16 & 24 & 32 \\
             \midrule
             Loss & MAE & MAE & MAE & MAE & MAE & MAE \\

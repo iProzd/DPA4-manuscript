@@ -236,26 +236,26 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
                                                          &
             \textbf{kcal/mol}\tnote{a}                   &
             \textbf{meV/atom}                            &
-            \textbf{meV/\AA{}}\tnote{b}                 &
+            \textbf{kcal/mol/\AA{}}\tnote{b}            &
                                                          &
                                                            \\
             \midrule
-            eSEN-S-OMol~\cite{fu2025esen,wood2025umafamilyuniversalmodels}            & --               & 3.67             & 11.56            & --         & --               \\
-            eSEN-sm-d.~\cite{fu2025esen,levine2025open}                              & 2.06             & --               & 9.97             & 6.3M       & --               \\
-            eSEN-sm-cons.~\cite{fu2025esen,levine2025open}                           & 1.77             & 1.27             & 8.25             & 6.3M       & --               \\
-            eSEN-md-d.~\cite{fu2025esen,levine2025open}                              & 1.15             & --               & \textbf{4.77}   & 50.7M      & --               \\
-            GemNet-OC~\cite{gasteiger2022gemnet,levine2025open}                       & \textbf{0.78}    & --               & 6.50             & 39.1M      & --               \\
-            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & 4.56             & --               & 10.84            & --         & --               \\
-            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & 1.45             & 0.95             & 8.64             & 150M (6M)  & 46,080\tnote{e}  \\
-            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & \underline{1.14} & \textbf{0.74}    & \underline{5.44} & 1.4B (50M) & 129,024\tnote{e} \\
+            eSEN-S-OMol~\cite{fu2025esen,wood2025umafamilyuniversalmodels}            & --               & 3.67             & 0.27             & --         & --               \\
+            eSEN-sm-d.~\cite{fu2025esen,levine2025open}                              & 2.06             & --               & 0.23             & 6.3M       & --               \\
+            eSEN-sm-cons.~\cite{fu2025esen,levine2025open}                           & 1.77             & 1.27             & 0.19             & 6.3M       & --               \\
+            eSEN-md-d.~\cite{fu2025esen,levine2025open}                              & 1.15             & --               & \textbf{0.11}    & 50.7M      & --               \\
+            GemNet-OC~\cite{gasteiger2022gemnet,levine2025open}                       & \textbf{0.78}    & --               & 0.15             & 39.1M      & --               \\
+            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & 4.56             & --               & 0.25             & --         & --               \\
+            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & 1.45             & 0.95             & 0.20             & 150M (6M)  & 46,080\tnote{e}  \\
+            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & \underline{1.14} & \textbf{0.74}    & \underline{0.13} & 1.4B (50M) & 129,024\tnote{e} \\
             \addlinespace[0.25em]
             \midrule
             \addlinespace[0.15em]
-            DPA4-Nano                                      & --               & 5.73             & 34.18            & 0.48M      & 220              \\
-            DPA4-Mini                                      & --               & 3.41             & 21.91            & 0.66M      & 490              \\
-            DPA4-Neo                                       & --               & 2.13             & 14.70            & 1.1M       & 776              \\
-            DPA4-Air                                       & --               & 1.01             & 8.46             & 5.1M       & 1,393            \\
-            DPA4-Plus                                      & --               & \underline{0.92} & 6.30             & 8.8M       & 2,714            \\
+            DPA4-Nano                                      & 8.02             & 5.06             & 0.78             & 0.48M      & 186              \\
+            DPA4-Mini                                      & 4.97             & 3.12             & 0.50             & 0.66M      & 431              \\
+            DPA4-Neo                                       & 2.93             & 1.84             & 0.33             & 1.1M       & 891              \\
+            DPA4-Air                                       & 1.47             & 0.97             & 0.19             & 5.1M       & 1,393            \\
+            DPA4-Plus                                      & 1.20             & \underline{0.81} & 0.15             & 8.8M       & 2,714            \\
             DPA4-Pro                                       & --               & --               & --               & 25.2M      & --               \\
             \bottomrule
         \end{tabular*}
@@ -264,7 +264,7 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
             \item[] A dash indicates that a value is unavailable.
             \item[] Boldface and underlining denote the best and second-best values within each MAE column.
             \item[a] For unnormalized total energy, $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$; the meV/atom values use atom-normalized errors.
-            \item[b] Force MAEs reported only in kcal/mol/\AA{} by the cited source are converted using $1~\mathrm{kcal/mol}/\text{\AA}=43.3641~\mathrm{meV}/\text{\AA}$.
+            \item[b] Force MAEs reported in meV/\AA{} are converted using $1~\mathrm{meV}/\text{\AA}=0.0230605~\mathrm{kcal/mol}/\text{\AA}$.
             \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
             No parameter count is reported here for eSEN-S-OMol or MACE-OMol-L-0.
             \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
@@ -276,10 +276,10 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
 OMol25~\cite{levine2025open} is a molecular dataset of DFT single-point calculations at the $\omega$B97M-V/def2-TZVPD level, spanning biomolecules, metal complexes, electrolytes and recomputed community datasets, with charge and spin states as explicit inputs.
 It is substantially broader in chemistry than SPICE-MACE-OFF and therefore probes transferability across molecular classes rather than accuracy within a single class.
 The dataset has been released in successive versions; we train on the OMol-0 release, which the dataset paper describes as containing about 100 million DFT datapoints and which is also the release used for the UMA-1.1 models~\cite{levine2025open}, and we evaluate on its out-of-distribution composition validation split.
-The five completed DPA4 runs form a monotonic accuracy--cost sequence from Nano to Plus: as the parameter count increases from 0.48M to 8.8M and the training cost from 220 to 2,714 H100-equivalent GPU-hours, the energy and force MAEs decrease from 5.73 to 0.92~meV/atom and from 34.18 to 6.30~meV/\AA{}, respectively.
-At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters and 220--776 H100-equivalent GPU-hours; Mini and Neo already lower the energy MAE of the single-task eSEN-S-OMol baseline from 3.67 to 3.41 and 2.13~meV/atom, although their force MAEs remain higher.
-DPA4-Air then matches UMA-S-1.1 in energy to within 0.06~meV/atom and slightly improves on its force MAE (8.46 against 8.64~meV/\AA{}) with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
-DPA4-Plus reaches the most accurate completed DPA4 point, with an energy MAE below that of UMA-S-1.1 (0.92 versus 0.95~meV/atom) and a force MAE below that of eSEN-sm-cons.~\cite{fu2025esen,levine2025open} (6.30 versus 8.25~meV/\AA{}); among the models compared, only UMA-M-1.1 is more accurate, at 0.74~meV/atom and 5.44~meV/\AA{} with 1.4B total and 50M active parameters.
+The five completed DPA4 runs form a monotonic accuracy--cost sequence from Nano to Plus: as the parameter count increases from 0.48M to 8.8M and the training cost from 186 to 2,714 H100-equivalent GPU-hours, the energy and force MAEs decrease from 5.06 to 0.81~meV/atom and from 0.78 to 0.15~kcal/mol/\AA{}, respectively.
+At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters and 186--891 H100-equivalent GPU-hours; Mini and Neo already lower the energy MAE of the single-task eSEN-S-OMol baseline from 3.67 to 3.12 and 1.84~meV/atom, although their force MAEs remain higher.
+DPA4-Air then matches UMA-S-1.1 in energy to within 0.02~meV/atom and slightly improves its force MAE (0.19 versus 0.20~kcal/mol/\AA{}) with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
+DPA4-Plus reaches the most accurate completed DPA4 point, with an energy MAE below that of UMA-S-1.1 (0.81 versus 0.95~meV/atom) and a force MAE below that of eSEN-sm-cons.~\cite{fu2025esen,levine2025open} (0.15 versus 0.19~kcal/mol/\AA{}); among the models with both atom-normalized energy and force MAEs reported, only UMA-M-1.1 is more accurate, at 0.74~meV/atom and 0.13~kcal/mol/\AA{} with 1.4B total and 50M active parameters.
 The advantage on this dataset is therefore concentrated in the energy channel and in the accuracy obtained per parameter, consistent with the Matbench Discovery and OMat24 results.
 
 \subsection{SPICE-MACE-OFF molecular benchmark}
