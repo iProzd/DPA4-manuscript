@@ -46,8 +46,10 @@ In addition, native ZBL zone bridging couples the analytical Ziegler--Biersack--
 Across four datasets spanning inorganic crystals and organic molecules, DPA4 combines high accuracy with low inference and training cost.
 On Matbench Discovery~\cite{riebesell2025matbench}, all five DPA4 variants evaluated on this benchmark lie on the Pareto frontier in CPS and saturated inference throughput among the fifteen compliant models tested (Fig.~\ref{fig:cps-throughput}).
 At the top, the 25.2M-parameter DPA4-Pro leads every ranked metric of the compliant leaderboard, and on the much larger OMat24 dataset~\cite{barroso2024open} it attains the lowest energy error of all models compared, with 6.1$\times$ and 27.8$\times$ fewer parameters than the two next most accurate models.
-Lower down, the 8.8M-parameter DPA4-Plus matches the strongest Matbench baseline with 3.4$\times$ fewer parameters and 5.1$\times$ less training compute and attains the lowest aggregate errors on SPICE-MACE-OFF~\cite{kovacs2023mace} (Table~\ref{table:spice}).
-On the OMol25 composition-validation split~\cite{levine2025open}, DPA4-Pro records lower total-energy and force MAEs than the 1.4B-parameter UMA-M-1.1.
+Lower down, the 8.8M-parameter DPA4-Plus matches the strongest Matbench baseline at 11.6$\times$ higher saturated inference throughput (Fig.~\ref{fig:cps-throughput}), with 5.1$\times$ less training compute and 3.4$\times$ fewer parameters.
+On the OMol25 composition-validation split~\cite{levine2025open}, DPA4-Pro records lower total-energy and force MAEs than UMA-M-1.1, the strongest conservative baseline on this benchmark.
+This accuracy is reached at a training cost of 8,829 H100-equivalent GPU-hours, against the 129,024 of the UMA-M-1.1 training pipeline.
+On SPICE-MACE-OFF~\cite{kovacs2023mace}, DPA4-Plus lowers the aggregate energy and force errors of the best published model by 39\% and 36\% (Table~\ref{table:spice}).
 All of this is obtained through conservative energy-gradient training alone, without the denoising or direct-force pretraining on which the strongest baselines rely, offering a way past the training-cost bottleneck of current LAMs without sacrificing generalizability.
 In this work DPA4 is trained in the single-task, per-dataset setting; multi-task LAM pretraining on top of this backbone is left as the natural next step (Section~\ref{sec:discussion}).
 
