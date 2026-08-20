@@ -193,7 +193,7 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
             \item[a] Prediction denotes the force-prediction pathway: Gradient obtains forces as energy gradients, Direct predicts forces directly, and Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning.
             \item[b] Values are mean absolute errors in meV per atom for energy, meV/\AA\ for forces and meV/\AA$^3$ for stress; lower values are better.
             \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs. UMA runs on H200 GPUs are counted at parity, as the H200 and H100 share the same theoretical FP32 peak throughput.
             \item[e] No OMat24 validation metrics are published for MACE-Omat; the values listed here were obtained in this work by evaluating the released checkpoints through the ASE interface, and no train-time estimate is available.
             \item[f] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMat24-only estimates.
         \end{tablenotes}
@@ -261,7 +261,7 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
             \item[a] Prediction denotes the force-prediction pathway: Gradient obtains forces as energy gradients, Direct predicts forces directly, and Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning. Cons.\ marks whether the evaluated forces are conservative, i.e.\ energy gradients: \cmark{} for Gradient and Direct+Grad models, \xmark{} for Direct models.
             \item[b] Values are mean absolute errors (MAEs), reported in kcal/mol for energy and kcal/mol/\AA{} for forces. Values originally reported in meV and meV/\AA{} are converted using $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$ and $1~\mathrm{meV}/\text{\AA}=0.0230605~\mathrm{kcal/mol}/\text{\AA}$, respectively.
             \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs. UMA runs on H200 GPUs are counted at parity, as the H200 and H100 share the same theoretical FP32 peak throughput.
             \item[e] The MACE-OMol-L-0 parameter count was computed from the released \texttt{MACE-omol-0-extra-large-1024.model} checkpoint distributed through the \href{https://github.com/ACEsuit/mace}{MACE repository}.
             \item[f] GemNet-OC-r6 uses a 6~\AA{} cutoff radius, whereas GemNet-OC uses the default 12~\AA{} cutoff radius.
             \item[g] The listed UMA train times are for the multitask UMA 1.0 runs and are not OMol25-only estimates. UMA-1.1 was obtained by further fine-tuning these models, but the cost of that step is not reported.
