@@ -249,7 +249,7 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
             DPA4-Nano                                      & Gradient    & \cmark & 8.02             & 0.776             & 0.48M      & 186              \\
             DPA4-Mini                                      & Gradient    & \cmark & 4.97             & 0.502             & 0.66M      & 431              \\
             DPA4-Neo                                       & Gradient    & \cmark & 2.91             & 0.332             & 1.1M       & 819              \\
-            DPA4-Air                                       & Gradient    & \cmark & 1.47             & 0.190             & 5.1M       & 1,630            \\
+            DPA4-Air                                       & Gradient    & \cmark & 1.45             & 0.189             & 5.1M       & 1,549            \\
             DPA4-Plus                                      & Gradient    & \cmark & 1.20             & 0.146             & 8.8M       & 2,521            \\
             DPA4-Pro                                       & Gradient    & \cmark & \underline{0.92} & \underline{0.117} & 25.2M      & 8,829            \\
             \bottomrule
@@ -277,7 +277,7 @@ Across the six DPA4 size classes, increasing the parameter count from 0.48M to 2
 Across the series, the training budget increases from 186 to 8,829 H100-equivalent GPU-hours from Nano through Pro.
 At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters, energy MAEs of 8.02--2.91~kcal/mol and training costs of 186--819 H100-equivalent GPU-hours.
 
-DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 to within 0.02~kcal/mol and improves its force MAE from 0.22 to 0.190~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
+DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 at the reported precision and improves its force MAE from 0.22 to 0.189~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
 The strongest conservative baseline in Table~\ref{tab:omol25} is UMA-M-1.1, with energy and force MAEs of 1.14~kcal/mol and 0.14~kcal/mol/\AA{} at 1.4B total and 50M active parameters~\cite{wood2025umafamilyuniversalmodels,levine2025open}.
 DPA4-Plus matches it at 1.20~kcal/mol and 0.146~kcal/mol/\AA{}, and DPA4-Pro surpasses it on both metrics at 0.92~kcal/mol and 0.117~kcal/mol/\AA{}, trained with 2,521 and 8,829 H100-equivalent GPU-hours, respectively.
 UMA-M-1.0 required 129,024 GPU-hours for its two-stage training.
