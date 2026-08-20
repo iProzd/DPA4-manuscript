@@ -264,7 +264,7 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
             \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
             \item[e] The MACE-OMol-L-0 parameter count was computed from the released \texttt{MACE-omol-0-extra-large-1024.model} checkpoint distributed through the \href{https://github.com/ACEsuit/mace}{MACE repository}.
             \item[f] GemNet-OC-r6 uses a 6~\AA{} cutoff radius, whereas GemNet-OC uses the default 12~\AA{} cutoff radius.
-            \item[g] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMol25-only estimates.
+            \item[g] The listed UMA train times are for the multitask UMA 1.0 runs and are not OMol25-only estimates. UMA-1.1 was obtained by further fine-tuning these models, but the cost of that step is not reported.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -279,7 +279,9 @@ At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters
 
 DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 to within 0.02~kcal/mol and improves its force MAE from 0.22 to 0.190~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
 The strongest conservative baseline in Table~\ref{tab:omol25} is UMA-M-1.1, with energy and force MAEs of 1.14~kcal/mol and 0.14~kcal/mol/\AA{} at 1.4B total and 50M active parameters~\cite{wood2025umafamilyuniversalmodels,levine2025open}.
-DPA4-Plus matches it at 1.20~kcal/mol and 0.146~kcal/mol/\AA{}, and DPA4-Pro surpasses it on both metrics at 0.92~kcal/mol and 0.117~kcal/mol/\AA{}, trained with 2,521 and 8,829 H100-equivalent GPU-hours, respectively, against the 129,024 GPU-hours of the UMA-M-1.1 pipeline including multitask pretraining and fine-tuning.
+DPA4-Plus matches it at 1.20~kcal/mol and 0.146~kcal/mol/\AA{}, and DPA4-Pro surpasses it on both metrics at 0.92~kcal/mol and 0.117~kcal/mol/\AA{}, trained with 2,521 and 8,829 H100-equivalent GPU-hours, respectively.
+UMA-M-1.0 required 129,024 GPU-hours for its two-stage training.
+UMA-M-1.1 was obtained by further fine-tuning this model, but the cost of that step is not reported.
 Non-conservative models predict energy and forces separately, free from the constraint that the forces are the gradients of the energy.
 Among them, GemNet-OC attains the lowest energy MAE of the table at 0.78~kcal/mol~\cite{gasteiger2022gemnet,levine2025open}, and eSEN-md-d.\ attains the lowest force MAE at 0.11~kcal/mol/\AA{}~\cite{fu2025esen,levine2025open}.
 Neither, however, surpasses DPA4-Pro on energy and force simultaneously.
