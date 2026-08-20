@@ -164,17 +164,17 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
             \textbf{Params}\tnote{c}                                      &
             \textbf{Train time}\tnote{d}                                                                                           \\
             \midrule
-            MACE-Omat-Small~\cite{batatia2022mace,batatia2025crosslearning} & Gradient    & 17.9          & 85.9                & 3.5              & 8.2M       & --\tnote{e}      \\
-            MACE-Omat-Medium                                                 & Gradient    & 16.3          & 78.4                & 3.3              & 9.1M       & --\tnote{e}      \\
+            MACE-Omat-Small\tnote{e}~\cite{batatia2022mace,batatia2025crosslearning} & Gradient    & 17.9          & 85.9                & 3.5              & 8.2M       & --               \\
+            MACE-Omat-Medium\tnote{e}                                      & Gradient    & 16.3          & 78.4                & 3.3              & 9.1M       & --               \\
             EquiformerV2-S~\cite{liao2023equiformerv2,barroso2024open}     & Direct      & 11.0          & 49.2                & \underline{2.4}  & 31M        & --               \\
             EquiformerV2-M                                                & Direct      & 10.0          & 44.8                & \textbf{2.3}     & 87M        & --               \\
             EquiformerV2-L                                                & Direct      & \underline{9.6} & 43.1              & \textbf{2.3}     & 154M       & --               \\
+            EquiformerV3, $L_{\max}=4$~\cite{liao2026equiformerv3}         & Direct+Grad & 10.4          & 43.5                & 2.6              & 30M        & 4,782            \\
+            EquiformerV3, $L_{\max}=6$                                    & Direct+Grad & 10.1          & \textbf{41.6}       & 2.5              & 49M        & 9,197            \\
             eSEN~\cite{fu2025esen}                                        & Gradient    & 10.7          & 47.3                & 2.6              & 30M        & --               \\
             UMA-S~\cite{wood2025umafamilyuniversalmodels}                 & Direct+Grad & 11.3          & 57.1                & 2.9              & 150M (6M)  & 46,080\tnote{f}  \\
             UMA-M                                                         & Direct+Grad & 10.0          & 47.3                & 2.7              & 1.4B (50M) & 129,024\tnote{f} \\
             UMA-L                                                         & Direct      & 9.7           & 43.5                & 2.5              & 700M       & 95,232\tnote{f}  \\
-            EquiformerV3, $L_{\max}=4$~\cite{liao2026equiformerv3}         & Direct+Grad & 10.4          & 43.5                & 2.6              & 30M        & 4,782            \\
-            EquiformerV3, $L_{\max}=6$                                    & Direct+Grad & 10.1          & \textbf{41.6}       & 2.5              & 49M        & 9,197            \\
             \addlinespace[0.25em]
             \midrule
             \addlinespace[0.15em]
@@ -225,43 +225,45 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
     \begin{threeparttable}
         \caption{Performance on the OMol25 OMol-0 out-of-distribution composition validation split.}
         \label{tab:omol25}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l c c c c @{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l c c c c c @{}}
             \toprule
-            \textbf{Model}                    &
-            \textbf{Energy MAE}\tnote{a}      &
-            \textbf{Force MAE}\tnote{a}       &
-            \textbf{Params}\tnote{b}          &
-            \textbf{Train time}\tnote{c}       \\
+            \textbf{Model}                       &
+            \textbf{Prediction}\tnote{a}         &
+            \textbf{Energy}\tnote{b}             &
+            \textbf{Force}\tnote{b}              &
+            \textbf{Params}\tnote{c}             &
+            \textbf{Train time}\tnote{d}          \\
             \midrule
-            eSEN-sm-d.~\cite{fu2025esen,levine2025open}                              & 2.06             & 0.230             & 6.3M       & --               \\
-            eSEN-sm-cons.~\cite{fu2025esen,levine2025open}                           & 1.77             & 0.190             & 6.3M       & --               \\
-            eSEN-md-d.~\cite{fu2025esen,levine2025open}                              & 1.15             & \textbf{0.110}   & 50.7M      & --               \\
-            GemNet-OC-r6\tnote{d}~\cite{gasteiger2022gemnet,levine2025open}           & 1.04             & 0.170             & 39.1M      & --               \\
-            GemNet-OC\tnote{d}~\cite{gasteiger2022gemnet,levine2025open}              & \textbf{0.78}    & 0.150             & 39.1M      & --               \\
-            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & 4.56             & 0.250             & --         & --               \\
-            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & 1.45             & 0.220             & 150M (6M)  & 46,080\tnote{e}  \\
-            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & 1.14             & 0.140             & 1.4B (50M) & 129,024\tnote{e} \\
+            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & Gradient    & 4.56             & 0.25              & 52.4M\tnote{e} & --               \\
+            GemNet-OC-r6\tnote{f}~\cite{gasteiger2022gemnet,levine2025open}           & Direct      & 1.04             & 0.17              & 39.1M      & --               \\
+            GemNet-OC\tnote{f}~\cite{gasteiger2022gemnet,levine2025open}              & Direct      & \textbf{0.78}    & 0.15              & 39.1M      & --               \\
+            eSEN-sm-d.~\cite{fu2025esen,levine2025open}                              & Direct      & 2.06             & 0.23              & 6.3M       & --               \\
+            eSEN-sm-cons.~\cite{fu2025esen,levine2025open}                           & Gradient    & 1.77             & 0.19              & 6.3M       & --               \\
+            eSEN-md-d.~\cite{fu2025esen,levine2025open}                              & Direct      & 1.15             & \textbf{0.11}    & 50.7M      & --               \\
+            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & Direct+Grad & 1.45             & 0.22              & 150M (6M)  & 46,080\tnote{g}  \\
+            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & Direct+Grad & 1.14             & 0.14              & 1.4B (50M) & 129,024\tnote{g} \\
             \addlinespace[0.25em]
             \midrule
             \addlinespace[0.15em]
-            DPA4-Nano                                      & 8.02             & 0.776             & 0.48M      & 186              \\
-            DPA4-Mini                                      & 4.97             & 0.502             & 0.66M      & 431              \\
-            DPA4-Neo                                       & 2.93             & 0.333             & 1.1M       & 891              \\
-            DPA4-Air                                       & 1.47             & 0.190             & 5.1M       & 1,393            \\
-            DPA4-Plus                                      & 1.20             & 0.146             & 8.8M       & 2,714            \\
-            DPA4-Pro                                       & \underline{0.94} & \underline{0.118} & 25.2M      & --               \\
+            DPA4-Nano                                      & Gradient    & 8.02             & 0.776             & 0.48M      & 186              \\
+            DPA4-Mini                                      & Gradient    & 4.97             & 0.502             & 0.66M      & 431              \\
+            DPA4-Neo                                       & Gradient    & 2.91             & 0.332             & 1.1M       & 819              \\
+            DPA4-Air                                       & Gradient    & 1.47             & 0.190             & 5.1M       & 1,630            \\
+            DPA4-Plus                                      & Gradient    & 1.20             & 0.146             & 8.8M       & 2,521            \\
+            DPA4-Pro                                       & Gradient    & \underline{0.92} & \underline{0.117} & 25.2M      & 8,829            \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
             \item[] A dash indicates that a value is unavailable.
             \item[] Boldface and underlining denote the best and second-best values within each MAE column.
-            \item[a] Energy MAE is reported in kcal/mol and force MAE in kcal/mol/\AA{}. Values originally reported in meV and meV/\AA{} are converted using $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$ and $1~\mathrm{meV}/\text{\AA}=0.0230605~\mathrm{kcal/mol}/\text{\AA}$, respectively.
-            \item[b] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            No parameter count is reported here for MACE-OMol-L-0.
-            \item[c] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
-            \item[d] GemNet-OC-r6 uses a 6~\AA{} cutoff radius, whereas GemNet-OC uses the default 12~\AA{} cutoff radius.
-            \item[e] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMol25-only estimates.
+            \item[a] Prediction denotes the force-prediction pathway: Gradient obtains forces as energy gradients, Direct predicts forces directly, and Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning.
+            \item[b] Values are mean absolute errors (MAEs), reported in kcal/mol for energy and kcal/mol/\AA{} for forces. Values originally reported in meV and meV/\AA{} are converted using $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$ and $1~\mathrm{meV}/\text{\AA}=0.0230605~\mathrm{kcal/mol}/\text{\AA}$, respectively.
+            \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
+            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            \item[e] The MACE-OMol-L-0 parameter count was computed from the released \texttt{MACE-omol-0-extra-large-1024.model} checkpoint distributed through the \href{https://github.com/ACEsuit/mace}{MACE repository}.
+            \item[f] GemNet-OC-r6 uses a 6~\AA{} cutoff radius, whereas GemNet-OC uses the default 12~\AA{} cutoff radius.
+            \item[g] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMol25-only estimates.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -269,12 +271,12 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
 OMol25~\cite{levine2025open} is a molecular dataset of DFT single-point calculations at the $\omega$B97M-V/def2-TZVPD level, spanning biomolecules, metal complexes, electrolytes and recomputed community datasets, with charge and spin states as explicit inputs.
 It is substantially broader in chemistry than SPICE-MACE-OFF and therefore probes transferability across molecular classes rather than accuracy within a single class.
 The dataset has been released in successive versions; we train on the OMol-0 release, which the dataset paper describes as containing about 100 million DFT datapoints and which is also the release used for the UMA-1.1 models~\cite{levine2025open}, and we evaluate on its out-of-distribution composition validation split.
-Across the six DPA4 size classes, increasing the parameter count from 0.48M to 25.2M monotonically decreases the energy and force MAEs from 8.02 to 0.94~kcal/mol and from 0.776 to 0.118~kcal/mol/\AA{}, respectively.
-For the five variants with reported training costs, the budget increases from 186 to 2,714 H100-equivalent GPU-hours from Nano through Plus.
-At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters, energy MAEs of 8.02--2.93~kcal/mol and training costs of 186--891 H100-equivalent GPU-hours.
-DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 to within 0.02~kcal/mol and improves its force MAE from 0.220 to 0.190~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
-DPA4-Plus reaches 1.20~kcal/mol and 0.146~kcal/mol/\AA{}, below the energy MAE of UMA-S-1.1 and the force MAE of eSEN-sm-cons.~\cite{fu2025esen,levine2025open}.
-DPA4-Pro further lowers the errors to 0.94~kcal/mol and 0.118~kcal/mol/\AA{} with 25.2M parameters, below the 1.14~kcal/mol and 0.140~kcal/mol/\AA{} of UMA-M-1.1, which has 1.4B total and 50M active parameters.
+Across the six DPA4 size classes, increasing the parameter count from 0.48M to 25.2M monotonically decreases the energy and force MAEs from 8.02 to 0.92~kcal/mol and from 0.776 to 0.117~kcal/mol/\AA{}, respectively.
+Across the series, the training budget increases from 186 to 8,829 H100-equivalent GPU-hours from Nano through Pro.
+At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters, energy MAEs of 8.02--2.91~kcal/mol and training costs of 186--819 H100-equivalent GPU-hours.
+DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 to within 0.02~kcal/mol and improves its force MAE from 0.22 to 0.190~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
+Within the conservative, gradient-based subset, DPA4-Plus and DPA4-Pro both improve on eSEN-sm-cons., the strongest published conservative baseline in Table~\ref{tab:omol25}; DPA4-Pro reaches the lowest energy and force MAEs in this subset at 0.92~kcal/mol and 0.117~kcal/mol/\AA{}, respectively~\cite{fu2025esen,levine2025open}.
+These errors are also below the 1.14~kcal/mol and 0.14~kcal/mol/\AA{} of UMA-M-1.1, which has 1.4B total and 50M active parameters.
 The monotonic error reduction across the DPA4 size series extends the scaling trends observed on Matbench Discovery and OMat24 to both OMol25 energy and force.
 
 \subsection{SPICE-MACE-OFF molecular benchmark}
