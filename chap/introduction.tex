@@ -3,20 +3,27 @@
 Machine-learning interatomic potentials (MLIPs) are moving from case-specific models trained on dedicated density-functional-theory (DFT) data to pretrained atomistic foundation models~\cite{yuan2026foundation}, also called large atomistic models (LAMs), intended as broad DFT surrogates for simulation, materials discovery and molecular design~\cite{merchant2023scaling}.
 The lineage runs from the descriptor- and kernel-based potentials of the case-specific era~\cite{behler2007generalized,bartok2010gaussian,schutt2017schnet,unke2019physnet,zhang2018deep,wang2018deepmd} to the graph neural network models that define the LAM era~\cite{chen2022universal,deng2023chgnet,batatia2022mace,kovacs2023mace,yang2024mattersim,neumann2024orb,rhodes2025orbv3,liao2023equiformerv2,liao2026equiformerv3,wood2025umafamilyuniversalmodels,zhang2024dpa2,zhang2025dpa3}.
 
-That promise is expensive to realize: training UMA-M~\cite{wood2025umafamilyuniversalmodels}, built on the eSEN architecture~\cite{fu2025esen}, required 129{,}024 H200 GPU-hours across direct-force pretraining and conservative fine-tuning.
-The barrier is not confined to pretraining: the per-step expense that makes pretraining costly is paid again in fine-tuning to a target domain, and then at every step of molecular dynamics or structure relaxation in deployment.
+That promise is expensive to realize.
+Training UMA-M~\cite{wood2025umafamilyuniversalmodels}, built on the eSEN architecture~\cite{fu2025esen}, required 129{,}024 H200 GPU-hours across direct-force pretraining and conservative fine-tuning.
+The barrier is not confined to pretraining.
+The per-step expense that makes pretraining costly is paid again in fine-tuning to a target domain, and then at every step of molecular dynamics or structure relaxation in deployment.
 This motivates the question whether comparable accuracy can be reached at substantially lower cost, at inference as well as in training.
 % The next challenge is no longer accuracy alone, but the joint optimization of accuracy, efficiency and physical robustness.
 
-On the accuracy side, equivariant architectures carry directional information as first-class features that transform under SO(3), instead of compressing it immediately into rotation-invariant features; NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace}, the Equiformer family~\cite{liao2022equiformer,liao2023equiformerv2,liao2026equiformerv3} and eSEN~\cite{fu2025esen} have shown that explicit directional features substantially improve data efficiency and benchmark accuracy.
+On the accuracy side, equivariant architectures carry directional information as first-class features that transform under SO(3), instead of compressing it immediately into rotation-invariant features.
+NequIP~\cite{batzner2022nequip}, MACE~\cite{batatia2022mace}, the Equiformer family~\cite{liao2022equiformer,liao2023equiformerv2,liao2026equiformerv3} and eSEN~\cite{fu2025esen} have shown that explicit directional features substantially improve data efficiency and benchmark accuracy.
 On the efficiency side, the expense of SE(3)-equivariant models is dominated by Clebsch--Gordan tensor products, whose cost grows rapidly with angular order.
 % This cost becomes a bottleneck when the target is not a single specialized potential, but an MLIP architecture that can scale to broad training sets and serve as the backbone of future LAMs.
 eSCN showed that SO(3)-equivariant convolutions can be reduced to equivalent edge-local SO(2) operations~\cite{passaro2023reducing}, a strategy also used by recent high-performing models such as eSEN~\cite{fu2025esen} and EquiformerV3~\cite{liao2026equiformerv3}.
-In these constructions the edge modulates the node feature diagonally: the degree-$l$ edge feature multiplies only the degree-$l$ node feature, whereas a Clebsch--Gordan product couples every edge degree to every node degree.
-That restriction, and not the reduction to SO(2), is where expressive power is lost; letting the edge couple different degrees recovers it.
+In these constructions the edge modulates the node feature diagonally.
+The degree-$l$ edge feature multiplies only the degree-$l$ node feature, whereas a Clebsch--Gordan product couples every edge degree to every node degree.
+That restriction, and not the reduction to SO(2), is where expressive power is lost.
+Letting the edge couple different degrees recovers it.
 
-Cost is not the only obstacle: the conservative training objective itself resists acceleration.
-Because forces are the negative gradient of the energy, the force loss differentiates through the energy model and every training step requires a double-backward pass; training stacks developed for large language models, which are tuned for single-backward gradients, do not transfer directly to this setting.
+Cost is not the only obstacle.
+The conservative training objective itself resists acceleration.
+Because forces are the negative gradient of the energy, the force loss differentiates through the energy model and every training step requires a double-backward pass.
+Training stacks developed for large language models, which are tuned for single-backward gradients, do not transfer directly to this setting.
 Leading models such as EquiformerV3, eSEN and UMA work around this by pretraining with denoising (DeNS~\cite{liao2024dens}) or direct-force prediction, objectives whose targets are obtained from a single forward pass, and only then fine-tuning with the conservative energy-gradient objective.
 This two-stage protocol spends an additional pretraining stage and the engineering effort to maintain two objectives, motivating an architecture in which conservative energy-gradient training is itself compiler-friendly from the start.
 % These considerations motivate an architecture that treats directional expressiveness, and training efficiency as coupled design requirements rather than separate add-ons.
@@ -38,18 +45,23 @@ This two-stage protocol spends an additional pretraining stage and the engineeri
 \end{figure}
 
 Here we introduce DPA4, an SE(3)-equivariant interatomic-potential architecture built on an EMFA (Edge--node degree coupling, Multi-Focus, Attention) SO(2) convolution and a Wigner bilinear network (WBN) nonlinearity, which achieves leading accuracy at substantially lower inference and training cost on inorganic-crystal and organic-molecule benchmarks.
-Its architectural innovations, co-designed for efficiency and accuracy, are (A1) a low-rank edge--node SO(2)-equivariant degree coupling in an edge-local frame, (A2) a multi-focus design for message nonlinearity, (A3) envelope-gated attention for message aggregation --- the E, MF and A of EMFA --- and (A4) a Wigner bilinear network, a universal architecture for nonlinear SO(3)-equivariant maps between irreps, provably complete in its full-frame form.
-All four raise generalization accuracy at low computational cost relative to standard SO(2)-equivariant baselines; the WBN, evaluated by exact Lebedev--uniform quadrature on the rotation group, is in addition equivariant to machine precision.
+Its architectural innovations, co-designed for efficiency and accuracy, are (A1) a low-rank edge--node SO(2)-equivariant degree coupling in an edge-local frame, (A2) a multi-focus design for message nonlinearity, (A3) envelope-gated attention for message aggregation, and (A4) a Wigner bilinear network, a universal architecture for nonlinear SO(3)-equivariant maps between irreps, provably complete in its full-frame form.
+All four raise generalization accuracy at low computational cost relative to standard SO(2)-equivariant baselines.
+The WBN, evaluated by exact Lebedev--uniform quadrature on the rotation group, is in addition equivariant to machine precision.
 A shape-stable, compiler-friendly implementation of conservative energy-gradient training makes the energy-to-force path compatible with \texttt{torch.compile} and gives a threefold wall-clock training speedup in controlled ablations.
 
 Across four datasets spanning inorganic crystals and organic molecules, DPA4 combines high accuracy with low inference and training cost.
-On Matbench Discovery~\cite{riebesell2025matbench}, all five DPA4 variants evaluated on this benchmark lie on the CPS--throughput Pareto frontier among fifteen compliant models; DPA4-Pro leads every ranked metric, whereas DPA4-Plus matches the highest-CPS baseline with 11.9$\times$ higher saturated inference throughput (Fig.~\ref{fig:cps-throughput}).
+On Matbench Discovery~\cite{riebesell2025matbench}, all five DPA4 variants evaluated on this benchmark lie on the CPS--throughput Pareto frontier among fifteen compliant models.
+DPA4-Pro leads every ranked metric, whereas DPA4-Plus matches the highest-CPS baseline with 11.9$\times$ higher saturated inference throughput (Fig.~\ref{fig:cps-throughput}).
 On OMat24~\cite{barroso2024open}, a materials dataset comprising 118 million DFT calculations, DPA4-Pro attains the lowest mean absolute error (MAE) in energy (9.4~meV/atom).
-Its force MAE is 42.7 versus 41.6~meV/\AA{} for EquiformerV3 with $L_{\max}=6$~\cite{liao2026equiformerv3}, a difference of only 1.1~meV/\AA{}; DPA4-Pro has about half as many parameters and requires one-sixth of the training compute.
+Its force MAE is 42.7 versus 41.6~meV/\AA{} for EquiformerV3 with $L_{\max}=6$~\cite{liao2026equiformerv3}, a difference of only 1.1~meV/\AA{}.
+DPA4-Pro has about half as many parameters and requires one-sixth of the training compute.
 On the OMol25 composition-validation split~\cite{levine2025open}, DPA4-Pro lowers both the total-energy and force MAEs relative to UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels}, the strongest conservative baseline in the comparison.
-DPA4-Pro has 25.2M parameters versus 1.4B total (50M active) for UMA-M-1.1 and required over an order of magnitude less training compute than the reported UMA-M-1.0 run; the cost of the subsequent fine-tuning to UMA-M-1.1 is not reported.
+DPA4-Pro has 25.2M parameters versus 1.4B total (50M active) for UMA-M-1.1 and required over an order of magnitude less training compute than the reported UMA-M-1.0 run.
+The cost of the subsequent fine-tuning to UMA-M-1.1 is not reported.
 On~SPICE-MACE-OFF~\cite{kovacs2023mace}, DPA4-Plus lowers the aggregate energy and force errors of the best published model by 39\% and 36\% (Table~\ref{table:spice}).
 All DPA4 models in these comparisons use conservative energy-gradient training alone, without auxiliary denoising or direct-force pretraining, whereas several leading baselines use one or both of these stages.
-DPA4 is evaluated here in the single-task, per-dataset setting; extending this backbone to multitask LAM pretraining remains a direction for future work (Section~\ref{sec:discussion}).
+DPA4 is evaluated here in the single-task, per-dataset setting.
+Extending this backbone to multitask LAM pretraining remains a direction for future work (Section~\ref{sec:discussion}).
 
 % =============================================================
