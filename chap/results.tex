@@ -94,19 +94,18 @@ Inside the inner zone the learned branch contributes no force, so the short-rang
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
-            \item[] The five DPA4 variants are trained on MPtrj in the compliant setting and compared with all compliant leaderboard entries on CPS, F1, $\kappa$SRME and RMSD, together with parameter counts and train times.
-            \item[] Leaderboard entries comprise all compliant models accessed before August 1, 2026.
+            \item[] The comparison includes all compliant leaderboard entries available as of 1 August 2026.
             \item[] Boldface and underlining denote the best and second-best values of each ranked metric.
             \item[a] CPS, the combined performance score of the leaderboard, aggregates F1, $\kappa$SRME and RMSD with weights 0.5, 0.4 and 0.1~\cite{riebesell2025matbench}.
             \item[b] $\kappa$SRME is the symmetric relative mean error of the phonon thermal conductivity~\cite{pota2024thermal}; RMSD is the mean structural deviation from the DFT-relaxed geometry, in \AA.
-            \item[c] Train time is the aggregate accelerator time, reported in A100-equivalent GPU-days. It is calculated from the device count and wall-clock time recorded for each model~\cite{riebesell2025matbench} and rescaled by the theoretical FP32 peak throughput of the hardware used.
-            A dash indicates that no train-time estimate is available.
-            \item[d] \cmark{} marks models trained with the DeNS denoising objective~\cite{liao2024dens}.
-            \item[e] Targets denotes the quantities each model is trained to predict, following the Matbench Discovery convention~\cite{riebesell2025matbench}: E, F, S, M and H denote energy, forces, stress, magnetic moments and Hessian, while the suffix G or D indicates whether forces and stress are obtained by energy gradient (conservative) or direct prediction.
-            All DPA4 variants are EFSG.
-            \item[f] Nequix MP PFT is obtained by fine-tuning Nequix MP on force constants from
-            the MDR phonon database, co-trained with MPtrj~\cite{koker2026pft}; the reported value is
-            the sum of the base-model and fine-tuning budgets, 500 and 140 GPU-hours, respectively.
+            \item[c] The Train time column reports total accelerator usage in A100-equivalent GPU-days.
+            Values are calculated from the recorded device count and wall-clock duration for each model~\cite{riebesell2025matbench}, then rescaled by the theoretical FP32 peak throughput of the hardware used.
+            A dash indicates that no estimate is available.
+            \item[d] The DeNS column marks models trained with the DeNS denoising objective~\cite{liao2024dens}.
+            \item[e] The Targets column follows the Matbench Discovery notation~\cite{riebesell2025matbench}.
+            E, F, S, M and H denote energy, forces, stress, magnetic moments and the Hessian, respectively; G and D indicate whether forces and stress are obtained as energy gradients or predicted directly.
+            \item[f] Nequix MP PFT fine-tunes Nequix MP on force constants from the MDR phonon database while retaining MPtrj co-training~\cite{koker2026pft}.
+            Its train time combines the 500-GPU-hour base-model budget and the 140-GPU-hour fine-tuning budget.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -151,6 +150,7 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
 
 \begin{table}[t]
     \PaperTableStyle
+    \setlength{\tabcolsep}{1.5pt}
     \begin{threeparttable}
         \caption{Performance on the OMat24 validation set.}
         \label{tab:omat24}
@@ -158,23 +158,23 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
             \toprule
             \textbf{Model}                                                &
             \textbf{Prediction}\tnote{a}                                  &
-            \textbf{Energy}\tnote{b}                                      &
-            \textbf{Force}\tnote{b}                                       &
-            \textbf{Stress}\tnote{b}                                      &
-            \textbf{Params}\tnote{c}                                      &
-            \textbf{Train time}\tnote{d}                                                                                           \\
+            \makecell{\textbf{Energy MAE}\\(meV/atom)}                   &
+            \makecell{\textbf{Force MAE}\\(meV/\AA)}                     &
+            \makecell{\textbf{Stress MAE}\\(meV/\AA$^3$)}                &
+            \textbf{Params}\tnote{b}                                      &
+            \makecell{\textbf{Train time}\\(H100-eq. h)}\tnote{c} \\
             \midrule
-            MACE-Omat-Small\tnote{e}~\cite{batatia2022mace,batatia2025crosslearning} & Gradient    & 17.9          & 85.9                & 3.5              & 8.2M       & --               \\
-            MACE-Omat-Medium\tnote{e}                                      & Gradient    & 16.3          & 78.4                & 3.3              & 9.1M       & --               \\
+            MACE-Omat-Small\tnote{d}~\cite{batatia2022mace,batatia2025crosslearning} & Gradient    & 17.9          & 85.9                & 3.5              & 8.2M       & --               \\
+            MACE-Omat-Medium\tnote{d}                                      & Gradient    & 16.3          & 78.4                & 3.3              & 9.1M       & --               \\
             EquiformerV2-S~\cite{liao2023equiformerv2,barroso2024open}     & Direct      & 11.0          & 49.2                & \underline{2.4}  & 31M        & --               \\
             EquiformerV2-M                                                & Direct      & 10.0          & 44.8                & \textbf{2.3}     & 87M        & --               \\
             EquiformerV2-L                                                & Direct      & \underline{9.6} & 43.1              & \textbf{2.3}     & 154M       & --               \\
             EquiformerV3, $L_{\max}=4$~\cite{liao2026equiformerv3}         & Direct+Grad & 10.4          & 43.5                & 2.6              & 30M        & 4,782            \\
             EquiformerV3, $L_{\max}=6$                                    & Direct+Grad & 10.1          & \textbf{41.6}       & 2.5              & 49M        & 9,197            \\
             eSEN~\cite{fu2025esen}                                        & Gradient    & 10.7          & 47.3                & 2.6              & 30M        & --               \\
-            UMA-S~\cite{wood2025umafamilyuniversalmodels}                 & Direct+Grad & 11.3          & 57.1                & 2.9              & 150M (6M)  & 46,080\tnote{f}  \\
-            UMA-M                                                         & Direct+Grad & 10.0          & 47.3                & 2.7              & 1.4B (50M) & 129,024\tnote{f} \\
-            UMA-L                                                         & Direct      & 9.7           & 43.5                & 2.5              & 700M       & 95,232\tnote{f}  \\
+            UMA-S~\cite{wood2025umafamilyuniversalmodels}                 & Direct+Grad & 11.3          & 57.1                & 2.9              & 150M (6M)  & 46,080\tnote{e}  \\
+            UMA-M                                                         & Direct+Grad & 10.0          & 47.3                & 2.7              & 1.4B (50M) & 129,024\tnote{e} \\
+            UMA-L                                                         & Direct      & 9.7           & 43.5                & 2.5              & 700M       & 95,232\tnote{e}  \\
             \addlinespace[0.25em]
             \midrule
             \addlinespace[0.15em]
@@ -188,14 +188,14 @@ Within this setting, the accuracy--cost frontier remains open in the cost direct
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
-            \item[] The six DPA4 size classes are trained on OMat24 through the conservative energy-gradient objective and compared with published baselines.
             \item[] Boldface and underlining denote the best and second-best values of each evaluation metric; values that coincide at the reported precision carry the same mark.
-            \item[a] Prediction denotes the force-prediction pathway: Gradient obtains forces as energy gradients, Direct predicts forces directly, and Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning.
-            \item[b] Values are mean absolute errors in meV per atom for energy, meV/\AA\ for forces and meV/\AA$^3$ for stress; lower values are better.
-            \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs. UMA runs on H200 GPUs are counted at parity, as the H200 and H100 share the same theoretical FP32 peak throughput.
-            \item[e] No OMat24 validation metrics are published for MACE-Omat; the values listed here were obtained in this work by evaluating the released checkpoints through the ASE interface, and no train-time estimate is available.
-            \item[f] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMat24-only estimates.
+            \item[a] The Prediction column distinguishes forces derived from the model energy (Gradient), forces predicted independently of the energy (Direct), and direct-force-pretrained models subsequently fine-tuned through the energy-gradient objective (Direct+Grad).
+            \item[b] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
+            \item[c] The Train time column reports total accelerator usage in H100-equivalent hours.
+            DPA4 H20 runs are rescaled by the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            H200 hours are counted at parity with H100 hours because the two accelerators have the same theoretical FP32 peak throughput.
+            \item[d] No OMat24 validation metrics are published for MACE-Omat; the values listed here were obtained in this work by evaluating the released checkpoints through the ASE interface, and no train-time estimate is available.
+            \item[e] The UMA train times include multitask pre-training and fine-tuning and therefore are not OMat24-only estimates.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -225,46 +225,51 @@ Together with the Matbench Discovery results, this shows that the accuracy--para
     \begin{threeparttable}
         \caption{Performance on the OMol25 OMol-0 out-of-distribution composition validation split.}
         \label{tab:omol25}
-        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l c c c c c c @{}}
+        \begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l c @{\hspace{3pt}} c @{\hspace{3pt}} c c c c @{}}
             \toprule
-            \textbf{Model}                       &
-            \textbf{Prediction}\tnote{a}         &
-            \textbf{Cons.}\tnote{a}              &
-            \textbf{Energy}\tnote{b}             &
-            \textbf{Force}\tnote{b}              &
-            \textbf{Params}\tnote{c}             &
-            \textbf{Train time}\tnote{d}          \\
+            \textbf{Model}                                      &
+            \textbf{Prediction}\tnote{a}                        &
+            \textbf{Cons.}\tnote{a}                             &
+            \makecell{\textbf{Energy MAE}\\(kcal/mol)}\tnote{b} &
+            \makecell{\textbf{Force MAE}\\(kcal/mol/\AA)}\tnote{c} &
+            \textbf{Params}\tnote{d}                            &
+            \makecell{\textbf{Train time}\\(H100-eq. h)}\tnote{e} \\
             \midrule
-            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & Gradient    & \cmark & 4.56             & 0.25              & 52.4M\tnote{e} & --               \\
-            GemNet-OC-r6\tnote{f}~\cite{gasteiger2022gemnet,levine2025open}           & Direct      & \xmark & 1.04             & 0.17              & 39.1M      & --               \\
-            GemNet-OC\tnote{f}~\cite{gasteiger2022gemnet,levine2025open}              & Direct      & \xmark & \textbf{0.78}    & 0.15              & 39.1M      & --               \\
+            MACE-OMol-L-0~\cite{batatia2022mace,levine2025open}                       & Gradient    & \cmark & 4.56             & 0.25              & 52.4M\tnote{f} & --               \\
+            GemNet-OC-r6\tnote{g}~\cite{gasteiger2022gemnet,levine2025open}           & Direct      & \xmark & 1.04             & 0.17              & 39.1M      & --               \\
+            GemNet-OC\tnote{g}~\cite{gasteiger2022gemnet,levine2025open}              & Direct      & \xmark & \textbf{0.78}    & 0.15              & 39.1M      & --               \\
             eSEN-sm-d.~\cite{fu2025esen,levine2025open}                              & Direct      & \xmark & 2.06             & 0.23              & 6.3M       & --               \\
             eSEN-sm-cons.~\cite{fu2025esen,levine2025open}                           & Gradient    & \cmark & 1.77             & 0.19              & 6.3M       & --               \\
             eSEN-md-d.~\cite{fu2025esen,levine2025open}                              & Direct      & \xmark & 1.15             & \textbf{0.11}    & 50.7M      & --               \\
-            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & Direct+Grad & \cmark & 1.45             & 0.22              & 150M (6M)  & 46,080\tnote{g}  \\
-            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & Direct+Grad & \cmark & 1.14             & 0.14              & 1.4B (50M) & 129,024\tnote{g} \\
+            UMA-S-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & Direct+Grad & \cmark & 1.45             & 0.22              & 150M (6M)  & 46,080\tnote{h}  \\
+            UMA-M-1.1~\cite{wood2025umafamilyuniversalmodels,levine2025open}          & Direct+Grad & \cmark & 1.14             & \underline{0.14}  & 1.4B (50M) & 129,024\tnote{h} \\
             \addlinespace[0.25em]
             \midrule
             \addlinespace[0.15em]
-            DPA4-Nano                                      & Gradient    & \cmark & 8.02             & 0.776             & 0.48M      & 186              \\
-            DPA4-Mini                                      & Gradient    & \cmark & 4.97             & 0.502             & 0.66M      & 431              \\
-            DPA4-Neo                                       & Gradient    & \cmark & 2.91             & 0.332             & 1.1M       & 819              \\
-            DPA4-Air                                       & Gradient    & \cmark & 1.45             & 0.189             & 5.1M       & 1,549            \\
-            DPA4-Plus                                      & Gradient    & \cmark & 1.20             & 0.146             & 8.8M       & 2,521            \\
-            DPA4-Pro                                       & Gradient    & \cmark & \underline{0.92} & \underline{0.117} & 25.2M      & 8,829            \\
+            DPA4-Nano                                      & Gradient    & \cmark & 8.02             & 0.78              & 0.48M      & 186              \\
+            DPA4-Mini                                      & Gradient    & \cmark & 4.97             & 0.50              & 0.66M      & 431              \\
+            DPA4-Neo                                       & Gradient    & \cmark & 2.91             & 0.33              & 1.1M       & 819              \\
+            DPA4-Air                                       & Gradient    & \cmark & 1.45             & 0.19              & 5.1M       & 1,549            \\
+            DPA4-Plus                                      & Gradient    & \cmark & 1.20             & 0.15              & 8.8M       & 2,521            \\
+            DPA4-Pro                                       & Gradient    & \cmark & \underline{0.92} & \textbf{0.11}    & 25.2M      & 9,708            \\
             \bottomrule
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
             \item[] A dash indicates that a value is unavailable.
             \item[] Boldface and underlining denote the best and second-best values within each MAE column.
-            \item[a] Prediction denotes the force-prediction pathway: Gradient obtains forces as energy gradients, Direct predicts forces directly, and Direct+Grad denotes direct-force pre-training followed by gradient fine-tuning. Cons.\ marks whether the evaluated forces are conservative, i.e.\ energy gradients: \cmark{} for Gradient and Direct+Grad models, \xmark{} for Direct models.
-            \item[b] Values are mean absolute errors (MAEs), reported in kcal/mol for energy and kcal/mol/\AA{} for forces. Values originally reported in meV and meV/\AA{} are converted using $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$ and $1~\mathrm{meV}/\text{\AA}=0.0230605~\mathrm{kcal/mol}/\text{\AA}$, respectively.
-            \item[c] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
-            \item[d] Train time is the aggregate accelerator time, reported in H100-equivalent GPU-hours. DPA4 H20 runs are converted using the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs. UMA runs on H200 GPUs are counted at parity, as the H200 and H100 share the same theoretical FP32 peak throughput.
-            \item[e] The MACE-OMol-L-0 parameter count was computed from the released \texttt{MACE-omol-0-extra-large-1024.model} checkpoint distributed through the \href{https://github.com/ACEsuit/mace}{MACE repository}.
-            \item[f] GemNet-OC-r6 uses a 6~\AA{} cutoff radius, whereas GemNet-OC uses the default 12~\AA{} cutoff radius.
-            \item[g] The listed UMA train times are for the multitask UMA 1.0 runs and are not OMol25-only estimates. UMA-1.1 was obtained by further fine-tuning these models, but the cost of that step is not reported.
+            \item[a] The Prediction column distinguishes forces derived from the model energy (Gradient), forces predicted independently of the energy (Direct), and direct-force-pretrained models subsequently fine-tuned through the energy-gradient objective (Direct+Grad).
+            In the Cons.\ column, \cmark{} identifies evaluated forces derived from the model energy and \xmark{} identifies independently predicted forces.
+            \item[b] Energy MAEs originally reported in meV are converted using $1~\mathrm{meV}=0.0230605~\mathrm{kcal/mol}$.
+            \item[c] Force MAEs originally reported in meV/\AA{} are converted using $1~\mathrm{meV}/\text{\AA}=0.0230605~\mathrm{kcal/mol}/\text{\AA}$.
+            \item[d] Params reports total parameters; parentheses give active parameters for UMA MoLE models.
+            \item[e] The Train time column reports total accelerator usage in H100-equivalent hours.
+            DPA4 H20 runs are rescaled by the ratio of the theoretical FP32 peak throughputs of H20 and H100 GPUs.
+            H200 hours are counted at parity with H100 hours because the two accelerators have the same theoretical FP32 peak throughput.
+            \item[f] The MACE-OMol-L-0 parameter count was computed from the released \texttt{MACE-omol-0-extra-large-1024.model} checkpoint distributed through the \href{https://github.com/ACEsuit/mace}{MACE repository}.
+            \item[g] GemNet-OC-r6 uses a 6~\AA{} cutoff radius, whereas GemNet-OC uses the default 12~\AA{} cutoff radius.
+            \item[h] The listed UMA train times are for the multitask UMA 1.0 runs and are not OMol25-only estimates.
+            UMA-1.1 was obtained by further fine-tuning these models, but the cost of that step is not reported.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
@@ -273,17 +278,18 @@ OMol25~\cite{levine2025open} is a molecular dataset of DFT single-point calculat
 It is substantially broader in chemistry than SPICE-MACE-OFF and therefore probes transferability across molecular classes rather than accuracy within a single class.
 The dataset has been released in successive versions; we train on the OMol-0 release, which the dataset paper describes as containing about 100 million DFT datapoints and which is also the release used for the UMA-1.1 models~\cite{levine2025open}, and we evaluate on its out-of-distribution composition validation split.
 
-Across the six DPA4 size classes, increasing the parameter count from 0.48M to 25.2M monotonically decreases the energy and force MAEs from 8.02 to 0.92~kcal/mol and from 0.776 to 0.117~kcal/mol/\AA{}, respectively.
-Across the series, the training budget increases from 186 to 8,829 H100-equivalent GPU-hours from Nano through Pro.
+Across the six DPA4 size classes, increasing the parameter count from 0.48M to 25.2M monotonically decreases the energy and force MAEs from 8.02 to 0.92~kcal/mol and from 0.78 to 0.11~kcal/mol/\AA{}, respectively.
+Across the series, the training budget increases from 186 to 9,708 H100-equivalent GPU-hours from Nano through Pro.
 At the compact end, DPA4-Nano, DPA4-Mini and DPA4-Neo span 0.48--1.1M parameters, energy MAEs of 8.02--2.91~kcal/mol and training costs of 186--819 H100-equivalent GPU-hours.
 
-DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 at the reported precision and improves its force MAE from 0.22 to 0.189~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
+DPA4-Air then matches the 1.45~kcal/mol energy MAE of UMA-S-1.1 at the reported precision and improves its force MAE from 0.22 to 0.19~kcal/mol/\AA{} with 5.1M parameters, 29$\times$ fewer than the 150M total parameters of UMA-S-1.1.
 The strongest conservative baseline in Table~\ref{tab:omol25} is UMA-M-1.1, with energy and force MAEs of 1.14~kcal/mol and 0.14~kcal/mol/\AA{} at 1.4B total and 50M active parameters~\cite{wood2025umafamilyuniversalmodels,levine2025open}.
-DPA4-Plus matches it at 1.20~kcal/mol and 0.146~kcal/mol/\AA{}, and DPA4-Pro surpasses it on both metrics at 0.92~kcal/mol and 0.117~kcal/mol/\AA{}, trained with 2,521 and 8,829 H100-equivalent GPU-hours, respectively.
+DPA4-Plus matches it at 1.20~kcal/mol and 0.15~kcal/mol/\AA{}, and DPA4-Pro surpasses it on both metrics at 0.92~kcal/mol and 0.11~kcal/mol/\AA{}, trained with 2,521 and 9,708 H100-equivalent GPU-hours, respectively.
 UMA-M-1.0 required 129,024 GPU-hours for its two-stage training.
 UMA-M-1.1 was obtained by further fine-tuning this model, but the cost of that step is not reported.
 Non-conservative models predict energy and forces separately, free from the constraint that the forces are the gradients of the energy.
-Among them, GemNet-OC attains the lowest energy MAE of the table at 0.78~kcal/mol~\cite{gasteiger2022gemnet,levine2025open}, and eSEN-md-d.\ attains the lowest force MAE at 0.11~kcal/mol/\AA{}~\cite{fu2025esen,levine2025open}.
+Among them, GemNet-OC attains the lowest energy MAE of the table at 0.78~kcal/mol~\cite{gasteiger2022gemnet,levine2025open}, and eSEN-md-d.
+\ attains the lowest force MAE at 0.11~kcal/mol/\AA{}~\cite{fu2025esen,levine2025open}.
 Neither, however, surpasses DPA4-Pro on energy and force simultaneously.
 The monotonic error reduction across the DPA4 size series extends the scaling trends observed on Matbench Discovery and OMat24 to both OMol25 energy and force.
 
@@ -335,11 +341,10 @@ Following DPA3~\cite{zhang2025dpa3}, we also report a logarithmic weighted avera
         \end{tabular*}
         \begin{tablenotes}[flushleft]
             \PaperTableNotesStyle
-            \item[] The DPA4-Neo, DPA4-Air and DPA4-Plus variants are compared with MACE-OFF, eSEN and DPA3 baselines, together with parameter counts and train times.
-            \item[] Reported values are test-set MAEs on the SPICE-MACE-OFF dataset~\cite{kovacs2023mace}; energy MAEs are in meV/atom and force MAEs are in meV/\AA.
-            \item[] Boldface and underlining denote the best and second-best values for each dataset--target pair; values that coincide at the reported precision carry the same mark.
+            \item[] Boldface and underlining denote the best and second-best values for each dataset--target pair.
             \item[a] LWAMAE denotes the equal-weight geometric mean of subset MAEs, following the DPA3 comparison protocol~\cite{zhang2025dpa3}.
-            \item[b] Train time is the aggregate accelerator time, reported in A100-equivalent GPU-days; a dash indicates that no public train-time estimate is available.
+            \item[b] The Train time row reports total accelerator usage in A100-equivalent GPU-days.
+            A dash indicates that no public estimate is available.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}
