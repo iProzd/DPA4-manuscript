@@ -944,7 +944,6 @@ Thin horizontal rules separate related groups of model or training hyperparamete
 \subsection{Benchmark model configurations}
 
 Table~\ref{tab:sm_model_config} lists the model and systems configurations of the six DPA4 size classes considered in this work.
-The model settings of each size class are dataset-independent; only the training schedule varies between datasets.
 Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omol25_config} and \ref{tab:sm_spice_mace_off_config} give the training hyperparameters for the Matbench Discovery, OMat24, OMol25 and SPICE-MACE-OFF benchmarks, respectively.
 
 \begin{table}[p]
@@ -969,7 +968,7 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
             \midrule
             Edge--node degree coupling\tnote{a}  & Scalar scaling     & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      & Degree mixing      \\
             Per-channel coupling             & N/A                & True               & True               & True               & True               & True               \\
-            Coupling rank              & N/A                & 1                  & 1                  & 1                  & 2                  & 2                  \\
+            Coupling rank              & N/A                & 1                  & 1                  & 1                  & 2\tnote{d}         & 2                  \\
             \midrule
             Attn. heads                  & 1                  & 1                  & 1                  & 1                  & 1                  & 1                  \\
             Attn. value/output proj. & False              & False              & False              & False              & False              & False              \\
@@ -1008,6 +1007,7 @@ Tables~\ref{tab:sm_matbench_config}, \ref{tab:sm_omat24_config}, \ref{tab:sm_omo
             subblock and the second term to the FFN subblock.
             \item[c] Auto denotes a hidden dimension of $(8/3)d_\mathrm{feat}$, rounded
             up to a multiple of 32.
+            \item[d] For DPA4-Plus, the Matbench Discovery model uses coupling rank 1; the OMat24, OMol25 and SPICE-MACE-OFF models use rank 2.
         \end{tablenotes}
     \end{threeparttable}
 \end{table}

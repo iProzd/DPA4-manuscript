@@ -2,9 +2,21 @@
 
 \input{preamble/common}
 \input{preamble/arxiv}
+\usepackage{xr-hyper}
+
+\geometry{
+    textwidth=6.75in,
+    textheight=9in,
+    top=0.8in,
+    headheight=12pt,
+    headsep=20pt,
+    footskip=24pt
+}
+
+\externaldocument[][nocite]{submission/supplementary_information}
 
 \title{
-DPA4: Pushing the Accuracy--Cost Frontier of Interatomic Potentials with EMFA SO(2) Convolution
+Pushing the accuracy--cost frontier of machine-learning interatomic potentials
 }
 
 \author{
@@ -33,16 +45,14 @@ DPA4: Pushing the Accuracy--Cost Frontier of Interatomic Potentials with EMFA SO
     \end{minipage}
 }
 
-% \author[15,16,\thanks{\href{mailto:wang_han@iapcm.ac.cn}{wang\_han@iapcm.ac.cn}}]{Han Wang}
-
 \date{}
 
 \begin{document}
 
+\raggedbottom
 \maketitle
 
 \input{chap/abstract}
-
 \input{chap/introduction}
 \input{chap/results}
 \input{chap/discussion}
@@ -54,8 +64,5 @@ DPA4: Pushing the Accuracy--Cost Frontier of Interatomic Potentials with EMFA SO
 
 \bibliographystyle{naturemag-doi}
 \bibliography{ref}
-
-\clearpage
-\input{chap/sm}
 
 \end{document}

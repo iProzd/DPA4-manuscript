@@ -1,0 +1,29 @@
+\documentclass[11pt]{article}
+
+\input{preamble/common}
+\input{preamble/arxiv}
+\usepackage{xr-hyper}
+
+\geometry{
+    textwidth=6.75in,
+    textheight=9in,
+    top=0.8in,
+    headheight=12pt,
+    headsep=20pt,
+    footskip=24pt
+}
+
+\externaldocument[][nocite]{submission/main_submission}
+
+\begin{document}
+
+\raggedbottom
+\setcounter{page}{1}
+\input{chap/sm}
+
+\FloatBarrier
+\renewcommand{\refname}{Supplementary References}
+\bibliographystyle{naturemag-doi}
+\bibliography{ref}
+
+\end{document}
