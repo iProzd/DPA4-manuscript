@@ -56,7 +56,7 @@ The repository entry points `main.tex` and `main_arxiv.tex` remain the combined 
 - Tiancheng Li ORCID: [0009-0009-2459-0635](https://orcid.org/0009-0009-2459-0635), publicly verified against the name Tiancheng Li.
 - Related manuscripts: DPA4C and DPA4-Spin are not submitted, under review, accepted or in press; no related manuscript needs to be uploaded with this submission.
 - Data and code restrictions: none arising from commercial, licensing or confidentiality constraints.
-- Public checkpoints: the 20 trained DPA4 checkpoints used for the reported benchmarks are available at [AI Square](https://www.aissquare.com/models/detail?pageType=models&name=DPA4-Paper&id=436).
+- Public checkpoints: the 20 trained DPA4 checkpoints used for the reported benchmarks are available at [Hugging Face](https://huggingface.co/OutisLi/DPA4-Paper).
 - Data and Code Availability statements are separate sections, following the Nature Communications manuscript checklist.
 - No separate source-data workbook is planned for the initial submission; additional supporting data will be prepared only if requested by the editor.
 - Reviewer exclusions: Gábor Csányi and Shyue Ping Ong, owing to potential professional conflicts arising from their groups' development of closely related machine-learning interatomic-potential technologies.
