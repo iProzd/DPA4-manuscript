@@ -76,8 +76,8 @@ class ModelSpec:
 MODELS: Final = (
     ModelSpec("DPA4-Pro", "DPA4-Pro.csv", 0.842, 25.211, DPA4_COLORS["Pro"], (0, 11)),
     ModelSpec("DPA4-Plus", "DPA4-Plus.csv", 0.829, 8.796, DPA4_COLORS["Plus"], (0, 16)),
-    ModelSpec("DPA4-Air", "DPA4-Air.csv", 0.816, 5.148, DPA4_COLORS["Air"], (0, 18)),
-    ModelSpec("DPA4-Neo", "DPA4-Neo.csv", 0.782, 1.125, DPA4_COLORS["Neo"], (0, 18)),
+    ModelSpec("DPA4-Air", "DPA4-Air.csv", 0.816, 5.148, DPA4_COLORS["Air"], (0, 14)),
+    ModelSpec("DPA4-Neo", "DPA4-Neo.csv", 0.782, 1.125, DPA4_COLORS["Neo"], (0, 22)),
     ModelSpec("DPA4-Mini", "DPA4-Mini.csv", 0.733, 0.660, DPA4_COLORS["Mini"], (0, 34)),
     ModelSpec(
         "EquiformerV3+DeNS-MP",
@@ -338,12 +338,6 @@ def plot_summary(summary: pd.DataFrame) -> tuple[Figure, tuple[Axes, Axes]]:
                 "alpha": 0.8,
                 "shrinkA": 1.5,
                 "shrinkB": max(4.5, 0.55 * marker_size(model.params_m) ** 0.5),
-            },
-            bbox={
-                "facecolor": "white",
-                "edgecolor": "none",
-                "alpha": 0.78,
-                "pad": 0.15,
             },
             zorder=6,
         )

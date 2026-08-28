@@ -131,11 +131,11 @@ This suggests that the accuracy advantage originates in the architecture itself 
 The smaller DPA4 variants extend this trade-off across model scales: all five variants evaluated on Matbench Discovery lie on the Pareto frontier in CPS and saturated inference throughput (Fig.~\ref{fig:cps-throughput}), and each matches or surpasses much larger baselines at a small fraction of their model size and training budget.
 DPA4-Plus reaches a CPS of 0.829 with 8.8M parameters, matching EquiformerV3+DeNS-MP to within 0.001 CPS while running 11.9$\times$ faster at saturated inference, using 5.1$\times$ less training compute (31 versus 157 A100-equivalent GPU-days) and 3.4$\times$ fewer parameters.
 DPA4-Air reaches a CPS of 0.816 with 5.1M parameters, exceeding eSEN-30M-MP~\cite{fu2025esen} (0.797 CPS, 30.1M parameters) with 20.9$\times$ less training compute (16 versus 335 GPU-days) and a 5.9$\times$ smaller model.
-DPA4-Neo contains only 1.1M parameters but still reaches a CPS of 0.782, above MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a saturated throughput higher by more than two orders of magnitude (28.0 against 0.055~atoms/ms), 26$\times$ less training compute (8.6 versus 224 GPU-days) and a 9.5$\times$ smaller model.
-DPA4-Mini, the smallest variant at 0.66M parameters, reaches a CPS of 0.733 at a training budget of 5.8 GPU-days, above the Nequip-MP-L and Nequix MP entries of Table~\ref{tab:matbench} (0.730 and 0.729 CPS), running 23.7$\times$ and 4.3$\times$ faster at saturated inference and at 7.1$\times$ and 3.6$\times$ less training compute.
+DPA4-Neo contains only 1.1M parameters but still reaches a CPS of 0.782, above MatRIS-10M-MP~\cite{zhou2026matris} (0.778 CPS, 10.4M parameters) with a saturated throughput higher by more than two orders of magnitude (27.9 against 0.055~atoms/ms), 26$\times$ less training compute (8.6 versus 224 GPU-days) and a 9.5$\times$ smaller model.
+DPA4-Mini, the smallest variant at 0.66M parameters, reaches a CPS of 0.733 at a training budget of 5.8 GPU-days, above the Nequip-MP-L and Nequix MP entries of Table~\ref{tab:matbench} (0.730 and 0.729 CPS), running 23.9$\times$ and 4.4$\times$ faster at saturated inference and at 7.1$\times$ and 3.6$\times$ less training compute.
 
 Within the DPA4 series, the accuracy--throughput trade-off of Fig.~\ref{fig:cps-throughput} flattens sharply at the top end.
-The Mini--Neo, Neo--Air and Air--Plus steps trade 2.8$\times$, 2.4$\times$ and 2.3$\times$ in saturated inference throughput for CPS gains of 0.049, 0.034 and 0.013, whereas the step from DPA4-Plus to DPA4-Pro costs 3.8$\times$ (5.1 to 1.4~atoms/ms) and gains only 0.013.
+The Mini--Neo, Neo--Air and Air--Plus steps trade 2.9$\times$, 2.4$\times$ and 2.3$\times$ in saturated inference throughput for CPS gains of 0.049, 0.034 and 0.013, whereas the step from DPA4-Plus to DPA4-Pro costs 3.8$\times$ (5.1 to 1.4~atoms/ms) and gains only 0.013.
 DPA4-Plus therefore sits at the knee of the frontier: it matches the accuracy of the strongest baseline at an order of magnitude higher throughput, while DPA4-Pro converts a disproportionate share of throughput into the remaining margin at the top of the leaderboard, itself still 3.2$\times$ faster than EquiformerV3+DeNS-MP.
 On the training side, cost grows sublinearly with model size at the lower end, rising by only 1.9$\times$ from Neo to Air against a 4.6$\times$ increase in parameters, because neighbor-list construction, geometric preprocessing and memory traffic occupy a larger fraction of each step once the arithmetic workload no longer saturates the GPU.
 For perspective, the A100 has a peak FP32 throughput of 19.5~TFLOPS, whereas recent single-card workstation GPUs can exceed 100~TFLOPS.
@@ -391,22 +391,22 @@ The comparison sweeps diamond supercells at experimental density from a target s
 All inference benchmarks are run on the same H20 hardware and software environment with the same adaptive size-search and timing protocol, as detailed in Supplementary Section~\ref{sec:sm-inference}.
 
 Figure~\ref{fig:infer_diamond} shows that throughput rises with system size and approaches a saturated regime as the GPU becomes fully occupied.
-Across the six DPA4 size classes, reducing the model scale from Pro to Nano increases saturated throughput monotonically from 1.36 to 153~atoms/ms and expands the largest evaluable system from 1{,}920 to 97{,}336 atoms.
-DPA4-Nano therefore extends the throughput end of the family, reaching 1.93$\times$ the saturated throughput of DPA4-Mini and 112$\times$ that of DPA4-Pro.
+Across the six DPA4 size classes, reducing the model scale from Pro to Nano increases saturated throughput monotonically from 1.36 to 156~atoms/ms and expands the largest evaluable system from 1{,}920 to 97{,}336 atoms.
+DPA4-Nano therefore extends the throughput end of the family, reaching 1.95$\times$ the saturated throughput of DPA4-Mini and 115$\times$ that of DPA4-Pro.
 For Fig.~\ref{fig:cps-throughput}, saturated throughput is taken as the largest atom-normalized throughput among all successful trials of the adaptive size search.
 Because no Matbench Discovery CPS is reported for DPA4-Nano, the CPS--throughput comparison comprises the five DPA4 variants with available scores and ten compliant baselines.
 Among these fifteen models, DPA4-Pro has the highest CPS, DPA4-Mini has the highest saturated throughput, and the three intermediate DPA4 variants are non-dominated between these endpoints.
 The MACE-Omat and EquiformerV3 baselines of this sweep share their architecture and parameter count with the corresponding entries of Table~\ref{tab:omat24} (EquiformerV3 in its $L_{\max}=4$, 30M configuration), so accuracy and throughput can be read together.
 
 Against MACE-Omat~\cite{batatia2022mace,batatia2025crosslearning}, the six DPA4 size classes expose a continuous accuracy--throughput trade-off rather than a uniform dominance relation.
-At the throughput extreme, the 0.48M-parameter DPA4-Nano reaches 153~atoms/ms, 12.4$\times$ the saturated throughput of cuEquivariance-accelerated MACE-Omat-Small~\cite{nvidia_cuequivariance}, while its OMat24 energy and force MAEs are 4.5\% and 12\% higher, respectively.
-The trade-off reverses already at DPA4-Mini: with 0.66M parameters, it lowers the OMat24 energy and force MAEs of the 8.2M-parameter MACE-Omat-Small by 22\% and 18\%, while running 9.3$\times$ faster than its standard implementation and 6.4$\times$ faster than its cuEquivariance-accelerated form.
+At the throughput extreme, the 0.48M-parameter DPA4-Nano reaches 156~atoms/ms, 12.7$\times$ the saturated throughput of cuEquivariance-accelerated MACE-Omat-Small~\cite{nvidia_cuequivariance}, while its OMat24 energy and force MAEs are 4.5\% and 12\% higher, respectively.
+The trade-off reverses already at DPA4-Mini: with 0.66M parameters, it lowers the OMat24 energy and force MAEs of the 8.2M-parameter MACE-Omat-Small by 22\% and 18\%, while running 9.4$\times$ faster than its standard implementation and 6.5$\times$ faster than its cuEquivariance-accelerated form.
 DPA4-Neo, with 1.1M parameters, lowers both MAEs of the 9.1M-parameter MACE-Omat-Medium by 25\% and is still 2.4$\times$ faster than that baseline in its accelerated form.
 DPA4-Air reaches 11.6~atoms/ms, matching the cuEquivariance-accelerated MACE-Omat-Medium result of 11.5~atoms/ms and remaining within 6\% of the accelerated MACE-Omat-Small result of 12.3~atoms/ms, at energy and force MAEs 35--41\% below theirs.
 
 Against EquiformerV3~\cite{liao2026equiformerv3}, the same advantage appears in throughput and accessible system size.
 DPA4-Pro is more accurate than the $L_{\max}=4$ configuration in all three targets (energy 9.4 against 10.4~meV/atom, force 42.7 against 43.5~meV/\AA{}, stress 2.4 against 2.6~meV/\AA$^3$) while running 3.0$\times$ faster and reaching 1{,}920 atoms against 448 within the memory of one GPU.
-DPA4-Plus, with 3.4$\times$ fewer parameters, is 11.5$\times$ faster and reaches 7{,}200 atoms at a lower energy MAE (9.8 against 10.4~meV/atom) and a 4.8\% higher force MAE.
+DPA4-Plus, with 3.4$\times$ fewer parameters, is 11.5$\times$ faster and reaches 7{,}680 atoms at a lower energy MAE (9.8 against 10.4~meV/atom) and a 4.8\% higher force MAE.
 The DPA3-L6 and DPA3-L16 baselines~\cite{zhang2025dpa3} are 3.1$\times$ and 3.6$\times$ slower than DPA4-Air and DPA4-Plus, respectively.
 
 \input{chap/results_ablation}
