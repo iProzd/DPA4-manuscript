@@ -1,0 +1,41 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext}
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+\pagestyle{empty}
+
+\begin{document}
+Dear Editors,
+
+Please consider our manuscript, ``Pushing the accuracy--cost frontier of machine-learning interatomic potentials,'' as a Research Article in \textit{Science Advances}.
+
+Accurate atomistic models must express directional interactions while remaining affordable to train and evaluate repeatedly.
+DPA4 addresses these requirements through a conservative equivariant architecture that combines coupling between edge and node angular degrees with a Wigner bilinear nonlinearity on the rotation group.
+The full-frame Wigner bilinear construction has a universal approximation guarantee; the deployed models use an economical frame truncation, with quadrature chosen to preserve the nonlinearity's equivariance to floating-point precision.
+A complementary compiled implementation makes training through energy-derived forces practical without auxiliary denoising or direct-force pretraining.
+
+The manuscript connects these methodological choices to controlled ablations and evaluations across inorganic crystals and organic molecules.
+On Matbench Discovery, all five evaluated DPA4 variants lie on the measured accuracy--throughput Pareto frontier, with one matching the strongest tested baseline's composite score at 11.9-fold higher saturated throughput.
+The wider significance is a demonstrated reduction in the cost of learning and evaluating conservative potential-energy surfaces across distinct chemical domains.
+We believe this combination of equivariant model design, physical consistency and computational efficiency will interest readers in materials science, computational chemistry and scientific machine learning.
+
+This work has not been published in a peer-reviewed journal and is not under consideration elsewhere.
+A preprint is available at \url{https://arxiv.org/abs/2606.02419}.
+The study uses the public datasets cited in the manuscript.
+Code is available in DeePMD-kit (\url{https://github.com/deepmodeling/deepmd-kit}), and trained checkpoints are deposited at \url{https://huggingface.co/OutisLi/DPA4-Paper}, with no restrictions on access.
+All authors have approved the manuscript, and the authors declare no competing interests.
+Cursor, Claude Code and Codex assisted software development and, to a lesser extent, language editing; the manuscript describes this use and the authors' responsibility for the resulting code and text.
+
+Thank you for considering our manuscript.
+
+Sincerely,\par
+Han Wang\par
+Corresponding author, on behalf of all authors\par
+Institute of Applied Physics and Computational Mathematics, Beijing, China\par
+HEDPS, CAPT, College of Engineering, Peking University, Beijing, China\par
+\href{mailto:wang_han@iapcm.ac.cn}{wang\_han@iapcm.ac.cn}
+\end{document}

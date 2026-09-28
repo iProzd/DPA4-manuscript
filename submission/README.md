@@ -1,85 +1,90 @@
-# Nature Communications submission workspace
+# Science Advances submission workspace
 
-This directory contains working submission files for the DPA4 manuscript.
-It is not ready for upload until every blocking item below is resolved.
+This directory contains the current Research Article submission package for Science Advances. The title, scientific text, numerical results, author order, and correspondence designations are taken from the manuscript. The abstract has an explicitly authorized minimal length reduction; other scientific content is not rewritten during submission preparation.
 
-## Official sources
+## Upload files
 
-- [How to submit](https://www.nature.com/ncomms/submit/how-to-submit)
-- [Article requirements](https://www.nature.com/ncomms/submit/article)
-- [Editorial process](https://www.nature.com/ncomms/submit/editorial-process)
-- [Applied science and engineering research](https://www.nature.com/ncomms/submit/applied-science-research)
-- [Authorship policy](https://www.nature.com/nature-portfolio/editorial-policies/authorship)
-- [Competing interests policy](https://www.nature.com/nature-portfolio/editorial-policies/competing-interests)
-- [Data and code policy](https://www.nature.com/nature-portfolio/editorial-policies/reporting-standards)
-- [Artificial intelligence policy](https://www.nature.com/nature-portfolio/editorial-policies/ai)
-- [Open access fees and funding](https://www.nature.com/ncomms/open-access)
+- `main_submission.pdf`: main manuscript, figures, tables, unified references, and declarations.
+- `supplementary_materials.pdf`: supplementary text, Fig. S1, and Tables S1 to S24, using the same reference numbers as the main manuscript.
+- `combined_manuscript.pdf`: main manuscript followed by the Supplementary Materials, for a combined-PDF field.
+- `cover_letter.pdf`: one-page cover letter signed by Han Wang.
+- `manuscript_source.zip`: portable LaTeX, bibliography, style, and the figure files actually used.
 
-## Current submission files
+The files are local preparation artifacts. The CTS draft ID is **aem8043**, with status **Not Submitted** as observed on 2026-09-28. No manuscript files have been uploaded yet.
 
-- `main_submission.tex` and `main_submission.pdf`: main manuscript only.
-- `supplementary_information.tex` and `supplementary_information.pdf`: standalone Supplementary Information with independent page numbering and Supplementary References.
-- `cover_letter.md`: reviewed cover-letter draft for the submission system; the signatory is intentionally deferred until author confirmation.
-- `reviewer_exclusions.md`: verified reviewer-exclusion names, affiliations, email addresses and rationale.
+## Editable sources
 
-The repository entry points `main.tex` and `main_arxiv.tex` remain the combined manuscript-and-Supplementary-Information builds used for internal verification and arXiv preparation.
+- Scientific text: the existing `../chap/` files.
+- Bibliographic metadata: `../ref.bib`; complete author lists are stored here, while the bibliography style controls abbreviation.
+- Title page and author formatting: `front_matter.tex`, which directly includes the original `../chap/abstract.tex`.
+- Cover letter: `cover_letter.tex`.
+- Author/contact memo: `authors.md`.
+- Previously approved reviewer exclusions: `reviewer_exclusions.md`.
+- Build and export: `build.py`.
 
-## Verified format status
+There is no separate rewritten abstract or reference-override database. Eight incomplete author lists in the original bibliography have been completed from the sources listed below. Other bibliographic fields and the paper's scientific text are retained.
 
-- Article title: 8 words; the journal recommends no more than 15.
-- Abstract: 185 words and no references; the journal limit is 200 words.
-- Main text: approximately 5,921 words excluding Methods, references and legends; the journal recommends approximately 5,000.
-- Methods: approximately 5,618 words; the journal states that Methods are typically below 3,000 words, but initial submissions are format-flexible.
-- Main display items: 9 figures and tables; the journal allows up to 10 as a guide.
-- Main references: 56 in the standalone manuscript; the journal recommends no more than 70.
-- Both PDFs are below the 30 MB per-file limit.
-- The standalone Supplementary Information uses its own reference list, numbered from 1.
-- The current builds contain no LaTeX errors, unresolved references or citations, multiply defined labels, or overfull boxes.
-- The manuscript is publicly available as [arXiv:2606.02419](https://arxiv.org/abs/2606.02419), first submitted on 1 June 2026 and last revised as v4 on 20 August 2026. The arXiv author list matches the manuscript author list. The arXiv title is `DPA4: Pushing the Accuracy-Cost Frontier of Interatomic Potentials with EMFA SO(2) Convolution`.
+## Portal metadata
 
-## Confirmed submission metadata
+Title:
 
-- Submission title: `Pushing the accuracy–cost frontier of machine-learning interatomic potentials`.
-- Submitting author: Tiancheng Li; the Nature Communications MTS account has been registered.
-- Corresponding authors: Jianming Xue, Linfeng Zhang, Duo Zhang and Han Wang.
-- Final author order: Tiancheng Li; Wentao Li; Anyang Peng; Jianming Xue; Linfeng Zhang; Duo Zhang; Han Wang.
-- Equal-contribution and joint-supervision designations: none.
-- Present-address statements: none required.
-- Figure, schematic and table provenance: all are original author-created material; no third-party publication permissions are required.
-- Competing Interests statement: `The authors declare no competing interests.`
-- Funding statement: all confirmed grants are reported in a separate `Funding` section; no standalone Acknowledgments section is required.
-- Author Contributions statement: drafted for all seven authors; final approval by every author remains required before submission.
-- Generative-AI assistance: Cursor, Claude Code and Codex were used primarily for software development and to a lesser extent for language editing; the disclosure is included in the Methods section.
-- Peer-review model: standard peer review.
-- Prior discussion with a Nature Communications editor: none.
-- Preprint: [arXiv:2606.02419](https://arxiv.org/abs/2606.02419); do not opt in to the In Review / Research Square service.
-- Tiancheng Li ORCID: [0009-0009-2459-0635](https://orcid.org/0009-0009-2459-0635), publicly verified against the name Tiancheng Li.
-- Related manuscripts: DPA4C and DPA4-Spin are not submitted, under review, accepted or in press; no related manuscript needs to be uploaded with this submission.
-- Data and code restrictions: none arising from commercial, licensing or confidentiality constraints.
-- Public checkpoints: the 20 trained DPA4 checkpoints used for the reported benchmarks are available at [Hugging Face](https://huggingface.co/OutisLi/DPA4-Paper).
-- Data and Code Availability statements are separate sections, following the Nature Communications manuscript checklist.
-- No separate source-data workbook is planned for the initial submission; additional supporting data will be prepared only if requested by the editor.
-- Reviewer exclusions: Gábor Csányi and Shyue Ping Ong, owing to potential professional conflicts arising from their groups' development of closely related machine-learning interatomic-potential technologies.
-- Suggested reviewers: none; reviewer suggestions are optional, and only the two exclusions above will be provided.
-- Cover letter: independently reviewed and revised; Han Wang is listed as the corresponding contact, while the signatory is intentionally deferred until final confirmation.
+```text
+Pushing the accuracy–cost frontier of machine-learning interatomic potentials
+```
 
-## Blocking manuscript content
+Short title:
 
-- Obtain every author's approval of the Author Contributions statement.
+```text
+Accurate and efficient interatomic potentials
+```
 
-## Information required from the authors
+Teaser (113 characters including the final period; for the submission form):
 
-- ORCID for each corresponding author and, if available, every co-author.
-- APC payer or institutional/funder coverage: pending confirmation from the authors or institution. The current listed APC is GBP 5,490, USD 7,350 or EUR 6,150, plus applicable taxes, determined at acceptance.
-- Confirmation that all authors approve the manuscript, author order, contribution statement and submission.
+```text
+DPA4 combines rotational symmetry and conservative training to improve the accuracy and cost of atomistic models.
+```
 
-## Submission-system gate
+Journal: Science Advances. Article type: Research Article. Primary editorial contact: Han Wang.
 
-Before the final submit action:
+## Requirements and remaining items
 
-1. Rebuild both PDFs from clean sources.
-2. Run the LaTeX warning, reference and file-size checks.
-3. Render every page and inspect the title page, tables, figures, equations, references and SI transitions.
-4. Verify that title, abstract, authors, affiliations and statements match the MTS fields exactly.
-5. Download and inspect the MTS-generated submission proof.
-6. Obtain explicit author approval before the final submission click.
+The [official author guide](https://www.science.org/content/page/science-advances-information-authors?referrer=https%3A%2F%2Fcn.bing.com%2F) was read directly in Safari on 2026-09-28 after non-GUI retrieval returned HTTP 403. The user completed registration and logged in through Safari at the [AAAS submission portal](https://cts.sciencemag.org/scc/).
+
+The accessible [AAAS-sourced Science-family template](https://www.overleaf.com/latex/templates/science-and-science-family-journals-template/ptkzkvxkznbh) supports the formatting used here: numbered parenthetical citations, references before acknowledgments, and a shared reference list for the main text and supplement. The package retains the manuscript's mathematical and table packages for initial submission.
+
+The official abstract limit is 150 words. At the user's explicit request, the first background sentence was shortened and the final summary sentence removed; the five intervening sentences remain unchanged. An independent subagent reviewed the wording and scope. TeXcount reports 148 words, compared with 186 in the previous abstract. The preparation script directly includes `../chap/abstract.tex` and performs no further shortening.
+
+The official guide requires five suggested reviewers with names, affiliations and email addresses, and permits up to three exclusions. It also requests a Deputy or Section Editor suggestion and an Associate Editor suggestion. No suggested reviewers or editors have been approved or entered. The first author and corresponding authors require personally authenticated ORCID records; authors must authenticate their own IDs.
+
+The official guide confirms a unified reference list with complete author lists for journal citations, and single-spaced supplementary text and tables. The combined PDF must include the main text, figures, tables and Supplementary Materials; upload the supplementary PDF separately as well. The package applies these formatting requirements without rewriting scientific content.
+
+Before final submission, resolve reviewer/editor suggestions and ORCID authentication; refresh any related-manuscript disclosure; resolve payment coverage if requested; and inspect the portal-generated proof.
+
+## Rebuild and verification
+
+Run from the repository root:
+
+```sh
+/Users/outisli/Software/miniforge3/envs/dpmd/bin/python submission/build.py
+```
+
+The script uses the existing environment's BibTeX parser and PyMuPDF, invokes LaTeX/BibTeX, and exports the PDFs and portable source archive. The ignored `build/` directory holds intermediate files and `verification.json`. Export rejects unresolved references, overflowing text, and LaTeX warnings. Visual inspection must follow a rebuild.
+
+Verified on 2026-09-28: main manuscript 47 pages, single-spaced Supplementary Materials 31 pages, cover letter 1 page; 4 main figures, 5 main tables, 1 supplementary figure, 24 supplementary tables, and 62 references. The approved abstract and scientific sections match the manuscript sources. All eight bibliography changes affect only author fields. The current submission build has no unresolved citations/references or LaTeX layout warnings. Both `../main.tex` and `../main_arxiv.tex` also compile; the latter reports underfull spacing warnings.
+
+## Bibliography provenance
+
+Only the author fields of these eight entries were completed on 2026-09-28:
+
+| Citation key | Metadata source |
+| --- | --- |
+| `zhang2018end` | [arXiv:1805.09003](https://arxiv.org/abs/1805.09003) |
+| `batatia2023foundation` | [arXiv:2401.00096](https://arxiv.org/abs/2401.00096) |
+| `jain2013materials` | [Crossref: 10.1063/1.4812323](https://api.crossref.org/works/10.1063/1.4812323) |
+| `eastman2023spice` | [Crossref: 10.1038/s41597-022-01882-6](https://api.crossref.org/works/10.1038/s41597-022-01882-6) |
+| `smith2020psi4` | [Crossref: 10.1063/5.0006002](https://api.crossref.org/works/10.1063/5.0006002); the III suffixes for Schaefer and DePrince are also confirmed in the [Psi4 official bibliography](https://psicode.org/psi4manual/1.10.x/bibliography.html#smith-2020-184108) |
+| `yang2024mattersim` | [arXiv:2405.04967](https://arxiv.org/abs/2405.04967) |
+| `zhang2024dpa2` | [Crossref: 10.1038/s41524-024-01493-2](https://api.crossref.org/works/10.1038/s41524-024-01493-2) |
+| `levine2025open` | [arXiv:2505.08762](https://arxiv.org/abs/2505.08762) |
+
+The bibliography style is a renamed LPPL-licensed derivative of this [public Science-family style copy](https://gitlab.com/gain4crops/2024-paper/-/raw/main/sciencemag.bst), with automatic author truncation removed. Original copyright and license notices are retained.
